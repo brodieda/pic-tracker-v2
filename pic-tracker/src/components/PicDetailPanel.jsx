@@ -1,11 +1,8 @@
-import { useEffect, useMemo, useState } from 'react'
-import {
-  getPics,
-  getEvents,
-  getEvent,
-} from '../lib/store'
+import { useEffect, useState } from 'react'
+import { getPics, getEvents, getEvent } from '../lib/store'
 import {
   formatClock,
+  formatDateTime,
   formatElapsed,
   elapsedMinutes,
   currentCodeFor,
@@ -16,23 +13,32 @@ import {
   changePicKpe,
   addPicNote,
   updatePicEnteredCare,
+  addCheckEvent,
+  reopenPic,
   getAssignedKpe,
   normalizeReferredBy,
+  normalizeReferredTo,
+  code3MonitorStateFor,
+  minutesSinceLastActivity,
+  latestEventFor,
 } from '../lib/helpers'
 import {
   CODES,
   REFERRED_BY,
+  REFERRED_TO,
   SUBSTANCES,
   PRESENTATIONS,
   GENDERS,
   AGE_RANGES,
+  OUTCOMES,
 } from '../constants/options'
 import CodeBadge from './CodeBadge'
 import EditableCell from './EditableCell'
-import EventLog from './EventLog'
+import EventLog, { EventLogItem } from './EventLog'
 import Code1Warning from './Code1Warning'
-import KpePickerModal from './KpePickerModal'
+import KpeChipPicker from './KpeChipPicker'
 import TimeDateEditor from './TimeDateEditor'
+import DischargeModal from './DischargeModal'
 
 export default function PicDetailPanel({ picId, onClose, onMutated }) {
   const [pic, setPic] = useState(null)
@@ -42,9 +48,11 @@ export default function PicDetailPanel({ picId, onClose, onMutated }) {
   const [code1Pending, setCode1Pending] = useState(null)
   const [noteDraft, setNoteDraft] = useState('')
   const [noteOpen, setNoteOpen] = useState(false)
-  const [kpePickerOpen, setKpePickerOpen] = useState(false)
+  const [editingKpe, setEditingKpe] = useState(false)
   const [editingName, setEditingName] = useState(false)
   const [editingTime, setEditingTime] = useState(false)
+  const [dischargeOpen, setDischargeOpen] = useState(false)
+  const [tick, setTick] = useState(0)
 
   const reload = () => {
     const all = getPics()
@@ -57,18 +65,24 @@ export default function PicDetailPanel({ picId, onClose, onMutated }) {
     if (picId) reload()
   }, [picId])
 
-  // ESC to close
+  // Tick to keep monitoring footer fresh
+  useEffect(() => {
+    const id = setInterval(() => setTick((t) => t + 1), 30_000)
+    return () => clearInterval(id)
+  }, [])
+
+  // ESC closes
   useEffect(() => {
     if (!picId) return
     const handler = (e) => {
       if (e.key === 'Escape') {
-        if (kpePickerOpen) return // let the modal handle ESC itself
+        if (dischargeOpen) return
         onClose?.()
       }
     }
     document.addEventListener('keydown', handler)
     return () => document.removeEventListener('keydown', handler)
-  }, [picId, onClose, kpePickerOpen])
+  }, [picId, onClose, dischargeOpen])
 
   useEffect(() => {
     if (pic) {
@@ -97,6 +111,11 @@ export default function PicDetailPanel({ picId, onClose, onMutated }) {
   const shiftClass = shift === 1 ? 'bg-shift-1' : shift === 2 ? 'bg-shift-2' : 'bg-ink-700'
   const isDischarged = pic.status === 'discharged'
   const referredByList = normalizeReferredBy(pic)
+  const referredToList = normalizeReferredTo(pic)
+  const monitorState = !isDischarged ? code3MonitorStateFor(pic.id, events, eventCfg) : null
+  const minsSince = !isDischarged ? minutesSinceLastActivity(pic.id, events) : null
+  const latestEvent = latestEventFor(pic.id, events)
+  const eventCount = events.filter((e) => e.picId === pic.id).length
 
   const afterMutation = () => {
     reload()
@@ -132,7 +151,18 @@ export default function PicDetailPanel({ picId, onClose, onMutated }) {
     addPicNote(pic.id, noteDraft.trim(), assignedKpe)
     setNoteDraft('')
     setNoteOpen(false)
-    setShowHistory(true) // auto-open history so the new note is visible
+    setShowHistory(true)
+    afterMutation()
+  }
+
+  const onMarkChecked = () => {
+    addCheckEvent(pic.id, assignedKpe, null)
+    afterMutation()
+  }
+
+  const onReopen = () => {
+    if (!confirm(`Reopen PIC #${pic.number} and move back to in-care?`)) return
+    reopenPic(pic.id, assignedKpe, null)
     afterMutation()
   }
 
@@ -143,12 +173,11 @@ export default function PicDetailPanel({ picId, onClose, onMutated }) {
 
   return (
     <PanelShell onClose={onClose}>
-      {/* Header — name + time-in editable here */}
+      {/* Header */}
       <div className="px-6 pt-5 pb-4 border-b border-ink-800">
         <div className="flex items-start gap-4">
           <CodeBadge code={code} size="lg" />
           <div className="flex-1 min-w-0">
-            {/* PIC# + Name (click to edit) */}
             <div className="flex items-baseline gap-2 flex-wrap">
               <span className="font-display font-black text-2xl tabular-nums">
                 #{pic.number}
@@ -190,7 +219,6 @@ export default function PicDetailPanel({ picId, onClose, onMutated }) {
               )}
             </div>
 
-            {/* Time-in (click to edit) + meta */}
             <div className="mt-1.5 flex items-center gap-3 text-xs text-ink-400 flex-wrap">
               {editingTime ? (
                 <div className="w-full max-w-xs">
@@ -221,7 +249,7 @@ export default function PicDetailPanel({ picId, onClose, onMutated }) {
               )}
               {isDischarged && (
                 <span className="px-2 py-0.5 rounded-full bg-ink-800 border border-ink-700 text-ink-300 uppercase tracking-widest text-[10px] font-display font-bold">
-                  Discharged
+                  Discharged{pic.leftCare ? ` · ${formatClock(pic.leftCare)}` : ''}
                 </span>
               )}
             </div>
@@ -230,17 +258,51 @@ export default function PicDetailPanel({ picId, onClose, onMutated }) {
             ✕
           </button>
         </div>
+
+        {/* Monitoring footer in header for in-care code-3 */}
+        {monitorState && (
+          <div
+            className={`mt-3 flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-display tabular-nums ${
+              monitorState === 'overdue'
+                ? 'bg-code-1/15 border border-code-1/40 text-code-1'
+                : monitorState === 'due_soon'
+                ? 'bg-code-3/15 border border-code-3/40 text-code-3'
+                : 'bg-ink-800 border border-ink-700 text-ink-400'
+            }`}
+            data-tick={tick}
+          >
+            <span className="font-bold uppercase tracking-widest">
+              {monitorState === 'overdue'
+                ? '⚠ Welfare check overdue'
+                : monitorState === 'due_soon'
+                ? 'Welfare check due soon'
+                : 'Last check'}
+            </span>
+            <span>{minsSince != null ? `${minsSince}m ago` : '—'}</span>
+            <button
+              onClick={onMarkChecked}
+              className={`ml-auto px-2.5 py-1 rounded-md text-[11px] font-bold uppercase tracking-widest border transition ${
+                monitorState === 'overdue'
+                  ? 'bg-code-1 border-code-1 text-white hover:opacity-90'
+                  : monitorState === 'due_soon'
+                  ? 'bg-code-3 border-code-3 text-ink-950 hover:opacity-90'
+                  : 'bg-ink-700 border-ink-600 text-ink-100 hover:bg-ink-600'
+              }`}
+            >
+              Mark checked
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Body */}
       <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
-        {/* Code change buttons */}
+        {/* Code change */}
         <section>
           <div className="text-[10px] font-display tracking-[0.22em] uppercase text-ink-500 mb-2">
             Update code
           </div>
           <div className="flex items-stretch gap-2">
-            {/* Code 1 — narrower but full height */}
             {(() => {
               const c = CODES[0]
               const active = code === 1
@@ -286,34 +348,44 @@ export default function PicDetailPanel({ picId, onClose, onMutated }) {
           </div>
         </section>
 
-        {/* Assigned KPE — opens modal picker */}
+        {/* Assigned KPE — inline picker */}
         <section className="panel p-4">
           <div className="flex items-center justify-between mb-2">
             <span className="text-[10px] font-display tracking-[0.22em] uppercase text-ink-500">
               Assigned KPE
             </span>
-            <button
-              onClick={() => setKpePickerOpen(true)}
-              className="text-[10px] uppercase tracking-widest text-ink-400 hover:text-ink-100"
-            >
-              {assignedKpe ? 'change' : 'assign'}
-            </button>
-          </div>
-          <button
-            onClick={() => setKpePickerOpen(true)}
-            className="w-full text-left"
-          >
-            {assignedKpe ? (
-              <span className={`inline-flex items-center gap-1.5 ${shiftClass} text-white text-sm font-semibold px-3 py-1.5 rounded-full`}>
-                <span className="w-1.5 h-1.5 rounded-full bg-white/80" />
-                {assignedKpe}
-              </span>
-            ) : (
-              <span className="text-ink-500 italic text-sm">
-                Unassigned — tap to assign
-              </span>
+            {!editingKpe && (
+              <button
+                onClick={() => setEditingKpe(true)}
+                className="text-[10px] uppercase tracking-widest text-ink-400 hover:text-ink-100"
+              >
+                {assignedKpe ? 'change' : 'assign'}
+              </button>
             )}
-          </button>
+          </div>
+          {editingKpe ? (
+            <KpeChipPicker
+              currentKpe={assignedKpe}
+              shift1Team={eventCfg.shift1Team || []}
+              shift2Team={eventCfg.shift2Team || []}
+              onSelect={onKpeChange}
+              onDone={() => setEditingKpe(false)}
+            />
+          ) : (
+            <button
+              onClick={() => setEditingKpe(true)}
+              className="text-left"
+            >
+              {assignedKpe ? (
+                <span className={`inline-flex items-center gap-1.5 ${shiftClass} text-white text-sm font-semibold px-3 py-1.5 rounded-full`}>
+                  <span className="w-1.5 h-1.5 rounded-full bg-white/80" />
+                  {assignedKpe}
+                </span>
+              ) : (
+                <span className="text-ink-500 italic text-sm">Unassigned — tap to assign</span>
+              )}
+            </button>
+          )}
         </section>
 
         {/* 2x2 grid */}
@@ -350,9 +422,7 @@ export default function PicDetailPanel({ picId, onClose, onMutated }) {
           />
           <EditableCell
             label="Referred by"
-            displayChildren={
-              <ChipDisplay values={referredByList} other={pic.referredByOther} />
-            }
+            displayChildren={<ChipDisplay values={referredByList} other={pic.referredByOther} />}
             renderEditor={() => (
               <ChipEditor
                 options={REFERRED_BY}
@@ -430,82 +500,228 @@ export default function PicDetailPanel({ picId, onClose, onMutated }) {
           )}
         />
 
-        {/* Event history (with note adding) */}
-        <section className="panel p-4">
-          <button
-            onClick={() => setShowHistory(!showHistory)}
-            className="w-full flex items-center justify-between text-left"
-          >
-            <span className="text-[10px] font-display tracking-[0.22em] uppercase text-ink-300">
-              Event history · {events.filter((e) => e.picId === pic.id).length} entries
-            </span>
-            <span className={`text-ink-400 transition ${showHistory ? 'rotate-90' : ''}`}>
-              ›
-            </span>
-          </button>
+        {/* Discharge fields — only shown when discharged. All editable. */}
+        {isDischarged && (
+          <div className="panel p-4 space-y-3 border-2 border-ink-700">
+            <div className="text-[10px] font-display tracking-[0.22em] uppercase text-ink-400">
+              Discharge details
+            </div>
 
-          {showHistory && (
-            <div className="mt-4 pt-4 border-t border-ink-800 space-y-4">
-              {/* Add note inline */}
-              {noteOpen ? (
-                <div className="space-y-2">
-                  <textarea
-                    className="input min-h-[5rem]"
-                    placeholder="Note: observations, status update, etc."
-                    value={noteDraft}
-                    onChange={(e) => setNoteDraft(e.target.value)}
-                    autoFocus
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <EditableCell
+                label="Outcome"
+                displayChildren={
+                  pic.outcome ? (
+                    <span className="text-sm text-ink-200">
+                      {pic.outcome === 'Other' ? pic.outcomeOther || 'Other' : pic.outcome}
+                    </span>
+                  ) : (
+                    <span className="text-ink-500 italic text-sm">Not set</span>
+                  )
+                }
+                renderEditor={() => (
+                  <ChipEditor
+                    options={OUTCOMES}
+                    value={pic.outcome}
+                    otherValue={pic.outcomeOther || ''}
+                    onCommit={(value, otherValue) =>
+                      updatePicAndReload({ outcome: value, outcomeOther: otherValue })
+                    }
                   />
-                  <div className="flex justify-end gap-2">
+                )}
+              />
+              <EditableCell
+                label="Referred to"
+                displayChildren={<ChipDisplay values={referredToList} other={pic.referredToOther} />}
+                renderEditor={() => (
+                  <ChipEditor
+                    options={REFERRED_TO}
+                    value={referredToList}
+                    otherValue={pic.referredToOther || ''}
+                    multi
+                    onCommit={(value, otherValue) =>
+                      updatePicAndReload({ referredTo: value, referredToOther: otherValue })
+                    }
+                  />
+                )}
+              />
+              <EditableCell
+                label="Medical involved"
+                displayChildren={
+                  pic.medicalInvolved == null ? (
+                    <span className="text-ink-500 italic text-sm">Not set</span>
+                  ) : (
+                    <span className={`text-sm font-semibold ${pic.medicalInvolved ? 'text-code-1' : 'text-ink-200'}`}>
+                      {pic.medicalInvolved ? 'Yes' : 'No'}
+                    </span>
+                  )
+                }
+                renderEditor={() => (
+                  <div className="grid grid-cols-2 gap-2">
                     <button
-                      className="btn-ghost"
-                      onClick={() => {
-                        setNoteOpen(false)
-                        setNoteDraft('')
-                      }}
+                      onClick={() => updatePicAndReload({ medicalInvolved: false })}
+                      className={`h-12 rounded-lg font-bold border-2 ${
+                        pic.medicalInvolved === false
+                          ? 'bg-ink-100 text-ink-950 border-white'
+                          : 'bg-ink-900 text-ink-300 border-ink-700'
+                      }`}
                     >
-                      Cancel
+                      No
                     </button>
-                    <button className="btn-primary" onClick={submitNote} disabled={!noteDraft.trim()}>
-                      Save note
+                    <button
+                      onClick={() => updatePicAndReload({ medicalInvolved: true })}
+                      className={`h-12 rounded-lg font-bold border-2 ${
+                        pic.medicalInvolved === true
+                          ? 'bg-code-1 text-white border-white'
+                          : 'bg-ink-900 text-ink-300 border-ink-700'
+                      }`}
+                    >
+                      Yes
                     </button>
                   </div>
-                </div>
-              ) : (
-                <button
-                  onClick={() => setNoteOpen(true)}
-                  className="btn-ghost w-full"
-                >
-                  + Add note
-                </button>
-              )}
+                )}
+              />
+              <EditableCell
+                label="Last KPE"
+                displayChildren={
+                  pic.lastKpe ? (
+                    <span className="text-sm text-ink-200">{pic.lastKpe}</span>
+                  ) : (
+                    <span className="text-ink-500 italic text-sm">Not set</span>
+                  )
+                }
+                renderEditor={({ done }) => (
+                  <KpeChipPicker
+                    currentKpe={pic.lastKpe}
+                    shift1Team={eventCfg.shift1Team || []}
+                    shift2Team={eventCfg.shift2Team || []}
+                    onSelect={(v) => updatePicAndReload({ lastKpe: v })}
+                    onDone={done}
+                  />
+                )}
+              />
+            </div>
 
-              <EventLog events={events} picId={pic.id} />
+            <EditableCell
+              label="TL sign-off"
+              displayChildren={
+                pic.tlSignoff ? (
+                  <span className="inline-flex items-center gap-1.5 bg-code-3/15 border border-code-3/40 text-code-3 text-sm font-semibold px-3 py-1 rounded-full">
+                    {pic.tlSignoff}
+                  </span>
+                ) : (
+                  <span className="text-ink-500 italic text-sm">Not set</span>
+                )
+              }
+              renderEditor={({ done }) => (
+                <KpeChipPicker
+                  currentKpe={pic.tlSignoff}
+                  shift1Team={eventCfg.shift1Team || []}
+                  shift2Team={eventCfg.shift2Team || []}
+                  onSelect={(v) => updatePicAndReload({ tlSignoff: v })}
+                  onDone={done}
+                  allowClear={false}
+                />
+              )}
+            />
+          </div>
+        )}
+
+        {/* Event history — latest always visible */}
+        <section className="panel p-4">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[10px] font-display tracking-[0.22em] uppercase text-ink-300">
+              Latest event {eventCount > 1 && <span className="text-ink-500">· {eventCount} total</span>}
+            </span>
+            {eventCount > 1 && (
+              <button
+                onClick={() => setShowHistory(!showHistory)}
+                className="text-[10px] uppercase tracking-widest text-ink-400 hover:text-ink-100"
+              >
+                {showHistory ? 'hide history' : 'show history'}
+              </button>
+            )}
+          </div>
+
+          {/* Always show the latest entry */}
+          {latestEvent ? (
+            <ol>
+              <EventLogItem event={latestEvent} />
+            </ol>
+          ) : (
+            <p className="text-sm text-ink-500 italic">No events logged yet.</p>
+          )}
+
+          {/* Older entries when expanded */}
+          {showHistory && eventCount > 1 && (
+            <div className="mt-3 pt-3 border-t border-ink-800">
+              <div className="text-[10px] font-display tracking-[0.22em] uppercase text-ink-500 mb-2">
+                Earlier
+              </div>
+              <ol className="space-y-2">
+                {events
+                  .filter((e) => e.picId === pic.id && e.id !== latestEvent.id)
+                  .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+                  .map((e) => (
+                    <EventLogItem key={e.id} event={e} />
+                  ))}
+              </ol>
             </div>
           )}
 
-          {/* When history is collapsed, still allow adding a note */}
-          {!showHistory && !noteOpen && (
+          {/* Add note */}
+          {noteOpen ? (
+            <div className="mt-3 space-y-2">
+              <textarea
+                className="input min-h-[5rem]"
+                placeholder="Note: observations, status update, etc."
+                value={noteDraft}
+                onChange={(e) => setNoteDraft(e.target.value)}
+                autoFocus
+              />
+              <div className="flex justify-end gap-2">
+                <button
+                  className="btn-ghost"
+                  onClick={() => {
+                    setNoteOpen(false)
+                    setNoteDraft('')
+                  }}
+                >
+                  Cancel
+                </button>
+                <button className="btn-primary" onClick={submitNote} disabled={!noteDraft.trim()}>
+                  Save note
+                </button>
+              </div>
+            </div>
+          ) : (
             <button
-              onClick={() => {
-                setShowHistory(true)
-                setNoteOpen(true)
-              }}
-              className="mt-3 text-xs text-ink-400 hover:text-ink-200 font-display tracking-wide"
+              onClick={() => setNoteOpen(true)}
+              className="mt-3 btn-ghost w-full"
             >
               + Add note
             </button>
           )}
         </section>
 
-        {/* Discharge button (Pass 2) */}
-        {!isDischarged && (
-          <div className="pt-2">
-            <button className="btn-ghost w-full" disabled title="Coming in Pass 2">
-              Discharge PIC #{pic.number} (Pass 2)
+        {/* Discharge / reopen button */}
+        <div className="pt-2">
+          {!isDischarged ? (
+            <button
+              onClick={() => setDischargeOpen(true)}
+              className="btn-primary w-full text-base py-3"
+            >
+              Discharge PIC #{pic.number}
             </button>
-          </div>
-        )}
+          ) : (
+            <button
+              onClick={onReopen}
+              className="btn-ghost w-full"
+            >
+              Reopen — move back to in-care
+            </button>
+          )}
+        </div>
       </div>
 
       <Code1Warning
@@ -514,13 +730,12 @@ export default function PicDetailPanel({ picId, onClose, onMutated }) {
         onContinue={acknowledgeCode1}
       />
 
-      <KpePickerModal
-        open={kpePickerOpen}
-        currentKpe={assignedKpe}
-        shift1Team={eventCfg.shift1Team || []}
-        shift2Team={eventCfg.shift2Team || []}
-        onSelect={onKpeChange}
-        onClose={() => setKpePickerOpen(false)}
+      <DischargeModal
+        open={dischargeOpen}
+        pic={pic}
+        eventCfg={eventCfg}
+        onClose={() => setDischargeOpen(false)}
+        onDischarged={afterMutation}
       />
     </PanelShell>
   )

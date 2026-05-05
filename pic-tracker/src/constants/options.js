@@ -2,6 +2,9 @@
 
 export const REFERRED_BY = ['Self', 'Friend', 'Security', 'Medical', 'Police', 'Rovers', 'Other']
 
+export const REFERRED_TO = ['Self', 'Friends', 'Medical', 'Security', 'Police', 'Other']
+
+
 export const SUBSTANCES = [
   'Alcohol',
   'MDMA',

@@ -18,6 +18,32 @@ const TYPE_TONE = {
   discharge: 'border-ink-500 text-ink-200',
 }
 
+export function EventLogItem({ event }) {
+  return (
+    <li
+      className={`pl-3 border-l-2 py-1.5 ${TYPE_TONE[event.type] || 'border-ink-700 text-ink-300'}`}
+    >
+      <div className="flex items-baseline gap-2 flex-wrap">
+        <span className="text-xs font-display font-bold uppercase tracking-wider">
+          {TYPE_LABELS[event.type] || event.type}
+        </span>
+        {event.code != null && (
+          <span className="text-xs font-display font-bold tabular-nums text-ink-200">
+            Code {event.code}
+          </span>
+        )}
+        {event.kpe && <span className="text-xs text-ink-400">· {event.kpe}</span>}
+        <span className="text-xs font-display tabular-nums text-ink-500 ml-auto">
+          {formatDateTime(event.timestamp)}
+        </span>
+      </div>
+      {event.note && (
+        <div className="text-sm text-ink-200 mt-1 leading-snug">{event.note}</div>
+      )}
+    </li>
+  )
+}
+
 export default function EventLog({ events, picId }) {
   const items = events
     .filter((e) => e.picId === picId)
@@ -30,32 +56,7 @@ export default function EventLog({ events, picId }) {
   return (
     <ol className="space-y-2">
       {items.map((e) => (
-        <li
-          key={e.id}
-          className={`pl-3 border-l-2 py-1.5 ${TYPE_TONE[e.type] || 'border-ink-700 text-ink-300'}`}
-        >
-          <div className="flex items-baseline gap-2 flex-wrap">
-            <span className="text-xs font-display font-bold uppercase tracking-wider">
-              {TYPE_LABELS[e.type] || e.type}
-            </span>
-            {e.code != null && (
-              <span className="text-xs font-display font-bold tabular-nums text-ink-200">
-                Code {e.code}
-              </span>
-            )}
-            {e.kpe && (
-              <span className="text-xs text-ink-400">· {e.kpe}</span>
-            )}
-            <span className="text-xs font-display tabular-nums text-ink-500 ml-auto">
-              {formatDateTime(e.timestamp)}
-            </span>
-          </div>
-          {e.note && (
-            <div className="text-sm text-ink-200 mt-1 leading-snug">
-              {e.note}
-            </div>
-          )}
-        </li>
+        <EventLogItem key={e.id} event={e} />
       ))}
     </ol>
   )

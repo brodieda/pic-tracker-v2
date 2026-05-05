@@ -208,3 +208,125 @@ export function normalizeReferredBy(pic) {
   if (typeof v === 'string' && v) return [v]
   return []
 }
+
+// Same for referredTo.
+export function normalizeReferredTo(pic) {
+  if (!pic) return []
+  const v = pic.referredTo
+  if (Array.isArray(v)) return v
+  if (typeof v === 'string' && v) return [v]
+  return []
+}
+
+// Discharge a PIC. Sets status, leftCare, outcome, referredTo, medical, lastKpe, tlSignoff.
+// Emits a 'discharge' event with all the relevant context.
+export function dischargePic(picId, dischargeData) {
+  const { pics, idx } = findPicIndex(picId)
+  if (idx < 0) return null
+  const ts = dischargeData.leftCare || nowIso()
+  pics[idx] = {
+    ...pics[idx],
+    status: 'discharged',
+    leftCare: ts,
+    outcome: dischargeData.outcome || null,
+    outcomeOther: dischargeData.outcomeOther || null,
+    referredTo: dischargeData.referredTo || [],
+    referredToOther: dischargeData.referredToOther || null,
+    medicalInvolved: dischargeData.medicalInvolved ?? null,
+    lastKpe: dischargeData.lastKpe || pics[idx].assignedKpe || null,
+    tlSignoff: dischargeData.tlSignoff || null,
+  }
+  savePics(pics)
+  addEvent({
+    id: nextEventId(),
+    picId,
+    timestamp: ts,
+    type: 'discharge',
+    code: null,
+    kpe: dischargeData.lastKpe || pics[idx].assignedKpe || null,
+    note: dischargeData.note || null,
+    meta: {
+      outcome: dischargeData.outcome,
+      outcomeOther: dischargeData.outcomeOther,
+      referredTo: dischargeData.referredTo,
+      referredToOther: dischargeData.referredToOther,
+      medicalInvolved: dischargeData.medicalInvolved,
+      tlSignoff: dischargeData.tlSignoff,
+    },
+  })
+  return pics[idx]
+}
+
+// Reverse discharge — moves PIC back to in_care. Logs a note event for audit trail.
+export function reopenPic(picId, byKpe, reason) {
+  const { pics, idx } = findPicIndex(picId)
+  if (idx < 0) return null
+  pics[idx] = { ...pics[idx], status: 'in_care', leftCare: null }
+  savePics(pics)
+  addEvent({
+    id: nextEventId(),
+    picId,
+    timestamp: nowIso(),
+    type: 'note',
+    code: null,
+    kpe: byKpe || null,
+    note: `Discharge reversed${reason ? `: ${reason}` : ''}`,
+    meta: { reopen: true },
+  })
+  return pics[idx]
+}
+
+// Mark a Code 3 (or any) PIC as checked. Resets the welfare-check timer.
+export function addCheckEvent(picId, byKpe, note) {
+  addEvent({
+    id: nextEventId(),
+    picId,
+    timestamp: nowIso(),
+    type: 'check',
+    code: null,
+    kpe: byKpe || null,
+    note: note || null,
+    meta: {},
+  })
+}
+
+// Most recent timestamp of any event for a PIC. Used for "time since last activity".
+// For check-due computation, we use admit, code_change, check, kpe_change, note as
+// "activity" — anything that signals attention has been paid to this PIC.
+export function lastActivityFor(picId, events) {
+  const relevant = events
+    .filter((e) => e.picId === picId && ['admit', 'code_change', 'check', 'kpe_change', 'note'].includes(e.type))
+    .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+  return relevant[0]?.timestamp || null
+}
+
+// Most recent event of any kind for a PIC.
+export function latestEventFor(picId, events) {
+  const relevant = events
+    .filter((e) => e.picId === picId)
+    .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+  return relevant[0] || null
+}
+
+// Compute Code 3 monitoring state for a PIC.
+// Returns one of: null (not applicable), 'ok', 'due_soon', 'overdue'
+// Triggers only when current code is 3 and PIC is in care.
+// 'due_soon' = within last 25% of interval; 'overdue' = past interval.
+export function code3MonitorStateFor(picId, events, eventCfg, now = Date.now()) {
+  const code = currentCodeFor(picId, events)
+  if (code !== 3) return null
+  const interval = (eventCfg?.code3CheckIntervalMinutes || 15) * 60_000
+  const last = lastActivityFor(picId, events)
+  if (!last) return 'ok'
+  const elapsed = now - new Date(last).getTime()
+  if (elapsed >= interval) return 'overdue'
+  if (elapsed >= interval * 0.75) return 'due_soon'
+  return 'ok'
+}
+
+// Minutes since last activity for a PIC.
+export function minutesSinceLastActivity(picId, events, now = Date.now()) {
+  const last = lastActivityFor(picId, events)
+  if (!last) return null
+  return Math.floor((now - new Date(last).getTime()) / 60_000)
+}

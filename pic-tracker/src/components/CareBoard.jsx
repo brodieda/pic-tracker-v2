@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { getPics, getEvents, getEvent } from '../lib/store'
 import PicCard from './PicCard'
-import { currentCodeFor } from '../lib/helpers'
+import { currentCodeFor, addCheckEvent, getAssignedKpe } from '../lib/helpers'
 
 const CAPACITY_WARNING_THRESHOLD = 3 // show yellow when this many spaces or fewer remain
 
@@ -11,16 +11,26 @@ export default function CareBoard({ refreshKey, onAddPic, onPicClick }) {
   const [eventCfg, setEventCfg] = useState({})
   const [tick, setTick] = useState(0)
 
-  useEffect(() => {
+  const reload = () => {
     setPics(getPics())
     setEvents(getEvents())
     setEventCfg(getEvent())
-  }, [refreshKey])
+  }
 
   useEffect(() => {
-    const id = setInterval(() => setTick((t) => t + 1), 60000)
+    reload()
+  }, [refreshKey])
+
+  // Tick every 30 seconds so monitoring states stay current. (Was 60s in Phase 1.)
+  useEffect(() => {
+    const id = setInterval(() => setTick((t) => t + 1), 30_000)
     return () => clearInterval(id)
   }, [])
+
+  const onMarkChecked = (pic) => {
+    addCheckEvent(pic.id, getAssignedKpe(pic), null)
+    reload()
+  }
 
   const inCare = pics
     .filter((p) => p.status === 'in_care')
@@ -35,7 +45,6 @@ export default function CareBoard({ refreshKey, onAddPic, onPicClick }) {
     .filter((p) => p.status === 'discharged')
     .sort((a, b) => new Date(b.leftCare || 0) - new Date(a.leftCare || 0))
 
-  // Capacity computation
   const capacity = eventCfg.capacity
   const inCareCount = inCare.length
   const spacesRemaining = capacity != null ? Math.max(0, capacity - inCareCount) : null
@@ -102,6 +111,7 @@ export default function CareBoard({ refreshKey, onAddPic, onPicClick }) {
                   events={events}
                   eventCfg={eventCfg}
                   onClick={() => onPicClick?.(pic)}
+                  onMarkChecked={onMarkChecked}
                 />
               ))}
             </div>
@@ -122,7 +132,6 @@ export default function CareBoard({ refreshKey, onAddPic, onPicClick }) {
           {discharged.length === 0 ? (
             <div className="panel p-8 text-center">
               <p className="text-ink-500 text-sm">No discharges yet.</p>
-              <p className="text-ink-600 text-xs mt-1">Phase 2 will add discharge flow.</p>
             </div>
           ) : (
             <div className="space-y-3">
