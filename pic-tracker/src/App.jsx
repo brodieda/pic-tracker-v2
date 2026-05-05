@@ -3,6 +3,8 @@ import EventSettings from './components/EventSettings'
 import CareBoard from './components/CareBoard'
 import IntakeModal from './components/IntakeModal'
 import PicDetailPanel from './components/PicDetailPanel'
+import Dashboard from './components/Dashboard'
+import Reports from './components/Reports'
 import { getEvent, getPics } from './lib/store'
 
 export default function App() {
@@ -10,7 +12,7 @@ export default function App() {
   const [intakeOpen, setIntakeOpen] = useState(false)
   const [refreshKey, setRefreshKey] = useState(0)
   const [activePicId, setActivePicId] = useState(null)
-  const [openIntent, setOpenIntent] = useState(null) // null | 'edit_kpe'
+  const [openIntent, setOpenIntent] = useState(null)
 
   useEffect(() => {
     const e = getEvent()
@@ -34,12 +36,18 @@ export default function App() {
             <NavButton active={view === 'board'} onClick={() => setView('board')}>
               Board
             </NavButton>
+            <NavButton active={view === 'dashboard'} onClick={() => setView('dashboard')}>
+              Dashboard
+            </NavButton>
+            <NavButton active={view === 'reports'} onClick={() => setView('reports')}>
+              Reports
+            </NavButton>
             <NavButton active={view === 'settings'} onClick={() => setView('settings')}>
               Settings
             </NavButton>
           </nav>
           <div className="ml-auto text-xs text-ink-500 font-display tracking-wider hidden sm:block">
-            v0.2 · phase 2 / pass 1
+            v0.3 · phase 3
           </div>
         </div>
       </header>
@@ -58,6 +66,8 @@ export default function App() {
           }}
         />
       )}
+      {view === 'dashboard' && <Dashboard refreshKey={refreshKey} />}
+      {view === 'reports' && <Reports refreshKey={refreshKey} />}
       {view === 'settings' && <EventSettings onSaved={refresh} />}
 
       <IntakeModal

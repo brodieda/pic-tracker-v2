@@ -175,7 +175,7 @@ export default function PicCard({ pic, events, eventCfg, allPics, onClick, onMar
             )}
             <CodePill code={code} />
             <div className="flex flex-col items-end gap-1.5 shrink-0">
-              <span className={`text-xs font-display tabular-nums whitespace-nowrap leading-none pt-1.5 ${timeColor}`}>
+              <span className={`text-sm font-display font-semibold tabular-nums whitespace-nowrap leading-none pt-1.5 ${timeColor}`}>
                 {isDischarged ? (
                   <>
                     <span className="text-ink-500">in</span> {formatClock(pic.enteredCare)}
