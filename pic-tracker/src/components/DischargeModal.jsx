@@ -70,7 +70,7 @@ export default function DischargeModal({ open, pic, eventCfg, onClose, onDischar
 
         {/* Body */}
         <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
-          {/* Time out — editor open by default */}
+          {/* Time out — editor open by default in live mode */}
           <div>
             <div className="text-[10px] font-display tracking-[0.22em] uppercase text-ink-400 mb-2 flex items-center justify-between">
               <span>Time out</span>
@@ -86,11 +86,8 @@ export default function DischargeModal({ open, pic, eventCfg, onClose, onDischar
                 key={leftCare}
                 value={leftCare}
                 onCommit={(iso) => setLeftCare(iso)}
-                onCancel={() => {}}
+                mode="live"
               />
-            </div>
-            <div className="mt-2 text-xs text-ink-400 font-display tabular-nums">
-              Time out set to <span className="text-ink-100 font-bold">{formatClock(leftCare)}</span>
             </div>
           </div>
 

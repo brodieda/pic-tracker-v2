@@ -103,7 +103,7 @@ export default function CareBoard({ refreshKey, onAddPic, onPicClick }) {
               </button>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-2">
               {inCare.map((pic) => (
                 <PicCard
                   key={pic.id}
@@ -134,7 +134,7 @@ export default function CareBoard({ refreshKey, onAddPic, onPicClick }) {
               <p className="text-ink-500 text-sm">No discharges yet.</p>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-2">
               {discharged.map((pic) => (
                 <PicCard
                   key={pic.id}
