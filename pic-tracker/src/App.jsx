@@ -10,6 +10,7 @@ export default function App() {
   const [intakeOpen, setIntakeOpen] = useState(false)
   const [refreshKey, setRefreshKey] = useState(0)
   const [activePicId, setActivePicId] = useState(null)
+  const [openIntent, setOpenIntent] = useState(null) // null | 'edit_kpe'
 
   useEffect(() => {
     const e = getEvent()
@@ -47,7 +48,14 @@ export default function App() {
         <CareBoard
           refreshKey={refreshKey}
           onAddPic={() => setIntakeOpen(true)}
-          onPicClick={(pic) => setActivePicId(pic.id)}
+          onPicClick={(pic) => {
+            setOpenIntent(null)
+            setActivePicId(pic.id)
+          }}
+          onPicTapKpe={(pic) => {
+            setOpenIntent('edit_kpe')
+            setActivePicId(pic.id)
+          }}
         />
       )}
       {view === 'settings' && <EventSettings onSaved={refresh} />}
@@ -60,7 +68,11 @@ export default function App() {
 
       <PicDetailPanel
         picId={activePicId}
-        onClose={() => setActivePicId(null)}
+        openIntent={openIntent}
+        onClose={() => {
+          setActivePicId(null)
+          setOpenIntent(null)
+        }}
         onMutated={refresh}
       />
     </div>

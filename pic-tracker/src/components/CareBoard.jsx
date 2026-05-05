@@ -5,7 +5,7 @@ import { currentCodeFor, addCheckEvent, getAssignedKpe } from '../lib/helpers'
 
 const CAPACITY_WARNING_THRESHOLD = 3 // show yellow when this many spaces or fewer remain
 
-export default function CareBoard({ refreshKey, onAddPic, onPicClick }) {
+export default function CareBoard({ refreshKey, onAddPic, onPicClick, onPicTapKpe }) {
   const [pics, setPics] = useState([])
   const [events, setEvents] = useState([])
   const [eventCfg, setEventCfg] = useState({})
@@ -110,8 +110,10 @@ export default function CareBoard({ refreshKey, onAddPic, onPicClick }) {
                   pic={pic}
                   events={events}
                   eventCfg={eventCfg}
+                  allPics={pics}
                   onClick={() => onPicClick?.(pic)}
                   onMarkChecked={onMarkChecked}
+                  onTapKpe={() => onPicTapKpe?.(pic)}
                 />
               ))}
             </div>
@@ -141,7 +143,9 @@ export default function CareBoard({ refreshKey, onAddPic, onPicClick }) {
                   pic={pic}
                   events={events}
                   eventCfg={eventCfg}
+                  allPics={pics}
                   onClick={() => onPicClick?.(pic)}
+                  onTapKpe={() => onPicTapKpe?.(pic)}
                 />
               ))}
             </div>

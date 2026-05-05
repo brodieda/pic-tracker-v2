@@ -36,7 +36,7 @@ export const PRESENTATIONS = [
 
 export const GENDERS = ['Feminine', 'Masculine', 'Non-binary']
 
-export const AGE_RANGES = ['Under 18', '18-19', '20-24', '25-29', '30-34', '35-44', '45+']
+export const AGE_RANGES = ['<15', '15-19', '20-24', '25-29', '30-34', '35-39', '40+']
 
 export const OUTCOMES = [
   'Back to camp',

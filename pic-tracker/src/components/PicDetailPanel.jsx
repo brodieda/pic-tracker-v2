@@ -40,7 +40,7 @@ import KpeChipPicker from './KpeChipPicker'
 import TimeDateEditor from './TimeDateEditor'
 import DischargeModal from './DischargeModal'
 
-export default function PicDetailPanel({ picId, onClose, onMutated }) {
+export default function PicDetailPanel({ picId, onClose, onMutated, openIntent }) {
   const [pic, setPic] = useState(null)
   const [events, setEvents] = useState([])
   const [eventCfg, setEventCfg] = useState({})
@@ -64,6 +64,13 @@ export default function PicDetailPanel({ picId, onClose, onMutated }) {
   useEffect(() => {
     if (picId) reload()
   }, [picId])
+
+  // Honour openIntent — pre-expand KPE editor when caller signals "edit_kpe"
+  useEffect(() => {
+    if (picId && openIntent === 'edit_kpe') {
+      setEditingKpe(true)
+    }
+  }, [picId, openIntent])
 
   // Tick to keep monitoring footer fresh
   useEffect(() => {

@@ -290,6 +290,15 @@ export function addCheckEvent(picId, byKpe, note) {
   })
 }
 
+// Count of currently in-care PICs assigned to this KPE.
+// Used for workload dots on the KPE tag.
+export function workloadFor(kpeName, allPics) {
+  if (!kpeName) return 0
+  return (allPics || []).filter(
+    (p) => p.status === 'in_care' && getAssignedKpe(p) === kpeName,
+  ).length
+}
+
 // Most recent timestamp of any event for a PIC. Used for "time since last activity".
 // For check-due computation, we use admit, code_change, check, kpe_change, note as
 // "activity" — anything that signals attention has been paid to this PIC.
