@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { dischargePic, getAssignedKpe, nowIso, formatClock, isoToDatetimeLocal, datetimeLocalToIso } from '../lib/helpers'
+import { dischargePic, getAssignedKpe, nowIso, formatClock } from '../lib/helpers'
 import { OUTCOMES, REFERRED_TO } from '../constants/options'
 import ChipGroup from './ChipGroup'
 import KpeChipPicker from './KpeChipPicker'
@@ -7,7 +7,6 @@ import TimeDateEditor from './TimeDateEditor'
 
 export default function DischargeModal({ open, pic, eventCfg, onClose, onDischarged }) {
   const [leftCare, setLeftCare] = useState(nowIso())
-  const [editingTime, setEditingTime] = useState(false)
   const [outcome, setOutcome] = useState(null)
   const [outcomeOther, setOutcomeOther] = useState('')
   const [referredTo, setReferredTo] = useState([])
@@ -17,12 +16,10 @@ export default function DischargeModal({ open, pic, eventCfg, onClose, onDischar
   const [editingLastKpe, setEditingLastKpe] = useState(false)
   const [tlSignoff, setTlSignoff] = useState(null)
   const [editingTlSignoff, setEditingTlSignoff] = useState(false)
-  const [error, setError] = useState(null)
 
   useEffect(() => {
     if (open && pic) {
       setLeftCare(nowIso())
-      setEditingTime(false)
       setOutcome(null)
       setOutcomeOther('')
       setReferredTo([])
@@ -32,20 +29,12 @@ export default function DischargeModal({ open, pic, eventCfg, onClose, onDischar
       setEditingLastKpe(false)
       setTlSignoff(null)
       setEditingTlSignoff(false)
-      setError(null)
     }
   }, [open, pic])
 
   if (!open || !pic) return null
 
-  const allKpes = Array.from(new Set([...(eventCfg?.shift1Team || []), ...(eventCfg?.shift2Team || [])]))
-
   const submit = () => {
-    setError(null)
-    if (!outcome) return setError('Outcome is required.')
-    if (medicalInvolved == null) return setError('Medical involvement is required.')
-    if (!tlSignoff) return setError('TL sign-off is required.')
-
     dischargePic(pic.id, {
       leftCare,
       outcome,
@@ -81,47 +70,34 @@ export default function DischargeModal({ open, pic, eventCfg, onClose, onDischar
 
         {/* Body */}
         <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
-          {/* Time out */}
+          {/* Time out — editor open by default */}
           <div>
-            <div className="text-[10px] font-display tracking-[0.22em] uppercase text-ink-400 mb-2">
-              Time out
+            <div className="text-[10px] font-display tracking-[0.22em] uppercase text-ink-400 mb-2 flex items-center justify-between">
+              <span>Time out</span>
+              <button
+                onClick={() => setLeftCare(nowIso())}
+                className="text-[10px] uppercase tracking-widest text-ink-400 hover:text-ink-100"
+              >
+                reset to now
+              </button>
             </div>
-            {editingTime ? (
-              <div className="max-w-xs">
-                <TimeDateEditor
-                  value={leftCare}
-                  onCommit={(iso) => {
-                    setLeftCare(iso)
-                    setEditingTime(false)
-                  }}
-                  onCancel={() => setEditingTime(false)}
-                />
-              </div>
-            ) : (
-              <div className="flex items-center gap-3">
-                <span className="font-display font-bold tabular-nums text-2xl text-ink-100">
-                  {formatClock(leftCare)}
-                </span>
-                <button
-                  onClick={() => setEditingTime(true)}
-                  className="btn-ghost text-sm"
-                >
-                  Edit time
-                </button>
-                <button
-                  onClick={() => setLeftCare(nowIso())}
-                  className="text-xs text-ink-400 hover:text-ink-100 underline-offset-4 hover:underline"
-                >
-                  Reset to now
-                </button>
-              </div>
-            )}
+            <div className="max-w-xs">
+              <TimeDateEditor
+                key={leftCare}
+                value={leftCare}
+                onCommit={(iso) => setLeftCare(iso)}
+                onCancel={() => {}}
+              />
+            </div>
+            <div className="mt-2 text-xs text-ink-400 font-display tabular-nums">
+              Time out set to <span className="text-ink-100 font-bold">{formatClock(leftCare)}</span>
+            </div>
           </div>
 
           {/* Outcome */}
           <div>
             <div className="text-[10px] font-display tracking-[0.22em] uppercase text-ink-400 mb-2">
-              Outcome <span className="text-code-1">*</span>
+              Outcome
             </div>
             <ChipGroup
               options={OUTCOMES}
@@ -132,7 +108,7 @@ export default function DischargeModal({ open, pic, eventCfg, onClose, onDischar
             />
           </div>
 
-          {/* Referred to (multi) */}
+          {/* Referred to */}
           <div>
             <div className="text-[10px] font-display tracking-[0.22em] uppercase text-ink-400 mb-2">
               Referred to <span className="text-ink-500 normal-case tracking-normal">(multi-select)</span>
@@ -150,11 +126,11 @@ export default function DischargeModal({ open, pic, eventCfg, onClose, onDischar
           {/* Medical involved */}
           <div>
             <div className="text-[10px] font-display tracking-[0.22em] uppercase text-ink-400 mb-2">
-              Medical involved? <span className="text-code-1">*</span>
+              Medical involved?
             </div>
             <div className="grid grid-cols-2 gap-3">
               <button
-                onClick={() => setMedicalInvolved(false)}
+                onClick={() => setMedicalInvolved(medicalInvolved === false ? null : false)}
                 className={`h-16 rounded-xl font-display font-bold text-xl border-2 transition ${
                   medicalInvolved === false
                     ? 'bg-ink-100 text-ink-950 border-white shadow-lg'
@@ -164,7 +140,7 @@ export default function DischargeModal({ open, pic, eventCfg, onClose, onDischar
                 No
               </button>
               <button
-                onClick={() => setMedicalInvolved(true)}
+                onClick={() => setMedicalInvolved(medicalInvolved === true ? null : true)}
                 className={`h-16 rounded-xl font-display font-bold text-xl border-2 transition ${
                   medicalInvolved === true
                     ? 'bg-code-1 text-white border-white shadow-lg'
@@ -218,10 +194,10 @@ export default function DischargeModal({ open, pic, eventCfg, onClose, onDischar
           </div>
 
           {/* TL sign-off */}
-          <div className="panel p-4 border-2 border-code-3/20">
+          <div className="panel p-4">
             <div className="flex items-center justify-between mb-2">
               <span className="text-[10px] font-display tracking-[0.22em] uppercase text-ink-400">
-                TL sign-off <span className="text-code-1">*</span>
+                TL sign-off
               </span>
               {!editingTlSignoff && tlSignoff && (
                 <button
@@ -239,10 +215,9 @@ export default function DischargeModal({ open, pic, eventCfg, onClose, onDischar
                 shift2Team={eventCfg?.shift2Team || []}
                 onSelect={setTlSignoff}
                 onDone={() => setEditingTlSignoff(false)}
-                allowClear={false}
               />
             ) : (
-              <span className="inline-flex items-center gap-1.5 bg-code-3/15 border border-code-3/40 text-code-3 text-sm font-semibold px-3 py-1.5 rounded-full">
+              <span className="inline-flex items-center gap-1.5 bg-ink-800 border border-ink-700 text-ink-100 text-sm font-semibold px-3 py-1.5 rounded-full">
                 {tlSignoff}
               </span>
             )}
@@ -251,13 +226,9 @@ export default function DischargeModal({ open, pic, eventCfg, onClose, onDischar
 
         {/* Footer */}
         <div className="border-t border-ink-800 px-6 py-4 flex items-center gap-3">
-          {error ? (
-            <span className="text-sm text-code-1 font-semibold flex-1">{error}</span>
-          ) : (
-            <span className="text-xs text-ink-500 flex-1">
-              <span className="text-code-1">*</span> required: outcome, medical Y/N, TL sign-off
-            </span>
-          )}
+          <span className="text-xs text-ink-500 flex-1">
+            All fields optional — fill what you can, edit later from the panel
+          </span>
           <button className="btn-ghost" onClick={onClose}>Cancel</button>
           <button className="btn-primary" onClick={submit}>
             Discharge PIC #{pic.number}

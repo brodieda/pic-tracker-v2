@@ -248,8 +248,17 @@ export default function PicDetailPanel({ picId, onClose, onMutated }) {
                 </span>
               )}
               {isDischarged && (
-                <span className="px-2 py-0.5 rounded-full bg-ink-800 border border-ink-700 text-ink-300 uppercase tracking-widest text-[10px] font-display font-bold">
-                  Discharged{pic.leftCare ? ` · ${formatClock(pic.leftCare)}` : ''}
+                <span className="inline-flex items-center gap-2">
+                  <span className="px-2 py-0.5 rounded-full bg-ink-800 border border-ink-700 text-ink-300 uppercase tracking-widest text-[10px] font-display font-bold">
+                    Discharged{pic.leftCare ? ` · ${formatClock(pic.leftCare)}` : ''}
+                  </span>
+                  <button
+                    onClick={onReopen}
+                    className="text-[10px] uppercase tracking-widest text-ink-500 hover:text-code-3 underline-offset-4 hover:underline"
+                    title="Use only if discharge was a mistake"
+                  >
+                    reopen
+                  </button>
                 </span>
               )}
             </div>
@@ -704,24 +713,17 @@ export default function PicDetailPanel({ picId, onClose, onMutated }) {
           )}
         </section>
 
-        {/* Discharge / reopen button */}
-        <div className="pt-2">
-          {!isDischarged ? (
+        {/* Discharge button — only shown when in-care */}
+        {!isDischarged && (
+          <div className="pt-2">
             <button
               onClick={() => setDischargeOpen(true)}
               className="btn-primary w-full text-base py-3"
             >
               Discharge PIC #{pic.number}
             </button>
-          ) : (
-            <button
-              onClick={onReopen}
-              className="btn-ghost w-full"
-            >
-              Reopen — move back to in-care
-            </button>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       <Code1Warning

@@ -39,12 +39,11 @@ export const GENDERS = ['Feminine', 'Masculine', 'Non-binary']
 export const AGE_RANGES = ['Under 18', '18-19', '20-24', '25-29', '30-34', '35-44', '45+']
 
 export const OUTCOMES = [
+  'Back to camp',
+  'Ejected',
+  'Left event',
+  'Medical',
   'Return to party',
-  'Sent home with friends',
-  'Sent home alone',
-  'Transferred to medical',
-  'Self-discharged',
-  'Created in error',
   'Other',
 ]
 
