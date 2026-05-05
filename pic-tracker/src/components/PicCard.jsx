@@ -9,6 +9,7 @@ import {
   normalizeReferredBy,
   normalizeReferredTo,
   workloadFor,
+  wasEverCode2,
 } from '../lib/helpers'
 import { CODES } from '../constants/options'
 
@@ -40,73 +41,38 @@ function abbrevGender(g) {
   return g
 }
 
-// Workload dots — up to 4 dots, with a small "+" indicator beyond.
-function WorkloadDots({ count }) {
-  if (count <= 0) return null
-  const visibleDots = Math.min(count, 4)
-  const overflow = count > 4
-  return (
-    <div className="flex items-center gap-0.5 mt-1" title={`${count} PIC${count === 1 ? '' : 's'} in care`}>
-      {Array.from({ length: visibleDots }).map((_, i) => (
-        <span key={i} className="w-1.5 h-1.5 rounded-full bg-white/85" />
-      ))}
-      {overflow && <span className="text-[10px] font-bold text-white/85 ml-0.5 leading-none">+</span>}
-    </div>
-  )
-}
-
-// Left-attached KPE tag. Tappable to open the KPE picker.
-// Hosts the Mark Checked button below when a check is due/overdue.
-function KpeTag({
-  assignedKpe,
-  shiftClass,
-  workload,
-  showCheckButton,
-  monitorState,
-  onTap,
-  onMarkChecked,
-}) {
+// KPE pill with workload dots inside. Tappable to open KPE picker.
+// 1-3 PICs: that many dots. 4+: three dots + a '+'.
+function KpePill({ assignedKpe, shiftClass, workload, onTap }) {
   const isUnassigned = !assignedKpe
-
-  // Width is fixed-ish for visual rhythm down a column of cards
-  const baseClasses = 'w-20 sm:w-24 shrink-0 flex flex-col items-center justify-center px-2 py-2.5 rounded-l-xl text-center'
-
   const colorClasses = isUnassigned
     ? 'bg-ink-800 border border-dashed border-ink-600 text-ink-400'
     : `${shiftClass} text-white`
 
-  return (
-    <div className="flex flex-col items-stretch shrink-0">
-      <button
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation()
-          onTap?.()
-        }}
-        className={`${baseClasses} ${colorClasses} hover:opacity-90 transition`}
-      >
-        <span className={`font-display font-bold text-sm leading-tight truncate max-w-full ${isUnassigned ? 'italic font-medium' : ''}`}>
-          {assignedKpe || 'Unassigned'}
-        </span>
-        {!isUnassigned && <WorkloadDots count={workload} />}
-      </button>
+  const visibleDots = Math.min(workload, 3)
+  const overflow = workload > 3
 
-      {showCheckButton && onMarkChecked && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation()
-            onMarkChecked()
-          }}
-          className={`mt-1 px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-widest border transition shadow ${
-            monitorState === 'overdue'
-              ? 'bg-code-1 border-code-1 text-white hover:opacity-90'
-              : 'bg-code-3 border-code-3 text-ink-950 hover:opacity-90'
-          }`}
-        >
-          Mark checked
-        </button>
+  return (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation()
+        onTap?.()
+      }}
+      className={`inline-flex items-center gap-1.5 ${colorClasses} text-[11px] font-semibold px-2 py-0.5 rounded-full shrink-0 hover:opacity-90 transition`}
+    >
+      <span className={isUnassigned ? 'italic font-medium' : ''}>
+        {assignedKpe || 'Unassigned'}
+      </span>
+      {!isUnassigned && workload > 0 && (
+        <span className="flex items-center gap-0.5" title={`${workload} PIC${workload === 1 ? '' : 's'} in care`}>
+          {Array.from({ length: visibleDots }).map((_, i) => (
+            <span key={i} className="w-1 h-1 rounded-full bg-white/85" />
+          ))}
+          {overflow && <span className="text-[10px] font-bold leading-none ml-0.5">+</span>}
+        </span>
       )}
-    </div>
+    </button>
   )
 }
 
@@ -146,15 +112,18 @@ export default function PicCard({ pic, events, eventCfg, allPics, onClick, onMar
   const monitorState = !isDischarged ? code3MonitorStateFor(pic.id, events, eventCfg) : null
   const showCheckButton = monitorState === 'overdue' || monitorState === 'due_soon'
 
+  // Persistent MH flag — set if PIC was ever Code 2 during this episode
+  const everCode2 = wasEverCode2(pic.id, events)
+
   let timeColor = 'text-ink-400'
   if (monitorState === 'overdue') timeColor = 'text-code-1 font-bold'
   else if (monitorState === 'due_soon') timeColor = 'text-code-3 font-semibold'
 
-  // Card-level border / glow
+  // Card border: overdue red ring > due-soon yellow ring > MH (any time at code 2) orange tint
   let borderClass = 'border-ink-800'
   if (monitorState === 'overdue') borderClass = 'border-code-1 ring-2 ring-code-1/40'
   else if (monitorState === 'due_soon') borderClass = 'border-code-3 ring-1 ring-code-3/30'
-  else if (code === 2 && !isDischarged) borderClass = 'border-code-2/60'
+  else if (everCode2 && !isDischarged) borderClass = 'border-code-2/60'
 
   const demogParts = []
   if (pic.gender) demogParts.push(abbrevGender(pic.gender))
@@ -169,21 +138,9 @@ export default function PicCard({ pic, events, eventCfg, allPics, onClick, onMar
   const workload = !isDischarged ? workloadFor(assignedKpe, allPics) : 0
 
   return (
-    <div className={`flex items-stretch bg-ink-900 border rounded-xl transition group overflow-hidden ${borderClass} ${isDischarged ? 'opacity-75' : ''}`}>
-      {/* Left: KPE tag */}
-      <KpeTag
-        assignedKpe={assignedKpe}
-        shiftClass={shiftClass}
-        workload={workload}
-        showCheckButton={showCheckButton}
-        monitorState={monitorState}
-        onTap={() => onTapKpe?.(pic)}
-        onMarkChecked={() => onMarkChecked?.(pic)}
-      />
-
-      {/* Right: rest of card content (clickable to open detail) */}
-      <button onClick={onClick} className="flex-1 min-w-0 text-left px-3.5 py-2.5">
-        {/* Row 1: PIC# + name + description + gender/age | code + time */}
+    <div className={`bg-ink-900 border rounded-xl transition group overflow-hidden ${borderClass} ${isDischarged ? 'opacity-75' : ''}`}>
+      <button onClick={onClick} className="w-full text-left px-3.5 py-2.5">
+        {/* Row 1: PIC# + name + description + gender/age | MH + code + time + (mark checked) */}
         <div className="flex items-start gap-2.5">
           <div className="flex-1 min-w-0 flex items-baseline gap-2 flex-wrap">
             <span className="font-display font-black text-xl tabular-nums text-ink-100 shrink-0 leading-none">
@@ -206,55 +163,80 @@ export default function PicCard({ pic, events, eventCfg, allPics, onClick, onMar
             )}
           </div>
 
+          {/* Right cluster: MH (if ever) + code pill + time stack with optional mark-checked button */}
           <div className="flex items-start gap-2 shrink-0">
+            {everCode2 && !isDischarged && (
+              <span
+                className="inline-flex items-center gap-1 bg-code-2/15 border border-code-2/50 text-code-2 text-[10px] font-display font-bold uppercase tracking-widest px-1.5 h-7 rounded-md shrink-0"
+                title="Has been Code 2 (mental health) at some point this episode"
+              >
+                ⚑ MH
+              </span>
+            )}
             <CodePill code={code} />
-            <span className={`text-xs font-display tabular-nums whitespace-nowrap leading-none pt-1.5 ${timeColor}`}>
-              {isDischarged ? (
-                <>
-                  <span className="text-ink-500">in</span> {formatClock(pic.enteredCare)}
-                  <span className="text-ink-600 mx-1">→</span>
-                  <span className="text-ink-500">out</span> {formatClock(pic.leftCare)}
-                </>
-              ) : (
-                <>
-                  {formatClock(pic.enteredCare)}
-                  <span className={timeColor === 'text-ink-400' ? 'text-ink-500' : 'opacity-80'}>
-                    {' '}· {formatElapsed(elapsed)}
-                  </span>
-                </>
+            <div className="flex flex-col items-end gap-1.5 shrink-0">
+              <span className={`text-xs font-display tabular-nums whitespace-nowrap leading-none pt-1.5 ${timeColor}`}>
+                {isDischarged ? (
+                  <>
+                    <span className="text-ink-500">in</span> {formatClock(pic.enteredCare)}
+                    <span className="text-ink-600 mx-1">→</span>
+                    <span className="text-ink-500">out</span> {formatClock(pic.leftCare)}
+                  </>
+                ) : (
+                  <>
+                    {formatClock(pic.enteredCare)}
+                    <span className={timeColor === 'text-ink-400' ? 'text-ink-500' : 'opacity-80'}>
+                      {' '}· {formatElapsed(elapsed)}
+                    </span>
+                  </>
+                )}
+              </span>
+              {showCheckButton && onMarkChecked && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onMarkChecked(pic)
+                  }}
+                  className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-widest border transition shadow ${
+                    monitorState === 'overdue'
+                      ? 'bg-code-1 border-code-1 text-white hover:opacity-90'
+                      : 'bg-code-3 border-code-3 text-ink-950 hover:opacity-90'
+                  }`}
+                >
+                  Mark checked
+                </button>
               )}
-            </span>
+            </div>
           </div>
         </div>
 
-        {/* Row 2: referred-by + MH + subs + pres (in-care)  OR  outcome + medical + ref-to (discharged) */}
-        {(hasRefBy || (code === 2 && !isDischarged) || hasSubs || hasPres ||
+        {/* Row 2: KPE pill + ref-by + subs + pres (in-care)  OR  outcome + medical + ref-to (discharged) */}
+        {(assignedKpe != null || hasRefBy || hasSubs || hasPres ||
           (isDischarged && (outcomeDisplay || referredToDisplay.length > 0 || pic.medicalInvolved === true))) && (
           <div className="mt-1.5 flex items-baseline gap-2 flex-wrap text-xs leading-snug">
-            {/* In-care: referred by appears first — biographical info */}
-            {!isDischarged && hasRefBy && (
-              <span className="text-ink-200">
-                <span className="text-[10px] font-display tracking-[0.18em] uppercase text-ink-500 mr-1.5">
-                  Ref by
-                </span>
-                {referredByDisplay.join(', ')}
-              </span>
-            )}
+            {/* KPE pill always first if there's any second-row content */}
+            <KpePill
+              assignedKpe={assignedKpe}
+              shiftClass={shiftClass}
+              workload={workload}
+              onTap={() => onTapKpe?.(pic)}
+            />
 
-            {/* MH badge for in-care Code 2 */}
-            {code === 2 && !isDischarged && (
+            {/* In-care: ref by + subs + pres */}
+            {!isDischarged && hasRefBy && (
               <>
-                {hasRefBy && <span className="text-ink-700">·</span>}
-                <span className="inline-flex items-center gap-1 bg-code-2/15 border border-code-2/50 text-code-2 text-[10px] font-display font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-full shrink-0">
-                  ⚑ MH
+                <span className="text-ink-700">·</span>
+                <span className="text-ink-200">
+                  <span className="text-[10px] font-display tracking-[0.18em] uppercase text-ink-500 mr-1.5">
+                    Ref by
+                  </span>
+                  {referredByDisplay.join(', ')}
                 </span>
               </>
             )}
-
-            {/* Subs */}
             {!isDischarged && hasSubs && (
               <>
-                {(hasRefBy || code === 2) && <span className="text-ink-700">·</span>}
+                <span className="text-ink-700">·</span>
                 <span className="text-ink-200">
                   <span className="text-[10px] font-display tracking-[0.18em] uppercase text-ink-500 mr-1.5">
                     Subs
@@ -263,11 +245,9 @@ export default function PicCard({ pic, events, eventCfg, allPics, onClick, onMar
                 </span>
               </>
             )}
-
-            {/* Pres */}
             {!isDischarged && hasPres && (
               <>
-                {(hasRefBy || code === 2 || hasSubs) && <span className="text-ink-700">·</span>}
+                <span className="text-ink-700">·</span>
                 <span className="text-ink-200">
                   <span className="text-[10px] font-display tracking-[0.18em] uppercase text-ink-500 mr-1.5">
                     Pres
@@ -279,16 +259,19 @@ export default function PicCard({ pic, events, eventCfg, allPics, onClick, onMar
 
             {/* Discharged: outcome + medical + ref-to */}
             {isDischarged && outcomeDisplay && (
-              <span className="text-ink-200">
-                <span className="text-[10px] font-display tracking-[0.18em] uppercase text-ink-500 mr-1.5">
-                  Out
+              <>
+                <span className="text-ink-700">·</span>
+                <span className="text-ink-200">
+                  <span className="text-[10px] font-display tracking-[0.18em] uppercase text-ink-500 mr-1.5">
+                    Out
+                  </span>
+                  <span className="font-semibold">{outcomeDisplay}</span>
                 </span>
-                <span className="font-semibold">{outcomeDisplay}</span>
-              </span>
+              </>
             )}
             {isDischarged && pic.medicalInvolved === true && (
               <>
-                {outcomeDisplay && <span className="text-ink-700">·</span>}
+                <span className="text-ink-700">·</span>
                 <span className="text-[10px] bg-code-1/20 border border-code-1/40 text-code-1 rounded px-1.5 py-0.5 font-bold uppercase tracking-widest shrink-0">
                   Medical
                 </span>
@@ -296,7 +279,7 @@ export default function PicCard({ pic, events, eventCfg, allPics, onClick, onMar
             )}
             {isDischarged && referredToDisplay.length > 0 && (
               <>
-                {(outcomeDisplay || pic.medicalInvolved === true) && <span className="text-ink-700">·</span>}
+                <span className="text-ink-700">·</span>
                 <span className="text-ink-200">
                   <span className="text-[10px] font-display tracking-[0.18em] uppercase text-ink-500 mr-1.5">
                     Ref to

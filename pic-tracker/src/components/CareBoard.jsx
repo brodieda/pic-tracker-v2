@@ -1,15 +1,23 @@
 import { useEffect, useState } from 'react'
 import { getPics, getEvents, getEvent } from '../lib/store'
 import PicCard from './PicCard'
-import { currentCodeFor, addCheckEvent, getAssignedKpe } from '../lib/helpers'
+import { addCheckEvent, getAssignedKpe } from '../lib/helpers'
 
 const CAPACITY_WARNING_THRESHOLD = 3 // show yellow when this many spaces or fewer remain
+const SORT_KEY = 'pic_in_care_sort_dir' // 'desc' (newest top) or 'asc'
 
 export default function CareBoard({ refreshKey, onAddPic, onPicClick, onPicTapKpe }) {
   const [pics, setPics] = useState([])
   const [events, setEvents] = useState([])
   const [eventCfg, setEventCfg] = useState({})
   const [tick, setTick] = useState(0)
+  const [sortDir, setSortDir] = useState(() => {
+    try {
+      return localStorage.getItem(SORT_KEY) || 'desc'
+    } catch {
+      return 'desc'
+    }
+  })
 
   const reload = () => {
     setPics(getPics())
@@ -21,25 +29,33 @@ export default function CareBoard({ refreshKey, onAddPic, onPicClick, onPicTapKp
     reload()
   }, [refreshKey])
 
-  // Tick every 30 seconds so monitoring states stay current. (Was 60s in Phase 1.)
   useEffect(() => {
     const id = setInterval(() => setTick((t) => t + 1), 30_000)
     return () => clearInterval(id)
   }, [])
+
+  const toggleSort = () => {
+    const next = sortDir === 'desc' ? 'asc' : 'desc'
+    setSortDir(next)
+    try {
+      localStorage.setItem(SORT_KEY, next)
+    } catch {}
+  }
 
   const onMarkChecked = (pic) => {
     addCheckEvent(pic.id, getAssignedKpe(pic), null)
     reload()
   }
 
+  // Sort in-care purely by PIC number — no code-priority sort. Visual indicators handle priority.
   const inCare = pics
     .filter((p) => p.status === 'in_care')
-    .map((p) => ({ p, code: currentCodeFor(p.id, events) ?? 99 }))
+    .slice()
     .sort((a, b) => {
-      if (a.code !== b.code) return a.code - b.code
-      return new Date(a.p.enteredCare) - new Date(b.p.enteredCare)
+      const an = a.number ?? 0
+      const bn = b.number ?? 0
+      return sortDir === 'desc' ? bn - an : an - bn
     })
-    .map((x) => x.p)
 
   const discharged = pics
     .filter((p) => p.status === 'discharged')
@@ -93,6 +109,14 @@ export default function CareBoard({ refreshKey, onAddPic, onPicClick, onPicTapKp
             <span className="text-xs text-ink-500 font-display tabular-nums">
               {inCare.length}
             </span>
+            <button
+              onClick={toggleSort}
+              className="ml-auto text-[10px] font-display uppercase tracking-widest text-ink-400 hover:text-ink-100 inline-flex items-center gap-1 px-2 py-1 rounded-md hover:bg-ink-800 transition"
+              title={sortDir === 'desc' ? 'Newest first — click to flip' : 'Oldest first — click to flip'}
+            >
+              <span>#</span>
+              <span className="text-sm leading-none">{sortDir === 'desc' ? '↓' : '↑'}</span>
+            </button>
           </header>
 
           {inCare.length === 0 ? (

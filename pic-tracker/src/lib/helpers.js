@@ -290,6 +290,14 @@ export function addCheckEvent(picId, byKpe, note) {
   })
 }
 
+// Was this PIC ever Code 2 during this episode? Persistent MH flag.
+// Returns true if any admit or code_change event for this PIC had code === 2.
+export function wasEverCode2(picId, events) {
+  return (events || []).some(
+    (e) => e.picId === picId && (e.type === 'admit' || e.type === 'code_change') && e.code === 2,
+  )
+}
+
 // Count of currently in-care PICs assigned to this KPE.
 // Used for workload dots on the KPE tag.
 export function workloadFor(kpeName, allPics) {
