@@ -2,14 +2,15 @@ import { useEffect, useState } from 'react'
 import EventSettings from './components/EventSettings'
 import CareBoard from './components/CareBoard'
 import IntakeModal from './components/IntakeModal'
+import PicDetailPanel from './components/PicDetailPanel'
 import { getEvent, getPics } from './lib/store'
 
 export default function App() {
-  const [view, setView] = useState('board') // 'board' | 'settings'
+  const [view, setView] = useState('board')
   const [intakeOpen, setIntakeOpen] = useState(false)
   const [refreshKey, setRefreshKey] = useState(0)
+  const [activePicId, setActivePicId] = useState(null)
 
-  // First-run: if no event name AND no pics, push user to settings
   useEffect(() => {
     const e = getEvent()
     const pics = getPics()
@@ -22,8 +23,7 @@ export default function App() {
 
   return (
     <div className="min-h-full">
-      {/* Top nav */}
-      <header className="sticky top-0 z-40 bg-ink-950/85 backdrop-blur border-b border-ink-800">
+      <header className="sticky top-0 z-30 bg-ink-950/85 backdrop-blur border-b border-ink-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-14 flex items-center gap-4">
           <div className="flex items-baseline gap-2 mr-3">
             <span className="font-display font-bold text-lg tracking-tight">PIC</span>
@@ -38,28 +38,30 @@ export default function App() {
             </NavButton>
           </nav>
           <div className="ml-auto text-xs text-ink-500 font-display tracking-wider hidden sm:block">
-            v0.1 · phase 1
+            v0.2 · phase 2 / pass 1
           </div>
         </div>
       </header>
 
-      {/* Main view */}
       {view === 'board' && (
         <CareBoard
           refreshKey={refreshKey}
           onAddPic={() => setIntakeOpen(true)}
-          onPicClick={() => {
-            // Phase 2 will route to detail view
-          }}
+          onPicClick={(pic) => setActivePicId(pic.id)}
         />
       )}
       {view === 'settings' && <EventSettings onSaved={refresh} />}
 
-      {/* Intake modal */}
       <IntakeModal
         open={intakeOpen}
         onClose={() => setIntakeOpen(false)}
         onCreated={() => refresh()}
+      />
+
+      <PicDetailPanel
+        picId={activePicId}
+        onClose={() => setActivePicId(null)}
+        onMutated={refresh}
       />
     </div>
   )

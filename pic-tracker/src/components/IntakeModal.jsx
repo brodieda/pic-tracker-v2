@@ -102,7 +102,6 @@ export default function IntakeModal({ open, onClose, onCreated }) {
     setError(null)
 
     if (form.code == null) return setError('Severity code is required.')
-    if (!form.intakeKpe.trim()) return setError('Intake KPE is required.')
 
     if (atCapacity && !overCapacityAck) {
       setError(
@@ -140,8 +139,8 @@ export default function IntakeModal({ open, onClose, onCreated }) {
       presentationOther: form.presentations.includes('Other')
         ? form.presentationOther.trim() || null
         : null,
-      intakeKpe: form.intakeKpe.trim(),
-      currentKpe: form.intakeKpe.trim(),
+      intakeKpe: form.intakeKpe.trim() || null,  // legacy field, kept for back-compat
+      assignedKpe: form.intakeKpe.trim() || null,
       outcome: null,
       outcomeOther: null,
       referredTo: null,
@@ -160,7 +159,7 @@ export default function IntakeModal({ open, onClose, onCreated }) {
       timestamp: ts,
       type: 'admit',
       code: form.code,
-      kpe: form.intakeKpe.trim(),
+      kpe: form.intakeKpe.trim() || null,
       note: form.intakeNote.trim() || null,
       meta: {},
     })
@@ -302,7 +301,8 @@ export default function IntakeModal({ open, onClose, onCreated }) {
 
           <div className="divider" />
 
-          <FieldRow label="Intake KPE *" hint="Who's logging this?">
+          <FieldRow label="Assigned KPE" hint="Optional — can assign later">
+
             <input
               className="input"
               list="kpe-list"
@@ -414,7 +414,8 @@ export default function IntakeModal({ open, onClose, onCreated }) {
             </span>
           ) : (
             <span className="text-xs text-ink-500 flex-1">
-              * required: code, intake KPE
+              * required: code
+
             </span>
           )}
           <button className="btn-ghost" onClick={onClose}>Cancel</button>

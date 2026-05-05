@@ -1,11 +1,12 @@
 import CodeBadge from './CodeBadge'
-import { elapsedMinutes, formatElapsed, formatClock, currentCodeFor, shiftFor } from '../lib/helpers'
+import { elapsedMinutes, formatElapsed, formatClock, currentCodeFor, shiftFor, getAssignedKpe } from '../lib/helpers'
 
 export default function PicCard({ pic, events, eventCfg, onClick }) {
   const code = currentCodeFor(pic.id, events)
   const isDischarged = pic.status === 'discharged'
   const elapsed = elapsedMinutes(pic.enteredCare, pic.leftCare)
-  const shift = shiftFor(pic.currentKpe, eventCfg)
+  const assignedKpe = getAssignedKpe(pic)
+  const shift = shiftFor(assignedKpe, eventCfg)
   const shiftClass = shift === 1 ? 'bg-shift-1' : shift === 2 ? 'bg-shift-2' : 'bg-ink-700'
 
   const subsDisplay = [
@@ -47,7 +48,9 @@ export default function PicCard({ pic, events, eventCfg, onClick }) {
               className={`inline-flex items-center gap-1.5 ${shiftClass} text-white text-xs font-semibold px-2 py-0.5 rounded-full`}
             >
               <span className="w-1.5 h-1.5 rounded-full bg-white/80" />
-              {pic.currentKpe || '—'}
+              {assignedKpe || (
+                <span className="italic opacity-70">Unassigned</span>
+              )}
             </span>
             {pic.gender && (
               <span className="text-xs text-ink-400">
