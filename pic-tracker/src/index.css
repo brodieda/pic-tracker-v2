@@ -6,6 +6,10 @@
   html, body, #root {
     @apply h-full;
   }
+  html {
+    /* Bumped from default 16px to 17px for readability under tent lights */
+    font-size: 17px;
+  }
   body {
     @apply bg-ink-950 text-ink-100 font-body antialiased;
     font-feature-settings: 'cv11', 'ss01', 'ss03';

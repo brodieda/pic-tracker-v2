@@ -25,7 +25,7 @@ const initialForm = {
   name: '',
   code: null,
   enteredCare: nowIso(),
-  referredBy: null,
+  referredBy: [],
   referredByOther: '',
   substances: [],
   substanceOther: '',
@@ -132,7 +132,7 @@ export default function IntakeModal({ open, onClose, onCreated }) {
       enteredCare: ts,
       leftCare: null,
       referredBy: form.referredBy,
-      referredByOther: form.referredBy === 'Other' ? form.referredByOther.trim() || null : null,
+      referredByOther: form.referredBy.includes('Other') ? form.referredByOther.trim() || null : null,
       substances: form.substances,
       substanceOther: form.substances.includes('Other') ? form.substanceOther.trim() || null : null,
       presentations: form.presentations,
@@ -196,7 +196,7 @@ export default function IntakeModal({ open, onClose, onCreated }) {
                   : 'border-ink-700 text-ink-400'
               }`}
             >
-              {inCareCount} / {capacity} beds
+              {inCareCount} / {capacity} spaces
             </div>
           )}
           <button onClick={onClose} className="btn-ghost" aria-label="Close">
@@ -244,7 +244,7 @@ export default function IntakeModal({ open, onClose, onCreated }) {
           >
             <div className="space-y-2">
               <div className="flex items-stretch gap-2">
-                {/* Code 1 — smaller, set apart */}
+                {/* Code 1 — same height, narrower width */}
                 {(() => {
                   const c = CODES[0]
                   const active = form.code === 1
@@ -253,20 +253,23 @@ export default function IntakeModal({ open, onClose, onCreated }) {
                       key={1}
                       type="button"
                       onClick={() => onSelectCode(1)}
-                      className={`relative h-14 w-16 rounded-xl font-display font-bold text-base ${c.tw} text-white transition border-2 flex flex-col items-center justify-center ${
+                      className={`relative h-20 w-14 rounded-xl font-display font-bold ${c.tw} text-white transition border-2 flex flex-col items-center justify-center shrink-0 ${
                         active
                           ? 'border-white scale-[1.02] shadow-lg'
                           : 'border-transparent opacity-60 hover:opacity-100'
                       }`}
-                      title="Code 1 — Medical Emergency"
+                      title="Code 1 — Emergency"
                     >
-                      <span className="text-xs">⚠</span>
-                      <span className="leading-none">1</span>
+                      <span className="text-xs leading-none mb-1">⚠</span>
+                      <span className="leading-none text-2xl">1</span>
+                      <span className="text-[9px] uppercase tracking-widest font-semibold opacity-80 mt-1">
+                        Emerg
+                      </span>
                     </button>
                   )
                 })()}
                 <div className="w-px bg-ink-800 mx-1" />
-                {/* Codes 2-5 — full size */}
+                {/* Codes 2-5 — full size, descriptor inline-stacked */}
                 {CODES.slice(1).map((c) => {
                   const active = form.code === c.code
                   const tone = c.code === 3 ? 'text-ink-950' : 'text-white'
@@ -275,18 +278,20 @@ export default function IntakeModal({ open, onClose, onCreated }) {
                       key={c.code}
                       type="button"
                       onClick={() => onSelectCode(c.code)}
-                      className={`relative flex-1 h-20 rounded-xl font-display font-bold text-2xl ${c.tw} ${tone} transition border-2 ${
+                      className={`relative flex-1 h-20 rounded-xl font-display font-bold ${c.tw} ${tone} transition border-2 ${
                         active
                           ? 'border-white scale-[1.02] shadow-lg'
                           : 'border-transparent opacity-70 hover:opacity-100'
                       }`}
                     >
-                      {c.code}
-                      {c.desc && (
-                        <span className="absolute bottom-1 left-0 right-0 text-[10px] uppercase tracking-widest font-semibold opacity-80">
-                          {c.desc}
-                        </span>
-                      )}
+                      <div className="flex flex-col items-center justify-center leading-tight">
+                        <span className="text-2xl">{c.code}</span>
+                        {c.desc && (
+                          <span className="text-[10px] uppercase tracking-widest font-semibold opacity-80 mt-0.5">
+                            {c.desc}
+                          </span>
+                        )}
+                      </div>
                     </button>
                   )
                 })}
@@ -324,11 +329,12 @@ export default function IntakeModal({ open, onClose, onCreated }) {
 
           <div className="divider" />
 
-          <FieldRow label="Referred by">
+          <FieldRow label="Referred by" hint="Multi-select">
             <ChipGroup
               options={REFERRED_BY}
               value={form.referredBy}
               onChange={(v) => update({ referredBy: v })}
+              multi
               otherValue={form.referredByOther}
               onOtherChange={(v) => update({ referredByOther: v })}
             />

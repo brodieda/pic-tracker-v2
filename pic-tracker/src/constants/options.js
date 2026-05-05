@@ -1,6 +1,6 @@
 // constants/options.js — stock chip lists. "Other" with free-text covers the long tail.
 
-export const REFERRED_BY = ['Self', 'Friend', 'Security', 'Medical', 'Police', 'Roaming team', 'Other']
+export const REFERRED_BY = ['Self', 'Friend', 'Security', 'Medical', 'Police', 'Rovers', 'Other']
 
 export const SUBSTANCES = [
   'Alcohol',
@@ -47,8 +47,8 @@ export const OUTCOMES = [
 
 export const CODES = [
   { code: 1, label: 'Code 1', desc: 'Emergency', tw: 'bg-code-1', emergency: true },
-  { code: 2, label: 'Code 2', desc: 'High', tw: 'bg-code-2' },
-  { code: 3, label: 'Code 3', desc: '', tw: 'bg-code-3' },
-  { code: 4, label: 'Code 4', desc: '', tw: 'bg-code-4' },
-  { code: 5, label: 'Code 5', desc: 'Low', tw: 'bg-code-5' },
+  { code: 2, label: 'Code 2', desc: 'MH', tw: 'bg-code-2' },
+  { code: 3, label: 'Code 3', desc: 'Moderate', tw: 'bg-code-3' },
+  { code: 4, label: 'Code 4', desc: 'Mild', tw: 'bg-code-4' },
+  { code: 5, label: 'Code 5', desc: 'Nothing', tw: 'bg-code-5' },
 ]

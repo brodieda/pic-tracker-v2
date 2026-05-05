@@ -3,7 +3,7 @@ import { getPics, getEvents, getEvent } from '../lib/store'
 import PicCard from './PicCard'
 import { currentCodeFor } from '../lib/helpers'
 
-const CAPACITY_WARNING_THRESHOLD = 3 // show yellow when this many beds or fewer remain
+const CAPACITY_WARNING_THRESHOLD = 3 // show yellow when this many spaces or fewer remain
 
 export default function CareBoard({ refreshKey, onAddPic, onPicClick }) {
   const [pics, setPics] = useState([])
@@ -38,10 +38,10 @@ export default function CareBoard({ refreshKey, onAddPic, onPicClick }) {
   // Capacity computation
   const capacity = eventCfg.capacity
   const inCareCount = inCare.length
-  const bedsRemaining = capacity != null ? Math.max(0, capacity - inCareCount) : null
+  const spacesRemaining = capacity != null ? Math.max(0, capacity - inCareCount) : null
   const atCapacity = capacity != null && inCareCount >= capacity
   const nearCapacity =
-    capacity != null && !atCapacity && bedsRemaining <= CAPACITY_WARNING_THRESHOLD
+    capacity != null && !atCapacity && spacesRemaining <= CAPACITY_WARNING_THRESHOLD
 
   let capacityTone = 'border-ink-700 text-ink-300 bg-ink-900'
   if (atCapacity) capacityTone = 'border-code-1 text-code-1 bg-code-1/10'
@@ -64,7 +64,7 @@ export default function CareBoard({ refreshKey, onAddPic, onPicClick }) {
               <span className="text-lg">{inCareCount}</span>
               <span className="opacity-60"> / {capacity}</span>
               <span className="ml-2 text-[10px] uppercase tracking-widest opacity-70">
-                {atCapacity ? 'full' : `${bedsRemaining} ${bedsRemaining === 1 ? 'bed' : 'beds'} free`}
+                {atCapacity ? 'full' : `${spacesRemaining} ${spacesRemaining === 1 ? 'space' : 'spaces'} free`}
               </span>
             </div>
           )}

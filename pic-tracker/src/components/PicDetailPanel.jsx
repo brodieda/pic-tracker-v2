@@ -11,14 +11,13 @@ import {
   currentCodeFor,
   highestCodeFor,
   shiftFor,
-  isoToDatetimeLocal,
-  datetimeLocalToIso,
   updatePicFields,
   changePicCode,
   changePicKpe,
   addPicNote,
   updatePicEnteredCare,
   getAssignedKpe,
+  normalizeReferredBy,
 } from '../lib/helpers'
 import {
   CODES,
@@ -29,20 +28,23 @@ import {
   AGE_RANGES,
 } from '../constants/options'
 import CodeBadge from './CodeBadge'
-import ChipGroup from './ChipGroup'
 import EditableCell from './EditableCell'
 import EventLog from './EventLog'
 import Code1Warning from './Code1Warning'
+import KpePickerModal from './KpePickerModal'
+import TimeDateEditor from './TimeDateEditor'
 
 export default function PicDetailPanel({ picId, onClose, onMutated }) {
-  // Local snapshot — re-pulled from store after every mutation
   const [pic, setPic] = useState(null)
   const [events, setEvents] = useState([])
   const [eventCfg, setEventCfg] = useState({})
   const [showHistory, setShowHistory] = useState(false)
-  const [code1Pending, setCode1Pending] = useState(null) // null or the candidate code
+  const [code1Pending, setCode1Pending] = useState(null)
   const [noteDraft, setNoteDraft] = useState('')
   const [noteOpen, setNoteOpen] = useState(false)
+  const [kpePickerOpen, setKpePickerOpen] = useState(false)
+  const [editingName, setEditingName] = useState(false)
+  const [editingTime, setEditingTime] = useState(false)
 
   const reload = () => {
     const all = getPics()
@@ -59,13 +61,15 @@ export default function PicDetailPanel({ picId, onClose, onMutated }) {
   useEffect(() => {
     if (!picId) return
     const handler = (e) => {
-      if (e.key === 'Escape') onClose?.()
+      if (e.key === 'Escape') {
+        if (kpePickerOpen) return // let the modal handle ESC itself
+        onClose?.()
+      }
     }
     document.addEventListener('keydown', handler)
     return () => document.removeEventListener('keydown', handler)
-  }, [picId, onClose])
+  }, [picId, onClose, kpePickerOpen])
 
-  // Tab title
   useEffect(() => {
     if (pic) {
       const old = document.title
@@ -75,11 +79,6 @@ export default function PicDetailPanel({ picId, onClose, onMutated }) {
       }
     }
   }, [pic])
-
-  const allKpes = useMemo(
-    () => Array.from(new Set([...(eventCfg.shift1Team || []), ...(eventCfg.shift2Team || [])])),
-    [eventCfg],
-  )
 
   if (!picId) return null
   if (!pic) {
@@ -97,13 +96,12 @@ export default function PicDetailPanel({ picId, onClose, onMutated }) {
   const shift = shiftFor(assignedKpe, eventCfg)
   const shiftClass = shift === 1 ? 'bg-shift-1' : shift === 2 ? 'bg-shift-2' : 'bg-ink-700'
   const isDischarged = pic.status === 'discharged'
+  const referredByList = normalizeReferredBy(pic)
 
   const afterMutation = () => {
     reload()
     onMutated?.()
   }
-
-  // ---- Mutations ----
 
   const onCodeTap = (newCode) => {
     if (newCode === code) return
@@ -134,30 +132,88 @@ export default function PicDetailPanel({ picId, onClose, onMutated }) {
     addPicNote(pic.id, noteDraft.trim(), assignedKpe)
     setNoteDraft('')
     setNoteOpen(false)
+    setShowHistory(true) // auto-open history so the new note is visible
     afterMutation()
   }
 
-  // ---- Display ----
+  function updatePicAndReload(patch) {
+    updatePicFields(pic.id, patch)
+    afterMutation()
+  }
 
   return (
     <PanelShell onClose={onClose}>
-      {/* Header */}
+      {/* Header — name + time-in editable here */}
       <div className="px-6 pt-5 pb-4 border-b border-ink-800">
         <div className="flex items-start gap-4">
           <CodeBadge code={code} size="lg" />
           <div className="flex-1 min-w-0">
+            {/* PIC# + Name (click to edit) */}
             <div className="flex items-baseline gap-2 flex-wrap">
               <span className="font-display font-black text-2xl tabular-nums">
                 #{pic.number}
               </span>
-              <h2 className={`font-display font-bold text-2xl truncate ${!pic.name ? 'text-ink-400 italic font-medium' : ''}`}>
-                {pic.name || pic.description || '— no name —'}
-              </h2>
+              {editingName ? (
+                <input
+                  className="input text-xl py-1 font-display font-bold flex-1 min-w-0"
+                  defaultValue={pic.name || ''}
+                  autoFocus
+                  placeholder="Name or descriptor"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      updatePicAndReload({ name: e.currentTarget.value.trim() || null })
+                      setEditingName(false)
+                    }
+                    if (e.key === 'Escape') setEditingName(false)
+                  }}
+                  onBlur={(e) => {
+                    updatePicAndReload({ name: e.currentTarget.value.trim() || null })
+                    setEditingName(false)
+                  }}
+                />
+              ) : (
+                <button
+                  onClick={() => setEditingName(true)}
+                  className="text-left flex-1 min-w-0 group"
+                >
+                  <span
+                    className={`font-display font-bold text-2xl truncate group-hover:text-ink-100 transition ${
+                      !pic.name ? 'text-ink-500 italic font-medium' : ''
+                    }`}
+                  >
+                    {pic.name || pic.description || 'Tap to add name'}
+                  </span>
+                  <span className="ml-2 text-[10px] uppercase tracking-widest text-ink-700 group-hover:text-ink-500 align-middle">
+                    edit
+                  </span>
+                </button>
+              )}
             </div>
-            <div className="mt-1 flex items-center gap-3 text-xs text-ink-400 flex-wrap">
-              <span className="font-display tabular-nums">
-                In since {formatClock(pic.enteredCare)} · {formatElapsed(elapsed)}
-              </span>
+
+            {/* Time-in (click to edit) + meta */}
+            <div className="mt-1.5 flex items-center gap-3 text-xs text-ink-400 flex-wrap">
+              {editingTime ? (
+                <div className="w-full max-w-xs">
+                  <TimeDateEditor
+                    value={pic.enteredCare}
+                    onCommit={(newIso) => {
+                      updatePicEnteredCare(pic.id, newIso)
+                      afterMutation()
+                      setEditingTime(false)
+                    }}
+                    onCancel={() => setEditingTime(false)}
+                  />
+                </div>
+              ) : (
+                <button
+                  onClick={() => setEditingTime(true)}
+                  className="font-display tabular-nums text-ink-300 hover:text-ink-100 underline-offset-4 hover:underline"
+                  title="Edit time-in"
+                >
+                  In since {formatClock(pic.enteredCare)}
+                  <span className="text-ink-500"> · {formatElapsed(elapsed)}</span>
+                </button>
+              )}
               {highest != null && highest !== code && (
                 <span>
                   Peak: <span className="font-display font-bold">Code {highest}</span>
@@ -170,7 +226,7 @@ export default function PicDetailPanel({ picId, onClose, onMutated }) {
               )}
             </div>
           </div>
-          <button onClick={onClose} className="btn-ghost px-3" aria-label="Close">
+          <button onClick={onClose} className="btn-ghost px-3 shrink-0" aria-label="Close">
             ✕
           </button>
         </div>
@@ -178,13 +234,13 @@ export default function PicDetailPanel({ picId, onClose, onMutated }) {
 
       {/* Body */}
       <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
-        {/* Code change buttons — primary action */}
+        {/* Code change buttons */}
         <section>
           <div className="text-[10px] font-display tracking-[0.22em] uppercase text-ink-500 mb-2">
             Update code
           </div>
           <div className="flex items-stretch gap-2">
-            {/* Code 1 - small, set apart */}
+            {/* Code 1 — narrower but full height */}
             {(() => {
               const c = CODES[0]
               const active = code === 1
@@ -193,13 +249,13 @@ export default function PicDetailPanel({ picId, onClose, onMutated }) {
                   key={1}
                   type="button"
                   onClick={() => onCodeTap(1)}
-                  className={`relative h-14 w-14 rounded-xl font-display font-bold ${c.tw} text-white transition border-2 flex flex-col items-center justify-center shrink-0 ${
+                  className={`relative h-16 w-12 rounded-xl font-display font-bold ${c.tw} text-white transition border-2 flex flex-col items-center justify-center shrink-0 ${
                     active ? 'border-white shadow-lg' : 'border-transparent opacity-60 hover:opacity-100'
                   }`}
                   title="Code 1 — Emergency"
                 >
-                  <span className="text-xs">⚠</span>
-                  <span className="leading-none text-base">1</span>
+                  <span className="text-xs leading-none mb-0.5">⚠</span>
+                  <span className="leading-none text-xl">1</span>
                 </button>
               )
             })()}
@@ -212,75 +268,55 @@ export default function PicDetailPanel({ picId, onClose, onMutated }) {
                   key={c.code}
                   type="button"
                   onClick={() => onCodeTap(c.code)}
-                  className={`relative flex-1 h-16 rounded-xl font-display font-bold text-xl ${c.tw} ${tone} transition border-2 ${
+                  className={`relative flex-1 h-16 rounded-xl font-display font-bold ${c.tw} ${tone} transition border-2 ${
                     active ? 'border-white shadow-lg' : 'border-transparent opacity-70 hover:opacity-100'
                   }`}
                 >
-                  {c.code}
-                  {c.desc && (
-                    <span className="absolute bottom-0.5 left-0 right-0 text-[9px] uppercase tracking-widest font-semibold opacity-80">
-                      {c.desc}
-                    </span>
-                  )}
+                  <div className="flex flex-col items-center justify-center leading-tight">
+                    <span className="text-xl">{c.code}</span>
+                    {c.desc && (
+                      <span className="text-[9px] uppercase tracking-widest font-semibold opacity-80">
+                        {c.desc}
+                      </span>
+                    )}
+                  </div>
                 </button>
               )
             })}
           </div>
         </section>
 
-        {/* Assigned KPE pill — clickable to change */}
-        <EditableCell
-          label="Assigned KPE"
-          displayChildren={
-            <div className="flex items-center gap-2 flex-wrap">
-              {assignedKpe ? (
-                <span className={`inline-flex items-center gap-1.5 ${shiftClass} text-white text-sm font-semibold px-3 py-1 rounded-full`}>
-                  <span className="w-1.5 h-1.5 rounded-full bg-white/80" />
-                  {assignedKpe}
-                </span>
-              ) : (
-                <span className="text-ink-500 italic text-sm">Unassigned — tap to assign</span>
-              )}
-            </div>
-          }
-          renderEditor={({ done }) => (
-            <div className="flex gap-2">
-              <input
-                className="input"
-                list="kpe-list-detail"
-                defaultValue={assignedKpe || ''}
-                placeholder="Type a KPE name…"
-                autoFocus
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    onKpeChange(e.currentTarget.value.trim())
-                    done()
-                  }
-                  if (e.key === 'Escape') done()
-                }}
-                onBlur={(e) => {
-                  onKpeChange(e.currentTarget.value.trim())
-                }}
-              />
-              <datalist id="kpe-list-detail">
-                {allKpes.map((n) => (
-                  <option key={n} value={n} />
-                ))}
-              </datalist>
-              <button
-                className="btn-ghost"
-                onClick={() => {
-                  onKpeChange(null)
-                  done()
-                }}
-              >
-                Clear
-              </button>
-            </div>
-          )}
-        />
+        {/* Assigned KPE — opens modal picker */}
+        <section className="panel p-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[10px] font-display tracking-[0.22em] uppercase text-ink-500">
+              Assigned KPE
+            </span>
+            <button
+              onClick={() => setKpePickerOpen(true)}
+              className="text-[10px] uppercase tracking-widest text-ink-400 hover:text-ink-100"
+            >
+              {assignedKpe ? 'change' : 'assign'}
+            </button>
+          </div>
+          <button
+            onClick={() => setKpePickerOpen(true)}
+            className="w-full text-left"
+          >
+            {assignedKpe ? (
+              <span className={`inline-flex items-center gap-1.5 ${shiftClass} text-white text-sm font-semibold px-3 py-1.5 rounded-full`}>
+                <span className="w-1.5 h-1.5 rounded-full bg-white/80" />
+                {assignedKpe}
+              </span>
+            ) : (
+              <span className="text-ink-500 italic text-sm">
+                Unassigned — tap to assign
+              </span>
+            )}
+          </button>
+        </section>
 
-        {/* 2x2 grid of editable details */}
+        {/* 2x2 grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <EditableCell
             label="Substances"
@@ -315,19 +351,14 @@ export default function PicDetailPanel({ picId, onClose, onMutated }) {
           <EditableCell
             label="Referred by"
             displayChildren={
-              pic.referredBy ? (
-                <span className="text-sm text-ink-200">
-                  {pic.referredBy === 'Other' ? pic.referredByOther || 'Other' : pic.referredBy}
-                </span>
-              ) : (
-                <span className="text-ink-500 italic text-sm">Not set</span>
-              )
+              <ChipDisplay values={referredByList} other={pic.referredByOther} />
             }
             renderEditor={() => (
               <ChipEditor
                 options={REFERRED_BY}
-                value={pic.referredBy || null}
+                value={referredByList}
                 otherValue={pic.referredByOther || ''}
+                multi
                 onCommit={(value, otherValue) =>
                   updatePicAndReload({ referredBy: value, referredByOther: otherValue })
                 }
@@ -399,134 +430,75 @@ export default function PicDetailPanel({ picId, onClose, onMutated }) {
           )}
         />
 
-        {/* Name (rare edit but possible) */}
-        <EditableCell
-          label="Name"
-          displayChildren={
-            pic.name ? (
-              <span className="text-sm text-ink-200">{pic.name}</span>
-            ) : (
-              <span className="text-ink-500 italic text-sm">No name — # is identifier</span>
-            )
-          }
-          renderEditor={({ done }) => (
-            <input
-              className="input"
-              defaultValue={pic.name || ''}
-              autoFocus
-              placeholder="Name or descriptor"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  updatePicAndReload({ name: e.currentTarget.value.trim() || null })
-                  done()
-                }
-                if (e.key === 'Escape') done()
-              }}
-              onBlur={(e) =>
-                updatePicAndReload({ name: e.currentTarget.value.trim() || null })
-              }
-            />
-          )}
-        />
-
-        {/* Time in */}
-        <EditableCell
-          label="Time in"
-          displayChildren={
-            <span className="text-sm font-display tabular-nums text-ink-200">
-              {formatClock(pic.enteredCare)}
-              <span className="text-ink-500 ml-2 text-xs">({formatElapsed(elapsed)} ago)</span>
-            </span>
-          }
-          renderEditor={({ done }) => (
-            <input
-              className="input"
-              type="datetime-local"
-              defaultValue={isoToDatetimeLocal(pic.enteredCare)}
-              autoFocus
-              onBlur={(e) => {
-                const newIso = datetimeLocalToIso(e.currentTarget.value)
-                if (newIso) updatePicEnteredCare(pic.id, newIso)
-                afterMutation()
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  const newIso = datetimeLocalToIso(e.currentTarget.value)
-                  if (newIso) updatePicEnteredCare(pic.id, newIso)
-                  afterMutation()
-                  done()
-                }
-                if (e.key === 'Escape') done()
-              }}
-            />
-          )}
-        />
-
-        {/* Note */}
-        <section className="panel p-4">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[10px] font-display tracking-[0.22em] uppercase text-ink-500">
-              Add note
-            </span>
-            {!noteOpen && (
-              <button
-                onClick={() => setNoteOpen(true)}
-                className="text-xs text-ink-300 hover:text-ink-100 font-display tracking-wide"
-              >
-                + Add a note
-              </button>
-            )}
-          </div>
-          {noteOpen && (
-            <div className="space-y-2">
-              <textarea
-                className="input min-h-[5rem]"
-                placeholder="Observations, status update, etc."
-                value={noteDraft}
-                onChange={(e) => setNoteDraft(e.target.value)}
-                autoFocus
-              />
-              <div className="flex justify-end gap-2">
-                <button
-                  className="btn-ghost"
-                  onClick={() => {
-                    setNoteOpen(false)
-                    setNoteDraft('')
-                  }}
-                >
-                  Cancel
-                </button>
-                <button className="btn-primary" onClick={submitNote} disabled={!noteDraft.trim()}>
-                  Save note
-                </button>
-              </div>
-            </div>
-          )}
-        </section>
-
-        {/* History toggle */}
+        {/* Event history (with note adding) */}
         <section className="panel p-4">
           <button
             onClick={() => setShowHistory(!showHistory)}
             className="w-full flex items-center justify-between text-left"
           >
-            <span className="text-[10px] font-display tracking-[0.22em] uppercase text-ink-400">
+            <span className="text-[10px] font-display tracking-[0.22em] uppercase text-ink-300">
               Event history · {events.filter((e) => e.picId === pic.id).length} entries
             </span>
-            <span
-              className={`text-ink-400 transition ${showHistory ? 'rotate-90' : ''}`}
-            >
+            <span className={`text-ink-400 transition ${showHistory ? 'rotate-90' : ''}`}>
               ›
             </span>
           </button>
+
           {showHistory && (
-            <div className="mt-4 pt-4 border-t border-ink-800">
+            <div className="mt-4 pt-4 border-t border-ink-800 space-y-4">
+              {/* Add note inline */}
+              {noteOpen ? (
+                <div className="space-y-2">
+                  <textarea
+                    className="input min-h-[5rem]"
+                    placeholder="Note: observations, status update, etc."
+                    value={noteDraft}
+                    onChange={(e) => setNoteDraft(e.target.value)}
+                    autoFocus
+                  />
+                  <div className="flex justify-end gap-2">
+                    <button
+                      className="btn-ghost"
+                      onClick={() => {
+                        setNoteOpen(false)
+                        setNoteDraft('')
+                      }}
+                    >
+                      Cancel
+                    </button>
+                    <button className="btn-primary" onClick={submitNote} disabled={!noteDraft.trim()}>
+                      Save note
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setNoteOpen(true)}
+                  className="btn-ghost w-full"
+                >
+                  + Add note
+                </button>
+              )}
+
               <EventLog events={events} picId={pic.id} />
             </div>
           )}
+
+          {/* When history is collapsed, still allow adding a note */}
+          {!showHistory && !noteOpen && (
+            <button
+              onClick={() => {
+                setShowHistory(true)
+                setNoteOpen(true)
+              }}
+              className="mt-3 text-xs text-ink-400 hover:text-ink-200 font-display tracking-wide"
+            >
+              + Add note
+            </button>
+          )}
         </section>
 
-        {/* Discharge button (Pass 2 will wire this) */}
+        {/* Discharge button (Pass 2) */}
         {!isDischarged && (
           <div className="pt-2">
             <button className="btn-ghost w-full" disabled title="Coming in Pass 2">
@@ -541,22 +513,26 @@ export default function PicDetailPanel({ picId, onClose, onMutated }) {
         onCancel={() => setCode1Pending(null)}
         onContinue={acknowledgeCode1}
       />
+
+      <KpePickerModal
+        open={kpePickerOpen}
+        currentKpe={assignedKpe}
+        shift1Team={eventCfg.shift1Team || []}
+        shift2Team={eventCfg.shift2Team || []}
+        onSelect={onKpeChange}
+        onClose={() => setKpePickerOpen(false)}
+      />
     </PanelShell>
   )
-
-  // helper closure inside component
-  function updatePicAndReload(patch) {
-    updatePicFields(pic.id, patch)
-    afterMutation()
-  }
 }
 
 // ---------- Subcomponents ----------
 
 function ChipDisplay({ values, other }) {
+  const list = Array.isArray(values) ? values : values ? [values] : []
   const displayList = [
-    ...(values || []).filter((s) => s !== 'Other'),
-    ...((values || []).includes('Other') && other ? [other] : []),
+    ...list.filter((s) => s !== 'Other'),
+    ...(list.includes('Other') && other ? [other] : []),
   ]
   if (displayList.length === 0) {
     return <span className="text-ink-500 italic text-sm">None set</span>
@@ -624,19 +600,15 @@ function ChipEditor({ options, value, otherValue, onCommit, multi = false }) {
   )
 }
 
-// ---------- Panel shell with backdrop, slide-in animation, responsive width ----------
-
 function PanelShell({ children, onClose }) {
   return (
     <>
-      {/* Backdrop — only visible on narrow viewports (< lg breakpoint) */}
       <div
         className="fixed inset-0 z-40 bg-black/60 lg:bg-transparent lg:pointer-events-none"
         onClick={onClose}
       />
-      {/* Panel */}
       <aside
-        className="fixed inset-y-0 right-0 z-40 bg-ink-950 border-l border-ink-800 shadow-2xl flex flex-col w-full lg:w-[560px] animate-slide-in"
+        className="fixed inset-y-0 right-0 z-40 bg-ink-950 border-l border-ink-800 shadow-2xl flex flex-col w-full lg:w-[560px]"
         style={{ animation: 'slideIn 220ms cubic-bezier(0.16, 1, 0.3, 1)' }}
       >
         <style>{`@keyframes slideIn { from { transform: translateX(20px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }`}</style>

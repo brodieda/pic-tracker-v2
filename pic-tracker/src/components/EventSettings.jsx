@@ -64,7 +64,7 @@ export default function EventSettings({ onSaved }) {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
           <div>
-            <label className="label">Carespace capacity (beds)</label>
+            <label className="label">Carespace capacity (spaces)</label>
             <input
               className="input"
               type="number"

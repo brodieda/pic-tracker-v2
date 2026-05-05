@@ -199,3 +199,12 @@ export function getAssignedKpe(pic) {
   // Older record — fallback to currentKpe then intakeKpe
   return pic.currentKpe || pic.intakeKpe || null
 }
+
+// Normalise referredBy to an array. Older records used a single string.
+export function normalizeReferredBy(pic) {
+  if (!pic) return []
+  const v = pic.referredBy
+  if (Array.isArray(v)) return v
+  if (typeof v === 'string' && v) return [v]
+  return []
+}
