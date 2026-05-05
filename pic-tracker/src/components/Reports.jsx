@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { getPics, getEvents, getEvent } from '../lib/store'
 import { computeAllStats } from '../lib/stats'
 import { formatElapsed } from '../lib/helpers'
+import { exportXlsx } from '../lib/xlsxExport'
 import {
   StatBigNumber,
   StatBarList,
@@ -14,6 +15,7 @@ export default function Reports({ refreshKey }) {
   const [events, setEvents] = useState([])
   const [eventCfg, setEventCfg] = useState({})
   const [includeInCare, setIncludeInCare] = useState(false)
+  const [exportStatus, setExportStatus] = useState(null) // {ok, msg} | null
 
   const reload = () => {
     setPics(getPics())
@@ -62,17 +64,27 @@ export default function Reports({ refreshKey }) {
                 Include in-care
               </span>
             </label>
-            {/* Export placeholder — wired in pass 2 */}
-            <button
-              className="btn-ghost"
-              disabled
-              title="XLSX export coming in next pass"
-            >
-              ⬇ Export XLSX (soon)
-            </button>
+            {/* Export */}
+            <ExportButton
+              filteredPics={filteredPics}
+              events={events}
+              eventCfg={eventCfg}
+              includeInCare={includeInCare}
+              onStatus={setExportStatus}
+            />
           </div>
         </div>
       </header>
+
+      {exportStatus && (
+        <div
+          className={`panel mb-4 px-4 py-3 text-sm font-display ${
+            exportStatus.ok ? 'border-code-5/40 bg-code-5/10 text-code-5' : 'border-code-1/40 bg-code-1/10 text-code-1'
+          }`}
+        >
+          {exportStatus.msg}
+        </div>
+      )}
 
       {filteredPics.length === 0 ? (
         <div className="panel p-12 text-center">
@@ -179,5 +191,40 @@ export default function Reports({ refreshKey }) {
         </>
       )}
     </div>
+  )
+}
+
+function ExportButton({ filteredPics, events, eventCfg, includeInCare, onStatus }) {
+  const [busy, setBusy] = useState(false)
+  return (
+    <button
+      className="btn-primary"
+      disabled={filteredPics.length === 0 || busy}
+      onClick={async () => {
+        setBusy(true)
+        try {
+          const result = await exportXlsx({
+            pics: filteredPics,
+            events,
+            eventCfg,
+            cohortLabel: includeInCare ? 'all' : 'discharged',
+          })
+          onStatus({
+            ok: true,
+            msg: `Exported ${result.picCount} PIC${result.picCount === 1 ? '' : 's'} & ${result.eventCount} event${result.eventCount === 1 ? '' : 's'} → ${result.filename}`,
+          })
+          setTimeout(() => onStatus(null), 6000)
+        } catch (err) {
+          console.error('Export failed', err)
+          onStatus({ ok: false, msg: 'Export failed — check browser console.' })
+          setTimeout(() => onStatus(null), 6000)
+        } finally {
+          setBusy(false)
+        }
+      }}
+      title="Download an Excel workbook with two sheets: PICs and Events log"
+    >
+      {busy ? 'Exporting…' : '⬇ Export XLSX'}
+    </button>
   )
 }
