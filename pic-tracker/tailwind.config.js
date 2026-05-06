@@ -9,16 +9,16 @@ export default {
       },
       colors: {
         ink: {
-          950: '#0a0c10',
-          900: '#11141a',
-          800: '#1a1e26',
-          700: '#252a35',
-          600: '#363c4a',
-          500: '#5a6273',
-          400: '#8a93a6',
-          300: '#b8bfd0',
-          200: '#dce0eb',
-          100: '#eef0f7',
+          950: 'rgb(var(--ink-950) / <alpha-value>)',
+          900: 'rgb(var(--ink-900) / <alpha-value>)',
+          800: 'rgb(var(--ink-800) / <alpha-value>)',
+          700: 'rgb(var(--ink-700) / <alpha-value>)',
+          600: 'rgb(var(--ink-600) / <alpha-value>)',
+          500: 'rgb(var(--ink-500) / <alpha-value>)',
+          400: 'rgb(var(--ink-400) / <alpha-value>)',
+          300: 'rgb(var(--ink-300) / <alpha-value>)',
+          200: 'rgb(var(--ink-200) / <alpha-value>)',
+          100: 'rgb(var(--ink-100) / <alpha-value>)',
         },
         code: {
           1: '#dc2626', // red — medical emergency, do not log here

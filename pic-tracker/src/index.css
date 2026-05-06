@@ -2,25 +2,71 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ============================================================
+   Theme tokens
+   ------------------------------------------------------------
+   Tailwind's `ink-*` scale is bound to these variables.
+   Components keep using `bg-ink-900` etc. — values flip with theme.
+
+   Dark mode (default): the original control-panel aesthetic.
+   Light mode: same scale inverted — light surfaces, dark text.
+
+   Font size: --base-font-size sets the html font-size. All UI uses
+   relative units (rem/em via Tailwind), so this scales everything.
+   ============================================================ */
+
+:root {
+  --base-font-size: 17px;
+
+  /* Dark theme defaults — RGB triplets so Tailwind /N opacity modifiers work */
+  --ink-950: 10 12 16;       /* #0a0c10 */
+  --ink-900: 17 20 26;       /* #11141a */
+  --ink-800: 26 30 38;       /* #1a1e26 */
+  --ink-700: 37 42 53;       /* #252a35 */
+  --ink-600: 54 60 74;       /* #363c4a */
+  --ink-500: 90 98 115;      /* #5a6273 */
+  --ink-400: 138 147 166;    /* #8a93a6 */
+  --ink-300: 184 191 208;    /* #b8bfd0 */
+  --ink-200: 220 224 235;    /* #dce0eb */
+  --ink-100: 238 240 247;    /* #eef0f7 */
+
+  --scrollbar-thumb: rgb(37 42 53);
+  --scrollbar-thumb-hover: rgb(54 60 74);
+}
+
+:root[data-theme='light'] {
+  /* Light theme — inverted control panel */
+  --ink-950: 247 248 252;    /* #f7f8fc page bg */
+  --ink-900: 255 255 255;    /* #ffffff panel/card surface */
+  --ink-800: 230 233 240;    /* #e6e9f0 borders */
+  --ink-700: 206 211 223;    /* #ced3df secondary borders */
+  --ink-600: 170 177 194;    /* #aab1c2 tertiary */
+  --ink-500: 122 129 148;    /* #7a8194 placeholder */
+  --ink-400: 80 88 107;      /* #50586b secondary text */
+  --ink-300: 44 51 68;       /* #2c3344 dim body */
+  --ink-200: 24 29 43;       /* #181d2b body */
+  --ink-100: 10 12 20;       /* #0a0c14 headings */
+
+  --scrollbar-thumb: rgb(206 211 223);
+  --scrollbar-thumb-hover: rgb(170 177 194);
+}
+
 @layer base {
   html, body, #root {
     @apply h-full;
   }
   html {
-    /* Bumped from default 16px to 17px for readability under tent lights */
-    font-size: 17px;
+    font-size: var(--base-font-size);
   }
   body {
     @apply bg-ink-950 text-ink-100 font-body antialiased;
     font-feature-settings: 'cv11', 'ss01', 'ss03';
   }
-  /* Bigger tap targets, no double-tap zoom on buttons */
   button { touch-action: manipulation; }
-  /* Subtle scrollbar in dark */
   ::-webkit-scrollbar { width: 10px; height: 10px; }
   ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: #252a35; border-radius: 999px; }
-  ::-webkit-scrollbar-thumb:hover { background: #363c4a; }
+  ::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 999px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-thumb-hover); }
 }
 
 @layer components {
@@ -28,7 +74,7 @@
     @apply inline-flex items-center justify-center rounded-lg px-4 py-2.5 text-sm font-semibold tracking-wide transition active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed;
   }
   .btn-primary {
-    @apply btn bg-ink-100 text-ink-950 hover:bg-white;
+    @apply btn bg-ink-100 text-ink-950 hover:opacity-90;
   }
   .btn-ghost {
     @apply btn bg-ink-800 text-ink-100 hover:bg-ink-700 border border-ink-700;

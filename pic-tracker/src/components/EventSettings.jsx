@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { getEvent, saveEvent } from '../lib/store'
 import RosterField from './RosterField'
+import { getStoredTheme, setTheme as applyAndStoreTheme, getStoredSize, setSize as applyAndStoreSize, resolveTheme } from '../lib/theme'
 
 export default function EventSettings({ onSaved }) {
   const [name, setName] = useState('')
@@ -135,6 +136,8 @@ export default function EventSettings({ onSaved }) {
         />
       </section>
 
+      <DisplaySection />
+
       <div className="sticky bottom-4 flex items-center gap-4 bg-ink-900/80 backdrop-blur border border-ink-800 rounded-xl p-3 pl-5">
         <div className="text-sm text-ink-400">
           {dirty ? (
@@ -150,5 +153,102 @@ export default function EventSettings({ onSaved }) {
         </button>
       </div>
     </div>
+  )
+}
+
+// --- DisplaySection: theme + font size preferences (saved instantly, no Save button) ---
+
+function DisplaySection() {
+  const [theme, setLocalTheme] = useState(getStoredTheme())
+  const [size, setLocalSize] = useState(getStoredSize())
+
+  const onPickTheme = (t) => {
+    applyAndStoreTheme(t)
+    setLocalTheme(t)
+  }
+  const onPickSize = (s) => {
+    applyAndStoreSize(s)
+    setLocalSize(s)
+  }
+
+  const themeOptions = [
+    { value: 'dark', label: 'Dark', icon: '☾' },
+    { value: 'light', label: 'Light', icon: '☀' },
+    { value: 'system', label: 'Auto', icon: '◐' },
+  ]
+  const sizeOptions = [
+    { value: 'small', label: 'Small', sample: 'A' },
+    { value: 'normal', label: 'Normal', sample: 'A' },
+    { value: 'large', label: 'Large', sample: 'A' },
+  ]
+
+  const sizeSampleClasses = {
+    small: 'text-sm',
+    normal: 'text-base',
+    large: 'text-xl',
+  }
+
+  return (
+    <section className="panel p-6 space-y-5">
+      <div className="flex items-center gap-3">
+        <span className="w-3 h-3 rounded-full bg-ink-400" />
+        <h3 className="font-display font-semibold text-lg">Display</h3>
+        <span className="text-xs text-ink-500 ml-auto">applies instantly · per-device</span>
+      </div>
+
+      <div>
+        <label className="label">Theme</label>
+        <div className="grid grid-cols-3 gap-2">
+          {themeOptions.map((opt) => {
+            const active = theme === opt.value
+            return (
+              <button
+                key={opt.value}
+                onClick={() => onPickTheme(opt.value)}
+                className={`h-14 rounded-xl border-2 font-display font-semibold transition flex flex-col items-center justify-center gap-0.5 ${
+                  active
+                    ? 'bg-ink-100 text-ink-950 border-white shadow'
+                    : 'bg-ink-900 text-ink-300 border-ink-700 hover:border-ink-500'
+                }`}
+              >
+                <span className="text-base leading-none">{opt.icon}</span>
+                <span className="text-xs">{opt.label}</span>
+              </button>
+            )
+          })}
+        </div>
+        {theme === 'system' && (
+          <p className="text-xs text-ink-500 mt-2">
+            Auto follows your OS setting (currently {resolveTheme('system')}).
+          </p>
+        )}
+      </div>
+
+      <div>
+        <label className="label">Font size</label>
+        <div className="grid grid-cols-3 gap-2">
+          {sizeOptions.map((opt) => {
+            const active = size === opt.value
+            return (
+              <button
+                key={opt.value}
+                onClick={() => onPickSize(opt.value)}
+                className={`h-14 rounded-xl border-2 font-display font-semibold transition flex items-center justify-center gap-2 ${
+                  active
+                    ? 'bg-ink-100 text-ink-950 border-white shadow'
+                    : 'bg-ink-900 text-ink-300 border-ink-700 hover:border-ink-500'
+                }`}
+              >
+                <span className={sizeSampleClasses[opt.value]}>{opt.sample}</span>
+                <span className="text-xs">{opt.label}</span>
+              </button>
+            )
+          })}
+        </div>
+        <p className="text-xs text-ink-500 mt-2">
+          Adjusts text size everywhere in the app.
+        </p>
+      </div>
+    </section>
   )
 }

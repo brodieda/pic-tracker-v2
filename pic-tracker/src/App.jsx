@@ -5,6 +5,7 @@ import IntakeModal from './components/IntakeModal'
 import PicDetailPanel from './components/PicDetailPanel'
 import Dashboard from './components/Dashboard'
 import Reports from './components/Reports'
+import ThemeToggle from './components/ThemeToggle'
 import { getEvent, getPics } from './lib/store'
 
 export default function App() {
@@ -46,8 +47,11 @@ export default function App() {
               Settings
             </NavButton>
           </nav>
-          <div className="ml-auto text-xs text-ink-500 font-display tracking-wider hidden sm:block">
-            v0.3 · phase 3
+          <div className="ml-auto flex items-center gap-2">
+            <ThemeToggle />
+            <span className="text-xs text-ink-500 font-display tracking-wider hidden sm:inline">
+              v0.4
+            </span>
           </div>
         </div>
       </header>
