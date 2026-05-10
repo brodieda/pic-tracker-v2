@@ -89,8 +89,8 @@ export default function Dashboard({ refreshKey }) {
         />
       </div>
 
-      {/* Second row: time + medical + MH */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+      {/* Second row: time + MH + incomplete */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
         <StatBigNumber
           label="Avg time in care"
           value={stats.times.avg != null ? formatElapsed(stats.times.avg) : '—'}
@@ -108,6 +108,16 @@ export default function Dashboard({ refreshKey }) {
           value={stats.severity.persistentMh}
           tone={stats.severity.persistentMh > 0 ? 'mh' : null}
           hint="Ever Code 2 this episode"
+        />
+      </div>
+
+      {/* Third row: incomplete records callout */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+        <StatBigNumber
+          label="Incomplete records"
+          value={stats.counts.incomplete}
+          tone={stats.counts.incomplete > 0 ? 'warn' : 'good'}
+          hint={stats.counts.incomplete > 0 ? 'PICs with missing info' : 'All records complete'}
         />
       </div>
 

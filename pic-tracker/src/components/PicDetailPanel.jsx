@@ -22,6 +22,7 @@ import {
   minutesSinceLastActivity,
   latestEventFor,
 } from '../lib/helpers'
+import { completenessFor } from '../lib/completeness'
 import {
   CODES,
   REFERRED_BY,
@@ -123,6 +124,7 @@ export default function PicDetailPanel({ picId, onClose, onMutated, openIntent }
   const minsSince = !isDischarged ? minutesSinceLastActivity(pic.id, events) : null
   const latestEvent = latestEventFor(pic.id, events)
   const eventCount = events.filter((e) => e.picId === pic.id).length
+  const { complete, missing } = completenessFor(pic)
 
   const afterMutation = () => {
     reload()
@@ -313,6 +315,23 @@ export default function PicDetailPanel({ picId, onClose, onMutated, openIntent }
 
       {/* Body */}
       <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
+        {/* Incomplete record banner */}
+        {!complete && (
+          <div className="flex items-start gap-3 px-4 py-3 rounded-lg border border-code-3/40 bg-code-3/10">
+            <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-code-3 text-ink-950 text-sm font-display font-black shrink-0 leading-none">
+              !
+            </span>
+            <div className="min-w-0 flex-1">
+              <div className="text-xs font-display font-bold uppercase tracking-widest text-code-3">
+                Incomplete record
+              </div>
+              <div className="text-sm text-ink-200 mt-0.5">
+                Missing: <span className="font-semibold">{missing.join(', ')}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Code change */}
         <section>
           <div className="text-[10px] font-display tracking-[0.22em] uppercase text-ink-500 mb-2">

@@ -9,6 +9,7 @@ import {
   normalizeReferredBy,
   normalizeReferredTo,
 } from './helpers'
+import { incompleteCount } from './completeness'
 
 // ---------- helpers internal ----------
 
@@ -184,6 +185,7 @@ export function computeAllStats(pics, events) {
       total: totalPics(pics),
       inCare: inCareCount(pics),
       discharged: dischargedCount(pics),
+      incomplete: incompleteCount(pics),
     },
     times: {
       avg: avgTimeInCare(pics),

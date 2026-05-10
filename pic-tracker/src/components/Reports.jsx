@@ -135,9 +135,10 @@ export default function Reports({ refreshKey }) {
               tone={stats.medical.count > 0 ? 'danger' : null}
             />
             <StatBigNumber
-              label="In care"
-              value={stats.counts.inCare}
-              hint={!includeInCare ? '(excluded from cohort)' : null}
+              label="Incomplete records"
+              value={stats.counts.incomplete}
+              tone={stats.counts.incomplete > 0 ? 'warn' : 'good'}
+              hint={stats.counts.incomplete > 0 ? 'PICs with missing info' : 'All complete'}
             />
           </div>
 

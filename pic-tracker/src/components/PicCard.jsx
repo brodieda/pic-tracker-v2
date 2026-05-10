@@ -11,6 +11,7 @@ import {
   workloadFor,
   wasEverCode2,
 } from '../lib/helpers'
+import { completenessFor } from '../lib/completeness'
 import { CODES } from '../constants/options'
 
 function CodePill({ code }) {
@@ -109,6 +110,8 @@ export default function PicCard({ pic, events, eventCfg, allPics, onClick, onMar
   const displayName = pic.name || pic.description || '— no name —'
   const picNum = pic.number ?? Number(pic.id?.replace('pic_', ''))
 
+  const { complete, missing } = completenessFor(pic)
+
   const monitorState = !isDischarged ? code3MonitorStateFor(pic.id, events, eventCfg) : null
   const showCheckButton = monitorState === 'overdue' || monitorState === 'due_soon'
 
@@ -146,6 +149,14 @@ export default function PicCard({ pic, events, eventCfg, allPics, onClick, onMar
             <span className="font-display font-black text-xl tabular-nums text-ink-100 shrink-0 leading-none">
               #{picNum}
             </span>
+            {!complete && (
+              <span
+                className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-code-3 text-ink-950 text-[10px] font-display font-black shrink-0 leading-none"
+                title={`Missing: ${missing.join(', ')}`}
+              >
+                !
+              </span>
+            )}
             <h3
               className={`font-display font-bold text-base leading-tight truncate max-w-full ${
                 !pic.name ? 'text-ink-400 italic font-medium' : 'text-ink-100'
