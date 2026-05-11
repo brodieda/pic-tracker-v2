@@ -474,10 +474,10 @@ export default function PicDetailPanel({ picId, onClose, onMutated, openIntent }
             label="Gender / age"
             displayChildren={
               pic.gender || pic.ageRange ? (
-                <span className="text-sm text-ink-200">
-                  {pic.gender || '—'}
-                  {pic.ageRange ? ` · ${pic.ageRange}` : ''}
-                </span>
+                <div className="flex flex-wrap gap-1">
+                  {pic.gender && <span className="tag">{pic.gender}</span>}
+                  {pic.ageRange && <span className="tag">{pic.ageRange}</span>}
+                </div>
               ) : (
                 <span className="text-ink-500 italic text-sm">Not set</span>
               )
@@ -547,7 +547,7 @@ export default function PicDetailPanel({ picId, onClose, onMutated, openIntent }
                 label="Outcome"
                 displayChildren={
                   pic.outcome ? (
-                    <span className="text-sm text-ink-200">
+                    <span className="tag">
                       {pic.outcome === 'Other' ? pic.outcomeOther || 'Other' : pic.outcome}
                     </span>
                   ) : (
@@ -781,12 +781,9 @@ function ChipDisplay({ values, other }) {
     return <span className="text-ink-500 italic text-sm">None set</span>
   }
   return (
-    <div className="flex flex-wrap gap-1.5">
+    <div className="flex flex-wrap gap-1">
       {displayList.map((s, i) => (
-        <span
-          key={`${s}-${i}`}
-          className="text-xs bg-ink-800 border border-ink-700 rounded-md px-2 py-0.5 text-ink-200"
-        >
+        <span key={`${s}-${i}`} className="tag">
           {s}
         </span>
       ))}

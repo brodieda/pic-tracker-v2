@@ -89,7 +89,7 @@
     @apply block text-xs font-semibold uppercase tracking-[0.14em] text-ink-400 mb-2;
   }
   .chip {
-    @apply inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium border transition select-none cursor-pointer;
+    @apply inline-flex items-center gap-1.5 rounded px-2.5 py-1 text-sm font-medium border transition select-none cursor-pointer;
   }
   .chip-off {
     @apply chip bg-ink-900 text-ink-300 border-ink-700 hover:border-ink-500;
@@ -102,5 +102,8 @@
   }
   .divider {
     @apply h-px bg-ink-800;
+  }
+  .tag {
+    @apply inline-flex items-center bg-ink-700 text-ink-100 rounded px-2 py-0.5 text-xs font-medium border border-ink-700;
   }
 }

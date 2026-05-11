@@ -169,8 +169,11 @@ export default function PicCard({ pic, events, eventCfg, allPics, onClick, onMar
                 · {pic.description}
               </span>
             )}
-            {demog && (
-              <span className="text-[11px] text-ink-500 shrink-0">· {demog}</span>
+            {pic.gender && (
+              <span className="tag shrink-0">{abbrevGender(pic.gender)}</span>
+            )}
+            {pic.ageRange && (
+              <span className="tag shrink-0">{pic.ageRange}</span>
             )}
           </div>
 
@@ -237,33 +240,39 @@ export default function PicCard({ pic, events, eventCfg, allPics, onClick, onMar
             {!isDischarged && hasRefBy && (
               <>
                 <span className="text-ink-700">·</span>
-                <span className="text-ink-200">
-                  <span className="text-[10px] font-display tracking-[0.18em] uppercase text-ink-500 mr-1.5">
+                <span className="inline-flex items-center gap-1 flex-wrap">
+                  <span className="text-[10px] tracking-[0.18em] uppercase text-ink-500 mr-1">
                     Ref by
                   </span>
-                  {referredByDisplay.join(', ')}
+                  {referredByDisplay.map((v, i) => (
+                    <span key={i} className="tag">{v}</span>
+                  ))}
                 </span>
               </>
             )}
             {!isDischarged && hasSubs && (
               <>
                 <span className="text-ink-700">·</span>
-                <span className="text-ink-200">
-                  <span className="text-[10px] font-display tracking-[0.18em] uppercase text-ink-500 mr-1.5">
+                <span className="inline-flex items-center gap-1 flex-wrap">
+                  <span className="text-[10px] tracking-[0.18em] uppercase text-ink-500 mr-1">
                     Subs
                   </span>
-                  {subsDisplay.join(', ')}
+                  {subsDisplay.map((v, i) => (
+                    <span key={i} className="tag">{v}</span>
+                  ))}
                 </span>
               </>
             )}
             {!isDischarged && hasPres && (
               <>
                 <span className="text-ink-700">·</span>
-                <span className="text-ink-200">
-                  <span className="text-[10px] font-display tracking-[0.18em] uppercase text-ink-500 mr-1.5">
+                <span className="inline-flex items-center gap-1 flex-wrap">
+                  <span className="text-[10px] tracking-[0.18em] uppercase text-ink-500 mr-1">
                     Pres
                   </span>
-                  {presDisplay.join(', ')}
+                  {presDisplay.map((v, i) => (
+                    <span key={i} className="tag">{v}</span>
+                  ))}
                 </span>
               </>
             )}
@@ -272,11 +281,11 @@ export default function PicCard({ pic, events, eventCfg, allPics, onClick, onMar
             {isDischarged && outcomeDisplay && (
               <>
                 <span className="text-ink-700">·</span>
-                <span className="text-ink-200">
-                  <span className="text-[10px] font-display tracking-[0.18em] uppercase text-ink-500 mr-1.5">
+                <span className="inline-flex items-center gap-1">
+                  <span className="text-[10px] tracking-[0.18em] uppercase text-ink-500 mr-1">
                     Out
                   </span>
-                  <span className="font-semibold">{outcomeDisplay}</span>
+                  <span className="tag">{outcomeDisplay}</span>
                 </span>
               </>
             )}
@@ -291,11 +300,13 @@ export default function PicCard({ pic, events, eventCfg, allPics, onClick, onMar
             {isDischarged && referredToDisplay.length > 0 && (
               <>
                 <span className="text-ink-700">·</span>
-                <span className="text-ink-200">
-                  <span className="text-[10px] font-display tracking-[0.18em] uppercase text-ink-500 mr-1.5">
+                <span className="inline-flex items-center gap-1 flex-wrap">
+                  <span className="text-[10px] tracking-[0.18em] uppercase text-ink-500 mr-1">
                     Ref to
                   </span>
-                  {referredToDisplay.join(', ')}
+                  {referredToDisplay.map((v, i) => (
+                    <span key={i} className="tag">{v}</span>
+                  ))}
                 </span>
               </>
             )}
