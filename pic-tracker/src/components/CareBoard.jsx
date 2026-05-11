@@ -1,7 +1,14 @@
 import { useEffect, useState } from 'react'
 import { getPics, getEvents, getEvent } from '../lib/store'
 import PicCard from './PicCard'
-import { addCheckEvent, getAssignedKpe } from '../lib/helpers'
+import {
+  addCheckEvent,
+  getAssignedKpe,
+  elapsedMinutes,
+  formatElapsed,
+  shiftFor,
+  workloadFor,
+} from '../lib/helpers'
 import { isIncomplete } from '../lib/completeness'
 
 const CAPACITY_WARNING_THRESHOLD = 3
@@ -215,16 +222,14 @@ export default function CareBoard({ refreshKey, onAddPic, onPicClick, onPicTapKp
               <p className="text-ink-500 text-sm">No discharges yet.</p>
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="panel divide-y divide-ink-800 overflow-hidden">
               {discharged.map((pic) => (
-                <PicCard
+                <DischargedRow
                   key={pic.id}
                   pic={pic}
-                  events={events}
                   eventCfg={eventCfg}
                   allPics={pics}
                   onClick={() => onPicClick?.(pic)}
-                  onTapKpe={() => onPicTapKpe?.(pic)}
                 />
               ))}
             </div>
@@ -232,5 +237,103 @@ export default function CareBoard({ refreshKey, onAddPic, onPicClick, onPicTapKp
         </section>
       </div>
     </div>
+  )
+}
+
+// --- DischargedRow: compact single-line summary; click to open detail panel ---
+
+function abbrevGender(g) {
+  if (!g) return ''
+  if (g === 'Feminine') return 'F'
+  if (g === 'Masculine') return 'M'
+  if (g === 'Non-binary') return 'NB'
+  return g
+}
+
+function DischargedRow({ pic, eventCfg, allPics, onClick }) {
+  const assignedKpe = getAssignedKpe(pic)
+  const shift = shiftFor(assignedKpe, eventCfg)
+  const shiftClass = shift === 1 ? 'bg-shift-1' : shift === 2 ? 'bg-shift-2' : 'bg-ink-700'
+  const workload = workloadFor(assignedKpe, allPics)
+
+  const duration = elapsedMinutes(pic.enteredCare, pic.leftCare)
+  const picNum = pic.number ?? Number(pic.id?.replace('pic_', ''))
+
+  // Identifier: prefer name; fall back to description; otherwise placeholder
+  const hasName = !!(pic.name && pic.name.trim())
+  const hasDescription = !!(pic.description && pic.description.trim())
+  const identifier = hasName ? pic.name : hasDescription ? pic.description : '— no name —'
+  const identifierEmpty = !hasName && !hasDescription
+
+  // Demo string: F 18-19
+  const demogParts = []
+  if (pic.gender) demogParts.push(abbrevGender(pic.gender))
+  if (pic.ageRange) demogParts.push(pic.ageRange)
+  const demog = demogParts.join(' ')
+
+  const outcomeDisplay =
+    pic.outcome === 'Other' ? pic.outcomeOther || 'Other' : pic.outcome
+
+  return (
+    <button
+      onClick={onClick}
+      className="w-full text-left px-3.5 py-2 flex items-center gap-3 text-sm hover:bg-ink-800/40 transition"
+    >
+      {/* Left: PIC# + identifier + demo */}
+      <div className="flex items-baseline gap-2 flex-1 min-w-0">
+        <span className="font-display font-bold tabular-nums text-ink-200 shrink-0">
+          #{picNum}
+        </span>
+        <span
+          className={`font-display font-semibold truncate ${
+            identifierEmpty ? 'text-ink-500 italic font-medium' : 'text-ink-200'
+          } ${!hasName && hasDescription ? 'italic font-medium' : ''}`}
+        >
+          {identifier}
+        </span>
+        {demog && (
+          <span className="text-xs text-ink-500 shrink-0">· {demog}</span>
+        )}
+      </div>
+
+      {/* Middle: KPE + medical icon */}
+      <div className="flex items-center gap-2 shrink-0">
+        {assignedKpe && (
+          <span
+            className={`inline-flex items-center gap-1.5 ${shiftClass} text-white text-[11px] font-semibold px-2 py-0.5 rounded-full`}
+          >
+            {assignedKpe}
+            {workload > 0 && (
+              <span className="flex items-center gap-0.5">
+                {Array.from({ length: Math.min(workload, 3) }).map((_, i) => (
+                  <span key={i} className="w-1 h-1 rounded-full bg-white/85" />
+                ))}
+                {workload > 3 && <span className="text-[10px] font-bold leading-none ml-0.5">+</span>}
+              </span>
+            )}
+          </span>
+        )}
+        {pic.medicalInvolved === true && (
+          <span
+            className="text-code-1 text-base leading-none"
+            title="Medical involved"
+          >
+            ⚕
+          </span>
+        )}
+      </div>
+
+      {/* Right: outcome + duration */}
+      <div className="flex items-center gap-3 shrink-0">
+        {outcomeDisplay ? (
+          <span className="tag">{outcomeDisplay}</span>
+        ) : (
+          <span className="text-xs text-ink-600 italic">no outcome</span>
+        )}
+        <span className="font-display tabular-nums text-ink-400 text-xs w-16 text-right">
+          {formatElapsed(duration)}
+        </span>
+      </div>
+    </button>
   )
 }
