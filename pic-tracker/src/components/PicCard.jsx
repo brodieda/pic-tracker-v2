@@ -224,11 +224,10 @@ export default function PicCard({ pic, events, eventCfg, allPics, onClick, onMar
           </div>
         </div>
 
-        {/* Row 2: KPE pill + ref-by + subs + pres (in-care)  OR  outcome + medical + ref-to (discharged) */}
-        {(assignedKpe != null || hasRefBy || hasSubs || hasPres ||
+        {/* Row 2: KPE + Ref by (in-care)  OR  Outcome + Medical + Ref to (discharged) */}
+        {(assignedKpe != null || hasRefBy ||
           (isDischarged && (outcomeDisplay || referredToDisplay.length > 0 || pic.medicalInvolved === true))) && (
           <div className="mt-1.5 flex items-baseline gap-2 flex-wrap text-xs leading-snug">
-            {/* KPE pill always first if there's any second-row content */}
             <KpePill
               assignedKpe={assignedKpe}
               shiftClass={shiftClass}
@@ -236,7 +235,7 @@ export default function PicCard({ pic, events, eventCfg, allPics, onClick, onMar
               onTap={() => onTapKpe?.(pic)}
             />
 
-            {/* In-care: ref by + subs + pres */}
+            {/* In-care: ref-by only (subs and pres available in detail panel) */}
             {!isDischarged && hasRefBy && (
               <>
                 <span className="text-ink-700">·</span>
@@ -245,32 +244,6 @@ export default function PicCard({ pic, events, eventCfg, allPics, onClick, onMar
                     Ref by
                   </span>
                   {referredByDisplay.map((v, i) => (
-                    <span key={i} className="tag">{v}</span>
-                  ))}
-                </span>
-              </>
-            )}
-            {!isDischarged && hasSubs && (
-              <>
-                <span className="text-ink-700">·</span>
-                <span className="inline-flex items-center gap-1 flex-wrap">
-                  <span className="text-[10px] tracking-[0.18em] uppercase text-ink-500 mr-1">
-                    Subs
-                  </span>
-                  {subsDisplay.map((v, i) => (
-                    <span key={i} className="tag">{v}</span>
-                  ))}
-                </span>
-              </>
-            )}
-            {!isDischarged && hasPres && (
-              <>
-                <span className="text-ink-700">·</span>
-                <span className="inline-flex items-center gap-1 flex-wrap">
-                  <span className="text-[10px] tracking-[0.18em] uppercase text-ink-500 mr-1">
-                    Pres
-                  </span>
-                  {presDisplay.map((v, i) => (
                     <span key={i} className="tag">{v}</span>
                   ))}
                 </span>
@@ -310,6 +283,16 @@ export default function PicCard({ pic, events, eventCfg, allPics, onClick, onMar
                 </span>
               </>
             )}
+          </div>
+        )}
+
+        {/* Per-card missing-info prompt */}
+        {!complete && missing.length > 0 && (
+          <div className="mt-1.5 text-xs text-code-3 leading-snug">
+            <span className="text-[10px] tracking-[0.18em] uppercase text-code-3/80 mr-1.5">
+              Missing
+            </span>
+            {missing.join(', ')}
           </div>
         )}
       </button>

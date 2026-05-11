@@ -2,9 +2,11 @@ import { useEffect, useState } from 'react'
 import { getPics, getEvents, getEvent } from '../lib/store'
 import PicCard from './PicCard'
 import { addCheckEvent, getAssignedKpe } from '../lib/helpers'
+import { isIncomplete } from '../lib/completeness'
 
-const CAPACITY_WARNING_THRESHOLD = 3 // show yellow when this many spaces or fewer remain
-const SORT_KEY = 'pic_in_care_sort_dir' // 'desc' (newest top) or 'asc'
+const CAPACITY_WARNING_THRESHOLD = 3
+const SORT_KEY = 'pic_in_care_sort_dir'
+const FILTER_KEY = 'pic_in_care_filter_incomplete'
 
 export default function CareBoard({ refreshKey, onAddPic, onPicClick, onPicTapKpe }) {
   const [pics, setPics] = useState([])
@@ -16,6 +18,13 @@ export default function CareBoard({ refreshKey, onAddPic, onPicClick, onPicTapKp
       return localStorage.getItem(SORT_KEY) || 'desc'
     } catch {
       return 'desc'
+    }
+  })
+  const [filterIncomplete, setFilterIncomplete] = useState(() => {
+    try {
+      return localStorage.getItem(FILTER_KEY) === '1'
+    } catch {
+      return false
     }
   })
 
@@ -42,13 +51,21 @@ export default function CareBoard({ refreshKey, onAddPic, onPicClick, onPicTapKp
     } catch {}
   }
 
+  const toggleFilter = () => {
+    const next = !filterIncomplete
+    setFilterIncomplete(next)
+    try {
+      localStorage.setItem(FILTER_KEY, next ? '1' : '0')
+    } catch {}
+  }
+
   const onMarkChecked = (pic) => {
     addCheckEvent(pic.id, getAssignedKpe(pic), null)
     reload()
   }
 
   // Sort in-care purely by PIC number — no code-priority sort. Visual indicators handle priority.
-  const inCare = pics
+  const inCareAll = pics
     .filter((p) => p.status === 'in_care')
     .slice()
     .sort((a, b) => {
@@ -57,12 +74,15 @@ export default function CareBoard({ refreshKey, onAddPic, onPicClick, onPicTapKp
       return sortDir === 'desc' ? bn - an : an - bn
     })
 
+  const incompleteCount = inCareAll.filter(isIncomplete).length
+  const inCare = filterIncomplete ? inCareAll.filter(isIncomplete) : inCareAll
+
   const discharged = pics
     .filter((p) => p.status === 'discharged')
     .sort((a, b) => new Date(b.leftCare || 0) - new Date(a.leftCare || 0))
 
   const capacity = eventCfg.capacity
-  const inCareCount = inCare.length
+  const inCareCount = inCareAll.length
   const spacesRemaining = capacity != null ? Math.max(0, capacity - inCareCount) : null
   const atCapacity = capacity != null && inCareCount >= capacity
   const nearCapacity =
@@ -107,11 +127,33 @@ export default function CareBoard({ refreshKey, onAddPic, onPicClick, onPicTapKp
               In care
             </h3>
             <span className="text-xs text-ink-500 font-display tabular-nums">
-              {inCare.length}
+              {filterIncomplete ? `${inCare.length} / ${inCareAll.length}` : inCareAll.length}
             </span>
             <button
+              onClick={toggleFilter}
+              disabled={incompleteCount === 0 && !filterIncomplete}
+              className={`ml-auto text-[10px] font-display uppercase tracking-widest inline-flex items-center gap-1.5 px-2 py-1 rounded-md transition ${
+                filterIncomplete
+                  ? 'bg-code-3 text-ink-950 hover:opacity-90'
+                  : incompleteCount > 0
+                    ? 'text-code-3 hover:bg-ink-800'
+                    : 'text-ink-600 cursor-not-allowed'
+              }`}
+              title={
+                filterIncomplete
+                  ? 'Showing only incomplete — click to show all'
+                  : incompleteCount > 0
+                    ? `Show only ${incompleteCount} incomplete record${incompleteCount === 1 ? '' : 's'}`
+                    : 'No incomplete records'
+              }
+            >
+              <span>!</span>
+              <span>incomplete</span>
+              {incompleteCount > 0 && <span className="font-bold">{incompleteCount}</span>}
+            </button>
+            <button
               onClick={toggleSort}
-              className="ml-auto text-[10px] font-display uppercase tracking-widest text-ink-400 hover:text-ink-100 inline-flex items-center gap-1 px-2 py-1 rounded-md hover:bg-ink-800 transition"
+              className="text-[10px] font-display uppercase tracking-widest text-ink-400 hover:text-ink-100 inline-flex items-center gap-1 px-2 py-1 rounded-md hover:bg-ink-800 transition"
               title={sortDir === 'desc' ? 'Newest first — click to flip' : 'Oldest first — click to flip'}
             >
               <span>#</span>
@@ -121,10 +163,23 @@ export default function CareBoard({ refreshKey, onAddPic, onPicClick, onPicTapKp
 
           {inCare.length === 0 ? (
             <div className="panel p-10 text-center">
-              <p className="text-ink-500 font-display tracking-wide">No PICs currently in care.</p>
-              <button onClick={onAddPic} className="btn-ghost mt-4">
-                + Admit first PIC
-              </button>
+              {filterIncomplete && inCareAll.length > 0 ? (
+                <>
+                  <p className="text-ink-500 font-display tracking-wide">
+                    All in-care records are complete.
+                  </p>
+                  <button onClick={toggleFilter} className="btn-ghost mt-4">
+                    Show all {inCareAll.length}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <p className="text-ink-500 font-display tracking-wide">No PICs currently in care.</p>
+                  <button onClick={onAddPic} className="btn-ghost mt-4">
+                    + Admit first PIC
+                  </button>
+                </>
+              )}
             </div>
           ) : (
             <div className="space-y-2">
