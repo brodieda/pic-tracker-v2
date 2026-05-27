@@ -2,6 +2,9 @@ import { useEffect, useState } from 'react'
 import { getEvent, saveEvent } from '../lib/store'
 import RosterField from './RosterField'
 import { getStoredTheme, setTheme as applyAndStoreTheme, getStoredSize, setSize as applyAndStoreSize, resolveTheme } from '../lib/theme'
+import { updateCurrentEvent } from '../lib/supabaseStore'
+import { SUPABASE_CONFIGURED } from '../lib/supabaseClient'
+import { isWriter, updateCachedEventName } from '../lib/eventSession'
 
 export default function EventSettings({ onSaved }) {
   const [name, setName] = useState('')
@@ -25,15 +28,21 @@ export default function EventSettings({ onSaved }) {
 
   const handleSave = () => {
     const capNumber = capacity === '' ? null : Number(capacity)
-    saveEvent({
+    const eventData = {
       name: name.trim(),
       shift1Team: shift1,
       shift2Team: shift2,
       code3CheckIntervalMinutes: Number(interval) || 15,
       capacity: capNumber && capNumber > 0 ? capNumber : null,
-    })
+    }
+    saveEvent(eventData)
     setSavedAt(new Date())
     setDirty(false)
+    // Mirror to Supabase (writer-only, no-op otherwise)
+    if (SUPABASE_CONFIGURED && isWriter()) {
+      updateCurrentEvent(eventData).catch((e) => console.error('event mirror failed', e))
+      updateCachedEventName(eventData.name)
+    }
     onSaved?.()
   }
 

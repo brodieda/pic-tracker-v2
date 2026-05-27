@@ -120,9 +120,11 @@ export default function CareBoard({ refreshKey, onAddPic, onPicClick, onPicTapKp
               </span>
             </div>
           )}
-          <button onClick={onAddPic} className="btn-primary text-base px-5 py-3">
-            + New PIC
-          </button>
+          {onAddPic && (
+            <button onClick={onAddPic} className="btn-primary text-base px-5 py-3">
+              + New PIC
+            </button>
+          )}
         </div>
       </div>
 
@@ -182,9 +184,11 @@ export default function CareBoard({ refreshKey, onAddPic, onPicClick, onPicTapKp
               ) : (
                 <>
                   <p className="text-ink-500 font-display tracking-wide">No PICs currently in care.</p>
-                  <button onClick={onAddPic} className="btn-ghost mt-4">
-                    + Admit first PIC
-                  </button>
+                  {onAddPic && (
+                    <button onClick={onAddPic} className="btn-ghost mt-4">
+                      + Admit first PIC
+                    </button>
+                  )}
                 </>
               )}
             </div>

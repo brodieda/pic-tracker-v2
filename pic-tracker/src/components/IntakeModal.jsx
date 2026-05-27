@@ -10,6 +10,7 @@ import {
   nextEventId,
 } from '../lib/store'
 import { nowIso, formatClock } from '../lib/helpers'
+import { mirrorAdmit } from '../lib/dualWrite'
 import {
   REFERRED_BY,
   SUBSTANCES,
@@ -156,7 +157,7 @@ export default function IntakeModal({ open, onClose, onCreated }) {
 
     addPic(pic)
 
-    addEvent({
+    const admitEvent = {
       id: nextEventId(),
       picId,
       timestamp: ts,
@@ -165,7 +166,11 @@ export default function IntakeModal({ open, onClose, onCreated }) {
       kpe: form.intakeKpe.trim() || null,
       note: form.intakeNote.trim() || null,
       meta: {},
-    })
+    }
+    addEvent(admitEvent)
+
+    // Mirror to Supabase (fire and forget — no-op if not configured / not a writer)
+    mirrorAdmit(pic, admitEvent)
 
     onCreated?.(pic)
     onClose?.()
