@@ -1,50 +1,65 @@
-# PIC Tracker — Phase 1
+# Security Monitored flag — change bundle
 
-LocalStorage-only React + Vite + Tailwind app for festival carespace PIC intake.
+This bundle adds the Security Monitored (ejection pathway) flag to PIC Tracker. It's a parallel feature to the existing Code 2 MH flag.
 
-## Phase 1 scope
+## Files modified (11)
 
-- ✅ Event settings (name, shift 1 + shift 2 rosters, code 3 check interval)
-- ✅ New PIC intake modal (name, code, referred by, substances, presentations, intake KPE, optional gender/age/description/note)
-- ✅ Care board (in-care + discharged columns, sorted by severity then time)
-- ⏳ Detail screen, discharge flow, code 3 monitoring, reporting, exports — Phase 2+
+### Library
+- `src/lib/helpers.js` — `dischargePic` now persists `securityNotified`; new `setEjectionFlag` helper that emits `flag_change` events
+- `src/lib/xlsxExport.js` — two new columns: `Security monitored`, `Security notified at discharge`
+- `src/lib/stats.js` — new `ejectionFlaggedCount` and `securityNotificationBreakdown`, wired into `computeAllStats` as `stats.security`
+- `src/lib/completeness.js` — flagged discharged PICs without `securityNotified` now flagged as incomplete
 
-## Run locally
+### Components
+- `src/components/IntakeModal.jsx` — Security Monitored checkbox after Presentations; sets `ejectionFlag` on new PICs
+- `src/components/DischargeModal.jsx` — reminder banner at top for flagged PICs; Yes/No "Security/RSA notified?" field (only when flagged); soft-warning dialog when "No" is selected
+- `src/components/PicCard.jsx` — `⚑ SEC` badge next to existing MH badge; post-discharge notification status pill
+- `src/components/PicDetailPanel.jsx` — persistent banner at top of body; "Flag as Security Monitored" button above Discharge for in-care PICs; "clear flag" link in banner
+- `src/components/CareBoard.jsx` — `⚑` glyph on discharged-list rows, coloured by notification state
+- `src/components/EventLog.jsx` — renders `flag_change` events with summary line
+- `src/components/Reports.jsx` — new Security Monitored stat tile next to Medical involved
 
-```bash
-npm install
-npm run dev
+## Data model additions
+
+On each PIC record:
+- `ejectionFlag: boolean` — set at intake, toggleable mid-care
+- `securityNotified: boolean | null` — null = N/A or not yet answered; set at discharge for flagged PICs only
+
+New event type in the log:
+- `flag_change` — `meta: { flag: 'ejection', value: true | false }`
+
+The discharge event's `meta` now also includes `securityNotified`.
+
+## Backwards compatibility
+
+Older PIC records (pre-flag) will have `ejectionFlag === undefined`. Every check uses truthy comparison (`!!pic.ejectionFlag` or `pic.ejectionFlag === true`), so legacy records behave as if unflagged. No data migration needed. JSON import will also work — missing fields default to falsy.
+
+## How to apply
+
+Replace these 11 files in your repo with the versions in this bundle (same paths). Then:
+```
+npm install   # only needed if not already done
+npm run build # verify clean build
 ```
 
-Then open the URL Vite prints (usually http://localhost:5173).
+A unified diff (`security-monitored.patch`) is included for review.
 
-## Build
+## Verified
 
-```bash
-npm run build
-npm run preview
-```
+Final `vite build` clean: 240.69 kB JS bundle (was 239.43 kB before), 34.57 kB CSS unchanged. No new dependencies.
 
-## Data shape (localStorage keys)
+## Visual design notes
 
-- `pic_event` — single event config object
-- `pic_pics` — array of PIC records
-- `pic_events` — append-only audit log
+The flag uses a near-white slate badge (`bg-slate-100`) — chosen deliberately to be visually distinct from severity codes (which own red/orange/yellow/blue/green) and the MH flag (orange). If the contrast is too stark in the light theme, swap `bg-slate-100` for `bg-ink-100` in PicCard.jsx, PicDetailPanel.jsx, DischargeModal.jsx, and IntakeModal.jsx — `ink-100` respects the light/dark theme variable.
 
-See `src/lib/store.js` for the full API.
+## Test checklist
 
-## First-run
-
-On first launch with no event name and no PICs, the app routes you to Settings. Set the event name and rosters, save, then switch to Board to start admitting.
-
-## Notes
-
-- All data stays in your browser. No network calls.
-- Use a JSON export tool (Phase 2) to back up between sessions or move between devices.
-- localStorage cap is ~5MB per origin — easily enough for hundreds of PICs.
-
-## Code conventions
-
-- Severity codes: 5 = lowest, 1 = highest. Colours: 5 green, 4 blue, 3 yellow, 2 orange, 1 red.
-- Shift 1 = teal pill, Shift 2 = purple pill.
-- Time stored as local ISO strings (no timezone). Device clock authority.
+1. Flag at intake → discharge → answer "Yes" → no warning, recorded
+2. Flag at intake → discharge → answer "No" → soft warning → cancel returns to modal
+3. Flag at intake → discharge → answer "No" → soft warning → confirm proceeds
+4. No flag at intake → discharge → no security question appears
+5. No flag at intake → use "Flag as Security Monitored" button mid-care → SEC badge appears
+6. Flagged in-care → "clear flag" in banner → flag removed, event logged
+7. Reports view shows new Security Monitored tile with notification breakdown
+8. XLSX export contains both new columns
+9. Import older JSON (no ejectionFlag field) → loads cleanly, behaves as unflagged
