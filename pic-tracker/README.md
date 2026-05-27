@@ -45,6 +45,6 @@ On first launch with no event name and no PICs, the app routes you to Settings. 
 
 ## Code conventions
 
-- Severity codes: 1 = lowest, 5 = highest. Colours: 1 green, 2 blue, 3 yellow, 4 orange, 5 red.
+- Severity codes: 5 = lowest, 1 = highest. Colours: 5 green, 4 blue, 3 yellow, 2 orange, 1 red.
 - Shift 1 = teal pill, Shift 2 = purple pill.
 - Time stored as local ISO strings (no timezone). Device clock authority.
