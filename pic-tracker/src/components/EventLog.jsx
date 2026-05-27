@@ -7,6 +7,7 @@ const TYPE_LABELS = {
   note: 'Note',
   check: 'Welfare check',
   discharge: 'Discharged',
+  flag_change: 'Flag change',
 }
 
 const TYPE_TONE = {
@@ -16,9 +17,21 @@ const TYPE_TONE = {
   note: 'border-ink-600 text-ink-300',
   check: 'border-code-5 text-code-5',
   discharge: 'border-ink-500 text-ink-200',
+  flag_change: 'border-ink-300 text-ink-100',
+}
+
+function flagChangeSummary(meta) {
+  if (!meta) return null
+  if (meta.flag === 'ejection') {
+    return meta.value
+      ? '⚑ Flagged Security Monitored'
+      : '⚑ Security Monitored flag cleared'
+  }
+  return null
 }
 
 export function EventLogItem({ event }) {
+  const flagSummary = event.type === 'flag_change' ? flagChangeSummary(event.meta) : null
   return (
     <li
       className={`pl-3 border-l-2 py-1.5 ${TYPE_TONE[event.type] || 'border-ink-700 text-ink-300'}`}
@@ -37,6 +50,9 @@ export function EventLogItem({ event }) {
           {formatDateTime(event.timestamp)}
         </span>
       </div>
+      {flagSummary && (
+        <div className="text-sm text-ink-200 mt-1 leading-snug font-medium">{flagSummary}</div>
+      )}
       {event.note && (
         <div className="text-sm text-ink-200 mt-1 leading-snug">{event.note}</div>
       )}

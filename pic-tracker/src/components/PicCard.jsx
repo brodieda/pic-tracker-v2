@@ -177,8 +177,16 @@ export default function PicCard({ pic, events, eventCfg, allPics, onClick, onMar
             )}
           </div>
 
-          {/* Right cluster: MH (if ever) + code pill + time stack with optional mark-checked button */}
+          {/* Right cluster: SEC + MH (if ever) + code pill + time stack with optional mark-checked button */}
           <div className="flex items-start gap-2 shrink-0">
+            {pic.ejectionFlag && (
+              <span
+                className="inline-flex items-center gap-1 bg-slate-100 text-ink-950 text-[10px] font-display font-bold uppercase tracking-widest px-1.5 h-7 rounded-md shrink-0 border border-slate-100"
+                title="Security Monitored — RSA/Security to be notified before discharge"
+              >
+                ⚑ SEC
+              </span>
+            )}
             {everCode2 && !isDischarged && (
               <span
                 className="inline-flex items-center gap-1 bg-code-2/15 border border-code-2/50 text-code-2 text-[10px] font-display font-bold uppercase tracking-widest px-1.5 h-7 rounded-md shrink-0"
@@ -267,6 +275,33 @@ export default function PicCard({ pic, events, eventCfg, allPics, onClick, onMar
                 <span className="text-ink-700">·</span>
                 <span className="text-[10px] bg-code-1/20 border border-code-1/40 text-code-1 rounded px-1.5 py-0.5 font-bold uppercase tracking-widest shrink-0">
                   Medical
+                </span>
+              </>
+            )}
+            {isDischarged && pic.ejectionFlag && (
+              <>
+                <span className="text-ink-700">·</span>
+                <span
+                  className={`text-[10px] rounded px-1.5 py-0.5 font-bold uppercase tracking-widest shrink-0 border ${
+                    pic.securityNotified === true
+                      ? 'bg-code-5/15 border-code-5/40 text-code-5'
+                      : pic.securityNotified === false
+                      ? 'bg-code-1/15 border-code-1/40 text-code-1'
+                      : 'bg-ink-800 border-ink-700 text-ink-400'
+                  }`}
+                  title={
+                    pic.securityNotified === true
+                      ? 'Security notified at discharge'
+                      : pic.securityNotified === false
+                      ? 'Security NOT notified at discharge'
+                      : 'Security notification not recorded'
+                  }
+                >
+                  {pic.securityNotified === true
+                    ? '✓ Sec notified'
+                    : pic.securityNotified === false
+                    ? '✗ Sec not notified'
+                    : 'Sec ?'}
                 </span>
               </>
             )}

@@ -135,6 +135,27 @@ export default function Reports({ refreshKey }) {
               tone={stats.medical.count > 0 ? 'danger' : null}
             />
             <StatBigNumber
+              label="Security monitored"
+              value={stats.security.flagged}
+              suffix={
+                stats.security.notification.total > 0
+                  ? `(${stats.security.notification.notified}/${stats.security.notification.total} notified)`
+                  : null
+              }
+              tone={
+                stats.security.notification.notNotified > 0
+                  ? 'danger'
+                  : stats.security.flagged > 0
+                  ? 'warn'
+                  : null
+              }
+              hint={
+                stats.security.notification.notNotified > 0
+                  ? `${stats.security.notification.notNotified} discharged without security notified`
+                  : null
+              }
+            />
+            <StatBigNumber
               label="Incomplete records"
               value={stats.counts.incomplete}
               tone={stats.counts.incomplete > 0 ? 'warn' : 'good'}

@@ -21,6 +21,7 @@ import {
   code3MonitorStateFor,
   minutesSinceLastActivity,
   latestEventFor,
+  setEjectionFlag,
 } from '../lib/helpers'
 import { completenessFor } from '../lib/completeness'
 import {
@@ -180,6 +181,11 @@ export default function PicDetailPanel({ picId, onClose, onMutated, openIntent }
     afterMutation()
   }
 
+  const onToggleEjection = () => {
+    setEjectionFlag(pic.id, !pic.ejectionFlag, assignedKpe)
+    afterMutation()
+  }
+
   return (
     <PanelShell onClose={onClose}>
       {/* Header */}
@@ -315,6 +321,38 @@ export default function PicDetailPanel({ picId, onClose, onMutated, openIntent }
 
       {/* Body */}
       <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
+        {/* Security Monitored banner — actionable reminder */}
+        {pic.ejectionFlag && (
+          <div className="flex items-start gap-3 px-4 py-3 rounded-lg bg-slate-100 text-ink-950 border-2 border-slate-100">
+            <span className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-ink-950 text-slate-100 text-sm font-display font-black shrink-0 leading-none">
+              ⚑
+            </span>
+            <div className="min-w-0 flex-1">
+              <div className="text-xs font-display font-bold uppercase tracking-widest">
+                Security Monitored
+              </div>
+              <div className="text-sm mt-0.5">
+                {isDischarged
+                  ? pic.securityNotified === true
+                    ? 'Security/RSA was notified at discharge.'
+                    : pic.securityNotified === false
+                    ? 'Security/RSA was NOT notified at discharge.'
+                    : 'Notification status not recorded.'
+                  : 'Ejection pathway — notify RSA/Security before this patron leaves the space.'}
+              </div>
+            </div>
+            {!isDischarged && (
+              <button
+                onClick={onToggleEjection}
+                className="text-[10px] uppercase tracking-widest text-ink-950/70 hover:text-ink-950 underline-offset-4 hover:underline shrink-0 self-center"
+                title="Remove the Security Monitored flag"
+              >
+                clear flag
+              </button>
+            )}
+          </div>
+        )}
+
         {/* Incomplete record banner */}
         {!complete && (
           <div className="flex items-start gap-3 px-4 py-3 rounded-lg border border-code-3/40 bg-code-3/10">
@@ -741,7 +779,17 @@ export default function PicDetailPanel({ picId, onClose, onMutated, openIntent }
 
         {/* Discharge button — only shown when in-care */}
         {!isDischarged && (
-          <div className="pt-2">
+          <div className="pt-2 space-y-2">
+            {!pic.ejectionFlag && (
+              <button
+                onClick={onToggleEjection}
+                className="w-full inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold tracking-wide transition bg-ink-900 border-2 border-dashed border-ink-700 text-ink-300 hover:border-slate-100 hover:text-slate-100"
+                title="Flag this patron as Security Monitored — RSA/Security ejection pathway"
+              >
+                <span aria-hidden="true">⚑</span>
+                Flag as Security Monitored
+              </button>
+            )}
             <button
               onClick={() => setDischargeOpen(true)}
               className="btn-primary w-full text-base py-3"

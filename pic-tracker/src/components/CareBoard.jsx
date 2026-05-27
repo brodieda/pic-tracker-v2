@@ -321,6 +321,26 @@ function DischargedRow({ pic, eventCfg, allPics, onClick }) {
             ⚕
           </span>
         )}
+        {pic.ejectionFlag && (
+          <span
+            className={`text-base leading-none ${
+              pic.securityNotified === true
+                ? 'text-code-5'
+                : pic.securityNotified === false
+                ? 'text-code-1'
+                : 'text-ink-300'
+            }`}
+            title={
+              pic.securityNotified === true
+                ? 'Security Monitored — Security notified at discharge'
+                : pic.securityNotified === false
+                ? 'Security Monitored — Security NOT notified at discharge'
+                : 'Security Monitored — notification status not recorded'
+            }
+          >
+            ⚑
+          </span>
+        )}
       </div>
 
       {/* Right: outcome + duration */}

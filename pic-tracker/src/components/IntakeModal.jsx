@@ -36,6 +36,7 @@ const initialForm = {
   ageRange: null,
   description: '',
   intakeNote: '',
+  ejectionFlag: false,
 }
 
 // Inline row layout: label left, content right. Wraps cleanly on narrow screens.
@@ -148,6 +149,8 @@ export default function IntakeModal({ open, onClose, onCreated }) {
       medicalInvolved: null,
       lastKpe: null,
       tlSignoff: null,
+      ejectionFlag: !!form.ejectionFlag,
+      securityNotified: null,
       status: 'in_care',
     }
 
@@ -360,6 +363,39 @@ export default function IntakeModal({ open, onClose, onCreated }) {
               otherValue={form.presentationOther}
               onOtherChange={(v) => update({ presentationOther: v })}
             />
+          </FieldRow>
+
+          <FieldRow label="Security monitored" hint="RSA/Security ejection or possible security intervention">
+            <button
+              type="button"
+              onClick={() => update({ ejectionFlag: !form.ejectionFlag })}
+              aria-pressed={form.ejectionFlag}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border-2 transition text-left ${
+                form.ejectionFlag
+                  ? 'bg-slate-100 border-slate-100 text-ink-950'
+                  : 'bg-ink-900 border-ink-700 text-ink-300 hover:border-ink-500'
+              }`}
+            >
+              <span
+                className={`flex items-center justify-center w-6 h-6 rounded border-2 text-xs font-bold shrink-0 transition ${
+                  form.ejectionFlag
+                    ? 'bg-ink-950 border-ink-950 text-slate-100'
+                    : 'bg-ink-950 border-ink-600 text-transparent'
+                }`}
+                aria-hidden="true"
+              >
+                ✓
+              </span>
+              <span className="flex-1">
+                <span className="font-display font-bold text-sm tracking-wide flex items-center gap-2">
+                  <span aria-hidden="true">⚑</span>
+                  Flag as Security Monitored
+                </span>
+                <span className="block text-[11px] mt-0.5 opacity-80 normal-case font-normal">
+                  Patron is on the ejection pathway — RSA/Security must be notified before they leave the space.
+                </span>
+              </span>
+            </button>
           </FieldRow>
 
           {/* Optional disclosure */}
