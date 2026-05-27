@@ -1,6 +1,11 @@
 // lib/helpers.js — time formatting, derived state, PIC mutations
 
 import { getPics, savePics, getEvents, addEvent, nextEventId } from './store'
+import {
+  mirrorPicUpdate,
+  mirrorActivity,
+  mirrorPicUpdateWithActivity,
+} from './dualWrite'
 
 // ---------- Time ----------
 
@@ -115,6 +120,7 @@ export function updatePicFields(picId, patch) {
   if (idx < 0) return null
   pics[idx] = { ...pics[idx], ...patch }
   savePics(pics)
+  mirrorPicUpdate(pics[idx].number, patch)
   return pics[idx]
 }
 
@@ -122,7 +128,7 @@ export function changePicCode(picId, newCode, byKpe, note) {
   const { pics, idx } = findPicIndex(picId)
   if (idx < 0) return null
   const ts = nowIso()
-  addEvent({
+  const evt = {
     id: nextEventId(),
     picId,
     timestamp: ts,
@@ -131,7 +137,9 @@ export function changePicCode(picId, newCode, byKpe, note) {
     kpe: byKpe || pics[idx].assignedKpe || null,
     note: note || null,
     meta: {},
-  })
+  }
+  addEvent(evt)
+  mirrorActivity(pics[idx].number, evt)
   // No PIC field for "current code" — derived from log
   return pics[idx]
 }
@@ -142,7 +150,7 @@ export function changePicKpe(picId, newKpe, byKpe, note) {
   const ts = nowIso()
   pics[idx] = { ...pics[idx], assignedKpe: newKpe || null }
   savePics(pics)
-  addEvent({
+  const evt = {
     id: nextEventId(),
     picId,
     timestamp: ts,
@@ -151,13 +159,16 @@ export function changePicKpe(picId, newKpe, byKpe, note) {
     kpe: newKpe || null,
     note: note || null,
     meta: { changedBy: byKpe || null },
-  })
+  }
+  addEvent(evt)
+  mirrorPicUpdateWithActivity(pics[idx].number, { assignedKpe: newKpe || null }, evt)
   return pics[idx]
 }
 
 export function addPicNote(picId, note, byKpe) {
   if (!note || !note.trim()) return
-  addEvent({
+  const { pics, idx } = findPicIndex(picId)
+  const evt = {
     id: nextEventId(),
     picId,
     timestamp: nowIso(),
@@ -166,11 +177,15 @@ export function addPicNote(picId, note, byKpe) {
     kpe: byKpe || null,
     note: note.trim(),
     meta: {},
-  })
+  }
+  addEvent(evt)
+  if (idx >= 0) mirrorActivity(pics[idx].number, evt)
 }
 
 // Edit time-in. Updates pic.enteredCare AND retroactively updates the admit event's timestamp,
 // so the audit log stays internally consistent.
+// Note: the retroactive admit-event update is NOT mirrored to Supabase — the activity_log
+// is append-only by RLS. The PIC's enteredCare field IS mirrored, which is what reports use.
 export function updatePicEnteredCare(picId, newIso) {
   const { pics, idx } = findPicIndex(picId)
   if (idx < 0) return null
@@ -188,6 +203,7 @@ export function updatePicEnteredCare(picId, newIso) {
       console.error('Failed to update admit event timestamp', e)
     }
   }
+  mirrorPicUpdate(pics[idx].number, { enteredCare: newIso })
   return pics[idx]
 }
 
@@ -241,7 +257,7 @@ export function dischargePic(picId, dischargeData) {
     securityNotified: wasFlagged ? (dischargeData.securityNotified ?? null) : null,
   }
   savePics(pics)
-  addEvent({
+  const evt = {
     id: nextEventId(),
     picId,
     timestamp: ts,
@@ -259,7 +275,24 @@ export function dischargePic(picId, dischargeData) {
       // Persist the audit on the event too — null when not applicable
       securityNotified: wasFlagged ? (dischargeData.securityNotified ?? null) : null,
     },
-  })
+  }
+  addEvent(evt)
+  mirrorPicUpdateWithActivity(
+    pics[idx].number,
+    {
+      status: 'discharged',
+      leftCare: ts,
+      outcome: pics[idx].outcome,
+      outcomeOther: pics[idx].outcomeOther,
+      referredTo: pics[idx].referredTo,
+      referredToOther: pics[idx].referredToOther,
+      medicalInvolved: pics[idx].medicalInvolved,
+      lastKpe: pics[idx].lastKpe,
+      tlSignoff: pics[idx].tlSignoff,
+      securityNotified: pics[idx].securityNotified,
+    },
+    evt,
+  )
   return pics[idx]
 }
 
@@ -271,7 +304,7 @@ export function setEjectionFlag(picId, value, byKpe) {
   if (pics[idx].ejectionFlag === newValue) return pics[idx]
   pics[idx] = { ...pics[idx], ejectionFlag: newValue }
   savePics(pics)
-  addEvent({
+  const evt = {
     id: nextEventId(),
     picId,
     timestamp: nowIso(),
@@ -280,7 +313,9 @@ export function setEjectionFlag(picId, value, byKpe) {
     kpe: byKpe || pics[idx].assignedKpe || null,
     note: null,
     meta: { flag: 'ejection', value: newValue },
-  })
+  }
+  addEvent(evt)
+  mirrorPicUpdateWithActivity(pics[idx].number, { ejectionFlag: newValue }, evt)
   return pics[idx]
 }
 
@@ -290,7 +325,7 @@ export function reopenPic(picId, byKpe, reason) {
   if (idx < 0) return null
   pics[idx] = { ...pics[idx], status: 'in_care', leftCare: null }
   savePics(pics)
-  addEvent({
+  const evt = {
     id: nextEventId(),
     picId,
     timestamp: nowIso(),
@@ -299,13 +334,16 @@ export function reopenPic(picId, byKpe, reason) {
     kpe: byKpe || null,
     note: `Discharge reversed${reason ? `: ${reason}` : ''}`,
     meta: { reopen: true },
-  })
+  }
+  addEvent(evt)
+  mirrorPicUpdateWithActivity(pics[idx].number, { status: 'in_care', leftCare: null }, evt)
   return pics[idx]
 }
 
 // Mark a Code 3 (or any) PIC as checked. Resets the welfare-check timer.
 export function addCheckEvent(picId, byKpe, note) {
-  addEvent({
+  const { pics, idx } = findPicIndex(picId)
+  const evt = {
     id: nextEventId(),
     picId,
     timestamp: nowIso(),
@@ -314,7 +352,9 @@ export function addCheckEvent(picId, byKpe, note) {
     kpe: byKpe || null,
     note: note || null,
     meta: {},
-  })
+  }
+  addEvent(evt)
+  if (idx >= 0) mirrorActivity(pics[idx].number, evt)
 }
 
 // Was this PIC ever Code 2 during this episode? Persistent MH flag.
