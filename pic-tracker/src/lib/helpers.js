@@ -219,11 +219,13 @@ export function normalizeReferredTo(pic) {
 }
 
 // Discharge a PIC. Sets status, leftCare, outcome, referredTo, medical, lastKpe, tlSignoff.
+// For ejection-flagged PICs also records securityNotified (null otherwise — N/A).
 // Emits a 'discharge' event with all the relevant context.
 export function dischargePic(picId, dischargeData) {
   const { pics, idx } = findPicIndex(picId)
   if (idx < 0) return null
   const ts = dischargeData.leftCare || nowIso()
+  const wasFlagged = !!pics[idx].ejectionFlag
   pics[idx] = {
     ...pics[idx],
     status: 'discharged',
@@ -235,6 +237,8 @@ export function dischargePic(picId, dischargeData) {
     medicalInvolved: dischargeData.medicalInvolved ?? null,
     lastKpe: dischargeData.lastKpe || pics[idx].assignedKpe || null,
     tlSignoff: dischargeData.tlSignoff || null,
+    // Only record securityNotified when the PIC was flagged; otherwise N/A
+    securityNotified: wasFlagged ? (dischargeData.securityNotified ?? null) : null,
   }
   savePics(pics)
   addEvent({
@@ -252,7 +256,30 @@ export function dischargePic(picId, dischargeData) {
       referredToOther: dischargeData.referredToOther,
       medicalInvolved: dischargeData.medicalInvolved,
       tlSignoff: dischargeData.tlSignoff,
+      // Persist the audit on the event too — null when not applicable
+      securityNotified: wasFlagged ? (dischargeData.securityNotified ?? null) : null,
     },
+  })
+  return pics[idx]
+}
+
+// Toggle the ejection flag on a PIC. Emits a 'flag_change' event for the audit trail.
+export function setEjectionFlag(picId, value, byKpe) {
+  const { pics, idx } = findPicIndex(picId)
+  if (idx < 0) return null
+  const newValue = !!value
+  if (pics[idx].ejectionFlag === newValue) return pics[idx]
+  pics[idx] = { ...pics[idx], ejectionFlag: newValue }
+  savePics(pics)
+  addEvent({
+    id: nextEventId(),
+    picId,
+    timestamp: nowIso(),
+    type: 'flag_change',
+    code: null,
+    kpe: byKpe || pics[idx].assignedKpe || null,
+    note: null,
+    meta: { flag: 'ejection', value: newValue },
   })
   return pics[idx]
 }

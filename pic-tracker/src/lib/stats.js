@@ -131,6 +131,23 @@ export function medicalInvolvedPct(pics) {
   return Math.round((yes / eligible.length) * 100)
 }
 
+// ---------- security monitored / ejection pathway ----------
+
+export function ejectionFlaggedCount(pics) {
+  return pics.filter((p) => p.ejectionFlag === true).length
+}
+
+// Of discharged flagged PICs, how many had security notified? Returns counts split by answer.
+export function securityNotificationBreakdown(pics) {
+  const flagged = pics.filter((p) => p.ejectionFlag === true && p.status === 'discharged')
+  return {
+    total: flagged.length,
+    notified: flagged.filter((p) => p.securityNotified === true).length,
+    notNotified: flagged.filter((p) => p.securityNotified === false).length,
+    notRecorded: flagged.filter((p) => p.securityNotified == null).length,
+  }
+}
+
 // ---------- frequency lists ----------
 
 export function substanceFrequency(pics, n = 5) {
@@ -200,6 +217,10 @@ export function computeAllStats(pics, events) {
     medical: {
       count: medicalInvolvedCount(pics),
       pct: medicalInvolvedPct(pics),
+    },
+    security: {
+      flagged: ejectionFlaggedCount(pics),
+      notification: securityNotificationBreakdown(pics),
     },
     frequencies: {
       substances: substanceFrequency(pics, 5),

@@ -40,6 +40,9 @@ export function completenessFor(pic) {
     if (normalizeReferredTo(pic).length === 0) missing.push('Referred to')
     if (pic.medicalInvolved == null) missing.push('Medical involvement')
     if (!pic.tlSignoff) missing.push('TL sign-off')
+    if (pic.ejectionFlag && pic.securityNotified == null) {
+      missing.push('Security/RSA notification')
+    }
   }
 
   return { complete: missing.length === 0, missing }
