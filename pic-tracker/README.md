@@ -64,4 +64,4 @@ The flag uses a near-white slate badge (`bg-slate-100`) — chosen deliberately 
 8. XLSX export contains both new columns
 9. Import older JSON (no ejectionFlag field) → loads cleanly, behaves as unflagged
 
-
+TEST
