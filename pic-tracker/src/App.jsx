@@ -39,7 +39,7 @@ export default function App() {
     if (!SUPABASE_CONFIGURED || !joined) return
     const role = getSession().role
     // Viewers poll more aggressively since they have no other path to fresh data.
-    const intervalMs = role === 'viewer' ? 10000 : 20000
+    const intervalMs = role === 'viewer' ? 3000 : 5000
     startBackgroundSync({
       intervalMs,
       onSync: () => setRefreshKey((k) => k + 1),
