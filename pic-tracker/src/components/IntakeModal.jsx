@@ -152,6 +152,7 @@ export default function IntakeModal({ open, onClose, onCreated }) {
       tlSignoff: null,
       ejectionFlag: !!form.ejectionFlag,
       securityNotified: null,
+      source: 'writer',
       status: 'in_care',
     }
 

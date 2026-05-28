@@ -1,21 +1,16 @@
 // components/LandingScreen.jsx
 //
-// Shown when the device hasn't joined an event yet (eventSession.role === 'none').
-// Two paths:
-//   - Start a new event   → creates the Supabase event row, becomes the writer
-//   - Join an event       → enter a code (writer or viewer), session is created
-//
-// Once a session exists, the main app takes over.
+// Two paths: create a new event (becomes writer), or join with any of the
+// three codes (writer/viewer/intake_only — role detected automatically).
 
 import { useState } from 'react'
-import { createEvent, joinEventByCode } from '../lib/supabaseStore'
-import { setWriterSession, setViewerSession } from '../lib/eventSession'
+import { createEventAndJoin, joinByCode } from '../lib/supabaseStore'
 import { normalizeCode, isValidCodeFormat } from '../lib/codeGen'
 import { SUPABASE_CONFIGURED } from '../lib/supabaseClient'
 import { initialSync } from '../lib/syncEngine'
 
 export default function LandingScreen({ onJoined }) {
-  const [mode, setMode] = useState('choose') // 'choose' | 'create' | 'join'
+  const [mode, setMode] = useState('choose')
   const [eventName, setEventName] = useState('')
   const [codeInput, setCodeInput] = useState('')
   const [busy, setBusy] = useState(false)
@@ -42,20 +37,14 @@ export default function LandingScreen({ onJoined }) {
     setError(null)
     setBusy(true)
     try {
-      const created = await createEvent({ name: eventName.trim() })
-      if (!created) {
-        setError('Could not create event. Check your network and try again.')
-        return
+      const { role } = await createEventAndJoin({ name: eventName.trim() })
+      if (role !== 'intake_only') {
+        // Writer + viewer paths use the full app, populate localStorage first
+        await initialSync()
       }
-      setWriterSession({
-        eventId: created.id,
-        eventName: created.name,
-        writerCode: created.writerCode,
-        viewerCode: created.viewerCode,
-      })
-      // Brand-new event — nothing to pull, but run sync to seed empty state cleanly.
-      await initialSync()
       onJoined?.()
+    } catch (e) {
+      setError(`Could not create event: ${e.message || 'unknown error'}`)
     } finally {
       setBusy(false)
     }
@@ -66,33 +55,19 @@ export default function LandingScreen({ onJoined }) {
     setError(null)
     const normalized = normalizeCode(codeInput)
     if (!isValidCodeFormat(normalized)) {
-      setError('That code doesn\u2019t look right. Codes are 6 characters, letters and numbers.')
+      setError("That code doesn't look right. Codes are 6 characters, letters and numbers.")
       return
     }
     setBusy(true)
     try {
-      const result = await joinEventByCode(normalized)
-      if (!result) {
-        setError('No event found with that code. Double-check with whoever set up the event.')
-        return
+      const { role } = await joinByCode(normalized)
+      if (role !== 'intake_only') {
+        // Intake-only doesn't have read access, so skip the sync — empty board would error
+        await initialSync()
       }
-      if (result.role === 'writer') {
-        setWriterSession({
-          eventId: result.event.id,
-          eventName: result.event.name,
-          writerCode: result.event.writerCode,
-          viewerCode: result.event.viewerCode,
-        })
-      } else {
-        setViewerSession({
-          eventId: result.event.id,
-          eventName: result.event.name,
-          viewerCode: result.event.viewerCode,
-        })
-      }
-      // Pull all event state into localStorage so the rest of the app works as-is.
-      await initialSync()
       onJoined?.()
+    } catch (e) {
+      setError("No active event found with that code. Double-check with whoever set up the event.")
     } finally {
       setBusy(false)
     }
@@ -111,16 +86,10 @@ export default function LandingScreen({ onJoined }) {
 
         {mode === 'choose' && (
           <div className="panel p-6 space-y-3">
-            <button
-              onClick={() => setMode('create')}
-              className="btn-primary w-full py-3"
-            >
+            <button onClick={() => setMode('create')} className="btn-primary w-full py-3">
               Start a new event
             </button>
-            <button
-              onClick={() => setMode('join')}
-              className="btn-ghost w-full py-3"
-            >
+            <button onClick={() => setMode('join')} className="btn-ghost w-full py-3">
               Join an event
             </button>
           </div>
@@ -131,7 +100,7 @@ export default function LandingScreen({ onJoined }) {
             <div>
               <h2 className="font-display font-bold text-lg">Start a new event</h2>
               <p className="text-xs text-ink-400 mt-1">
-                You\u2019ll get a writer code and a viewer code. Share them with your team.
+                You&rsquo;ll get three codes &mdash; writer (full access), viewer (read-only), and intake (admit-only). Share them with your team as needed.
               </p>
             </div>
             <div>
@@ -147,19 +116,9 @@ export default function LandingScreen({ onJoined }) {
             </div>
             {error && <div className="text-sm text-code-1 font-semibold">{error}</div>}
             <div className="flex gap-2">
-              <button
-                onClick={() => setMode('choose')}
-                className="btn-ghost flex-1"
-                disabled={busy}
-              >
-                Back
-              </button>
-              <button
-                onClick={handleCreate}
-                className="btn-primary flex-1"
-                disabled={busy}
-              >
-                {busy ? 'Creating\u2026' : 'Create event'}
+              <button onClick={() => setMode('choose')} className="btn-ghost flex-1" disabled={busy}>Back</button>
+              <button onClick={handleCreate} className="btn-primary flex-1" disabled={busy}>
+                {busy ? 'Creating&hellip;' : 'Create event'}
               </button>
             </div>
           </div>
@@ -170,8 +129,7 @@ export default function LandingScreen({ onJoined }) {
             <div>
               <h2 className="font-display font-bold text-lg">Join an event</h2>
               <p className="text-xs text-ink-400 mt-1">
-                Enter the code shared with you. Writer codes give full access; viewer
-                codes are read-only.
+                Enter the code shared with you. The app will detect whether it&rsquo;s a writer, viewer, or intake code automatically.
               </p>
             </div>
             <div>
@@ -184,26 +142,14 @@ export default function LandingScreen({ onJoined }) {
                 onChange={(e) => setCodeInput(e.target.value.toUpperCase())}
                 autoFocus
                 disabled={busy}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleJoin()
-                }}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleJoin() }}
               />
             </div>
             {error && <div className="text-sm text-code-1 font-semibold">{error}</div>}
             <div className="flex gap-2">
-              <button
-                onClick={() => setMode('choose')}
-                className="btn-ghost flex-1"
-                disabled={busy}
-              >
-                Back
-              </button>
-              <button
-                onClick={handleJoin}
-                className="btn-primary flex-1"
-                disabled={busy || !codeInput.trim()}
-              >
-                {busy ? 'Joining\u2026' : 'Join'}
+              <button onClick={() => setMode('choose')} className="btn-ghost flex-1" disabled={busy}>Back</button>
+              <button onClick={handleJoin} className="btn-primary flex-1" disabled={busy || !codeInput.trim()}>
+                {busy ? 'Joining...' : 'Join'}
               </button>
             </div>
           </div>

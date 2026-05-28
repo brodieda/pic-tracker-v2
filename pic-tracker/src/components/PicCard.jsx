@@ -177,8 +177,20 @@ export default function PicCard({ pic, events, eventCfg, allPics, onClick, onMar
             )}
           </div>
 
-          {/* Right cluster: SEC + MH (if ever) + code pill + time stack with optional mark-checked button */}
+          {/* Right cluster: INTAKE (if remotely admitted) + SEC + MH (if ever) + code pill + time stack with optional mark-checked button */}
           <div className="flex items-start gap-2 shrink-0">
+            {pic.source === 'intake_only' && (
+              <span
+                className={`inline-flex items-center gap-1 text-[10px] font-display font-bold uppercase tracking-widest px-1.5 h-7 rounded-md shrink-0 border ${
+                  isDischarged
+                    ? 'bg-amber-500/10 border-amber-500/30 text-amber-500/60'
+                    : 'bg-amber-500/20 border-amber-500/60 text-amber-400'
+                }`}
+                title="Admitted remotely via intake-only code"
+              >
+                INTAKE
+              </span>
+            )}
             {pic.ejectionFlag && (
               <span
                 className="inline-flex items-center gap-1 bg-slate-100 text-ink-950 text-[10px] font-display font-bold uppercase tracking-widest px-1.5 h-7 rounded-md shrink-0 border border-slate-100"
