@@ -88,12 +88,24 @@ function eventToLocal(e) {
   }
 }
 
-// Bump the local sequence counter so any subsequent writer admissions don't
-// collide with existing PIC numbers.
-function bumpSeqTo(maxNumber) {
-  const current = Number(localStorage.getItem(KEYS.seq)) || 0
-  if (maxNumber > current) {
-    localStorage.setItem(KEYS.seq, String(maxNumber))
+// Set the local sequence counter to exactly match the highest PIC number
+// from Supabase. This guarantees the next admission lines up with reality,
+// no matter what state localStorage was in before.
+function setSeqTo(maxNumber) {
+  localStorage.setItem(KEYS.seq, String(Math.max(0, maxNumber)))
+}
+
+// Wipe local PIC, activity, and counter state. Used when joining/creating
+// an event to guarantee a clean slate before initialSync repopulates.
+// Keeps the current pic_event config so the writer can see settings during the
+// gap; saveEvent inside initialSync will overwrite it shortly after.
+export function resetLocalState() {
+  try {
+    localStorage.removeItem(KEYS.pics)
+    localStorage.removeItem(KEYS.events)
+    localStorage.removeItem(KEYS.seq)
+  } catch (e) {
+    console.error('[syncEngine] resetLocalState failed:', e)
   }
 }
 
@@ -124,7 +136,7 @@ export async function initialSync() {
     saveEvents(localActivity)
 
     const maxNumber = pics.reduce((m, p) => Math.max(m, p.number || 0), 0)
-    bumpSeqTo(maxNumber)
+    setSeqTo(maxNumber)
 
     return { ok: true, picCount: pics.length, activityCount: activity.length }
   } catch (e) {
