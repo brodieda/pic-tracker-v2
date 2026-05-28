@@ -8,6 +8,7 @@ import Reports from './components/Reports'
 import ThemeToggle from './components/ThemeToggle'
 import LandingScreen from './components/LandingScreen'
 import CodesBadge from './components/CodesBadge'
+import ActorNameBadge from './components/ActorNameBadge'
 import IntakeOnlyScreen from './components/IntakeOnlyScreen'
 import { getEvent, getPics } from './lib/store'
 import { hasJoined, getSession } from './lib/eventSession'
@@ -82,6 +83,7 @@ export default function App() {
             {SUPABASE_CONFIGURED && (
               <CodesBadge onLeave={() => setJoined(false)} />
             )}
+            {SUPABASE_CONFIGURED && <ActorNameBadge />}
             <ThemeToggle />
             <span className="text-xs text-ink-500 font-display tracking-wider hidden sm:inline">
               v0.6
