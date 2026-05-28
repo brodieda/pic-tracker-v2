@@ -300,11 +300,11 @@ export async function archiveEndedEvent(eventId) {
   const result = Array.isArray(data) ? data[0] : data
   if (!result) return null
   return {
-    eventId: result.event_id,
-    eventName: result.event_name,
-    picsDeleted: result.pics_deleted,
-    activityDeleted: result.activity_deleted,
-    usersDeleted: result.users_deleted,
+    eventId: result.out_event_id,
+    eventName: result.out_event_name,
+    picsDeleted: result.out_pics_deleted,
+    activityDeleted: result.out_activity_deleted,
+    usersDeleted: result.out_users_deleted,
   }
 }
 
