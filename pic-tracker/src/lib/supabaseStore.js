@@ -187,14 +187,19 @@ export async function joinByCode(code) {
   const event = eventFromDb(evRow)
 
   // 5. Cache the session locally for fast UI checks. Only expose codes the
-  //    role is allowed to see.
+  //    role is allowed to see. Intake-only users also need their own code
+  //    cached so the RPC fallback works without depending on the JWT.
   setSessionData({
     role: binding.role,
     eventId: event.id,
     eventName: event.name,
     writerCode: binding.role === 'writer' ? event.writerCode : null,
     viewerCode: binding.role === 'writer' || binding.role === 'viewer' ? event.viewerCode : null,
-    admitCode: binding.role === 'writer' ? event.admitCode : null,
+    admitCode: binding.role === 'writer'
+      ? event.admitCode
+      : binding.role === 'intake_only'
+        ? normalized
+        : null,
   })
 
   return { event, role: binding.role }
