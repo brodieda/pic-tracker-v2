@@ -11,7 +11,7 @@ import CodesBadge from './components/CodesBadge'
 import ActorNameBadge from './components/ActorNameBadge'
 import IntakeOnlyScreen from './components/IntakeOnlyScreen'
 import { getEvent, getPics } from './lib/store'
-import { hasJoined, getSession } from './lib/eventSession'
+import { hasJoined, getSession, clearSession } from './lib/eventSession'
 import { SUPABASE_CONFIGURED } from './lib/supabaseClient'
 import { startBackgroundSync, stopBackgroundSync } from './lib/syncEngine'
 
@@ -45,6 +45,14 @@ export default function App() {
     startBackgroundSync({
       intervalMs,
       onSync: () => setRefreshKey((k) => k + 1),
+      onSessionInvalid: async () => {
+        // Event ended, code rotated, or session otherwise killed by the
+        // server. Clear local state and bounce to landing.
+        stopBackgroundSync()
+        await clearSession()
+        alert('This event has ended or your access has been revoked. Returning to start.')
+        setJoined(false)
+      },
     })
     return () => stopBackgroundSync()
   }, [joined, isViewer, isIntakeOnly])
