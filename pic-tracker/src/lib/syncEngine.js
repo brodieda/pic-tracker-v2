@@ -124,6 +124,14 @@ export async function initialSync() {
       getActivityForCurrentEvent(),
     ])
 
+    // If we have a session locally but Supabase returns no event, our JWT has
+    // been invalidated — either the event ended (kicked by trigger), a code
+    // was rotated, or the session is otherwise dead. Caller decides how to
+    // respond (typically: clear session + return to landing).
+    if (!event) {
+      return { ok: false, reason: 'session_invalid' }
+    }
+
     if (event) saveEvent(eventToLocal(event))
 
     const picUuidToNumber = new Map()
@@ -157,11 +165,20 @@ let _intervalId = null
 
 // Start a background polling loop. Calls backgroundSync every `intervalMs`.
 // Safe to call multiple times — it'll replace the existing interval.
-export function startBackgroundSync({ intervalMs = 15000, onSync } = {}) {
+//
+// onSync(result):        called on every successful pull
+// onSessionInvalid():    called when sync reports session_invalid — the
+//                        device's JWT has been kicked (event ended, code
+//                        rotated, etc). Caller should clearSession() and
+//                        return to landing.
+export function startBackgroundSync({ intervalMs = 15000, onSync, onSessionInvalid } = {}) {
   stopBackgroundSync()
   _intervalId = setInterval(async () => {
     const result = await backgroundSync()
     if (result.ok && onSync) onSync(result)
+    if (!result.ok && result.reason === 'session_invalid' && onSessionInvalid) {
+      onSessionInvalid()
+    }
   }, intervalMs)
 }
 
