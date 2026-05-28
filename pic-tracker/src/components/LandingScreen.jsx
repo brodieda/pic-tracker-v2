@@ -7,7 +7,7 @@ import { useState } from 'react'
 import { createEventAndJoin, joinByCode } from '../lib/supabaseStore'
 import { normalizeCode, isValidCodeFormat } from '../lib/codeGen'
 import { SUPABASE_CONFIGURED } from '../lib/supabaseClient'
-import { initialSync } from '../lib/syncEngine'
+import { initialSync, resetLocalState } from '../lib/syncEngine'
 
 export default function LandingScreen({ onJoined }) {
   const [mode, setMode] = useState('choose')
@@ -39,7 +39,9 @@ export default function LandingScreen({ onJoined }) {
     try {
       const { role } = await createEventAndJoin({ name: eventName.trim() })
       if (role !== 'intake_only') {
-        // Writer + viewer paths use the full app, populate localStorage first
+        // Wipe any stale local state from previous events/testing so the
+        // new event starts at PIC #1 with no leftover PICs or activity.
+        resetLocalState()
         await initialSync()
       }
       onJoined?.()
@@ -62,7 +64,8 @@ export default function LandingScreen({ onJoined }) {
     try {
       const { role } = await joinByCode(normalized)
       if (role !== 'intake_only') {
-        // Intake-only doesn't have read access, so skip the sync — empty board would error
+        // Wipe stale local state; initialSync repopulates from Supabase.
+        resetLocalState()
         await initialSync()
       }
       onJoined?.()
