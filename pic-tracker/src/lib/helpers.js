@@ -9,52 +9,88 @@ import {
 
 // ---------- Time ----------
 
+// ---------- Time ----------
+//
+// All stored timestamps are UTC ISO strings with the `Z` suffix
+// (e.g. "2026-05-27T08:54:00.000Z"). Display code converts to local
+// time via JavaScript's Date object on render.
+
 export function nowIso() {
-  const d = new Date()
-  const pad = (n) => String(n).padStart(2, '0')
-  return (
-    d.getFullYear() +
-    '-' + pad(d.getMonth() + 1) +
-    '-' + pad(d.getDate()) +
-    'T' + pad(d.getHours()) +
-    ':' + pad(d.getMinutes()) +
-    ':' + pad(d.getSeconds())
-  )
+  return new Date().toISOString()
+}
+
+// True iff `iso` is a real UTC ISO string (has Z or +/- offset).
+function hasTimezone(iso) {
+  if (typeof iso !== 'string') return false
+  return iso.endsWith('Z') || /[+-]\d{2}:?\d{2}$/.test(iso)
+}
+
+// Older localStorage data may contain naive local-time strings (no Z).
+// Convert any such value to a real UTC ISO string before parsing.
+// This is the central compatibility shim — any function that parses a
+// timestamp should run it through here first.
+export function normalizeIso(iso) {
+  if (!iso) return iso
+  if (typeof iso !== 'string') return iso
+  if (hasTimezone(iso)) return iso
+  // Treat the naive string as local time (the old convention).
+  // Parse the components manually so we don't depend on environment locale.
+  const m = iso.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?/)
+  if (!m) return iso
+  const [, Y, Mo, D, H, Mi, S] = m
+  const d = new Date(Number(Y), Number(Mo) - 1, Number(D), Number(H), Number(Mi), Number(S || '0'))
+  return d.toISOString()
 }
 
 export function formatClock(iso) {
-  if (!iso) return '—'
-  const d = new Date(iso)
+  const norm = normalizeIso(iso)
+  if (!norm) return '—'
+  const d = new Date(norm)
   if (isNaN(d.getTime())) return '—'
   const pad = (n) => String(n).padStart(2, '0')
   return `${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
 export function formatDateTime(iso) {
-  if (!iso) return '—'
-  const d = new Date(iso)
+  const norm = normalizeIso(iso)
+  if (!norm) return '—'
+  const d = new Date(norm)
   if (isNaN(d.getTime())) return '—'
   const pad = (n) => String(n).padStart(2, '0')
   return `${pad(d.getDate())}/${pad(d.getMonth() + 1)} ${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
-// Convert an ISO datetime to value for <input type="datetime-local">
+// Convert a UTC ISO datetime to the value for <input type="datetime-local">.
+// The input expects local-time naive YYYY-MM-DDTHH:MM with no zone.
 export function isoToDatetimeLocal(iso) {
-  if (!iso) return ''
-  // Strip seconds and any timezone marker
-  return iso.slice(0, 16)
+  const norm = normalizeIso(iso)
+  if (!norm) return ''
+  const d = new Date(norm)
+  if (isNaN(d.getTime())) return ''
+  const pad = (n) => String(n).padStart(2, '0')
+  return (
+    d.getFullYear() +
+    '-' + pad(d.getMonth() + 1) +
+    '-' + pad(d.getDate()) +
+    'T' + pad(d.getHours()) +
+    ':' + pad(d.getMinutes())
+  )
 }
 
-// And back — append :00 seconds for our schema
+// And back — convert local-time naive YYYY-MM-DDTHH:MM to UTC ISO.
 export function datetimeLocalToIso(local) {
   if (!local) return null
-  return local.length === 16 ? `${local}:00` : local
+  const m = local.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/)
+  if (!m) return local // unknown shape; let caller handle
+  const [, Y, Mo, D, H, Mi, S] = m
+  const d = new Date(Number(Y), Number(Mo) - 1, Number(D), Number(H), Number(Mi), Number(S || '0'))
+  return d.toISOString()
 }
 
 export function elapsedMinutes(aIso, bIso) {
   if (!aIso) return 0
-  const a = new Date(aIso).getTime()
-  const b = bIso ? new Date(bIso).getTime() : Date.now()
+  const a = new Date(normalizeIso(aIso)).getTime()
+  const b = bIso ? new Date(normalizeIso(bIso)).getTime() : Date.now()
   return Math.max(0, Math.floor((b - a) / 60000))
 }
 
@@ -402,7 +438,7 @@ export function code3MonitorStateFor(picId, events, eventCfg, now = Date.now()) 
   const interval = (eventCfg?.code3CheckIntervalMinutes || 15) * 60_000
   const last = lastActivityFor(picId, events)
   if (!last) return 'ok'
-  const elapsed = now - new Date(last).getTime()
+  const elapsed = now - new Date(normalizeIso(last)).getTime()
   if (elapsed >= interval) return 'overdue'
   if (elapsed >= interval * 0.75) return 'due_soon'
   return 'ok'
@@ -412,5 +448,5 @@ export function code3MonitorStateFor(picId, events, eventCfg, now = Date.now()) 
 export function minutesSinceLastActivity(picId, events, now = Date.now()) {
   const last = lastActivityFor(picId, events)
   if (!last) return null
-  return Math.floor((now - new Date(last).getTime()) / 60_000)
+  return Math.floor((now - new Date(normalizeIso(last)).getTime()) / 60_000)
 }
