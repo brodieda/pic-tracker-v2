@@ -117,6 +117,7 @@ function activityFromDb(row) {
     code: row.code,
     kpe: row.kpe,
     note: row.note,
+    actorName: row.actor_name || null,
     meta: row.meta || {},
   }
 }
@@ -130,6 +131,7 @@ function activityToDb(e, eventId, picUuid) {
     code: e.code ?? null,
     kpe: e.kpe ?? null,
     note: e.note ?? null,
+    actor_name: e.actorName ?? null,
     meta: e.meta || {},
   }
 }
@@ -264,6 +266,92 @@ export async function endCurrentEvent() {
     .single()
   if (error) { logError('endCurrentEvent', error); return null }
   return eventFromDb(data)
+}
+
+// Rotate one of the three event codes. Writer only, active event only.
+// p_which is 'writer' | 'viewer' | 'admit'. Returns the new code value.
+export async function rotateEventCode(which) {
+  if (!supabase) return null
+  const s = getSession()
+  if (!s.eventId || s.role !== 'writer') return null
+  const { data, error } = await supabase.rpc('rotate_event_code', { p_which: which })
+  if (error) { logError('rotateEventCode', error); throw error }
+  const result = Array.isArray(data) ? data[0] : data
+  if (!result) return null
+
+  // Update local session cache to reflect the new code for the rotated role
+  const newCode = result.new_code
+  const patch = {}
+  if (which === 'writer') patch.writerCode = newCode
+  else if (which === 'viewer') patch.viewerCode = newCode
+  else if (which === 'admit') patch.admitCode = newCode
+  setSessionData({ ...s, ...patch })
+
+  return newCode
+}
+
+// Archive an ended event. Writer only, event must already have is_active=false.
+// Permanently deletes pics, activity_log, anonymous users, and the event row.
+// Returns { eventName, picsDeleted, activityDeleted, usersDeleted } on success.
+export async function archiveEndedEvent(eventId) {
+  if (!supabase) return null
+  const { data, error } = await supabase.rpc('archive_event', { p_event_id: eventId })
+  if (error) { logError('archiveEndedEvent', error); throw error }
+  const result = Array.isArray(data) ? data[0] : data
+  if (!result) return null
+  return {
+    eventId: result.event_id,
+    eventName: result.event_name,
+    picsDeleted: result.pics_deleted,
+    activityDeleted: result.activity_deleted,
+    usersDeleted: result.users_deleted,
+  }
+}
+
+// Reopen an ended event as the writer using the writer code, for the sole
+// purpose of archiving it. Bypasses the active-event check on the regular
+// join RPC. Read-only access — writes are still blocked by RLS because
+// jwt_event_is_active() returns false.
+export async function joinEndedEventForArchive(code) {
+  if (!supabase) throw new Error('Supabase not configured')
+  const normalized = (code || '').toUpperCase().trim()
+  if (!normalized) throw new Error('Empty code')
+
+  // Anonymous sign-in first if we don't already have one
+  const { data: sessionData } = await supabase.auth.getSession()
+  if (!sessionData?.session) {
+    const { error: signInError } = await supabase.auth.signInAnonymously()
+    if (signInError) {
+      logError('joinEndedEventForArchive signIn', signInError)
+      throw signInError
+    }
+  }
+
+  const { data, error } = await supabase.rpc('join_ended_event_as_writer', { p_code: normalized })
+  if (error) {
+    logError('join_ended_event_as_writer', error)
+    await supabase.auth.signOut()
+    throw error
+  }
+  const result = Array.isArray(data) ? data[0] : data
+  if (!result) {
+    await supabase.auth.signOut()
+    throw new Error('No ended event with that writer code')
+  }
+
+  // Refresh session for new JWT claims
+  await supabase.auth.refreshSession()
+
+  setSessionData({
+    role: 'writer',
+    eventId: result.event_id,
+    eventName: result.event_name,
+    writerCode: normalized,
+    viewerCode: null,
+    admitCode: null,
+  })
+
+  return { eventId: result.event_id, eventName: result.event_name }
 }
 
 export async function getPicsForCurrentEvent() {

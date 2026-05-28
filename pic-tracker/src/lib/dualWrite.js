@@ -18,6 +18,16 @@ import {
   insertActivity,
   findPicUuidByNumber,
 } from './supabaseStore'
+import { getActorNameForLog } from './actorName'
+
+// Stamp the device's actor name onto an activity event if not already set
+// by the caller. Lets writer/viewer attribution flow into the audit log
+// without every call site needing to know about actor names.
+function stamp(evt) {
+  if (!evt) return evt
+  if (evt.actorName) return evt
+  return { ...evt, actorName: getActorNameForLog() }
+}
 
 // Quick guard — every dual-write helper short-circuits if these conditions aren't met.
 function shouldMirror() {
@@ -64,7 +74,7 @@ export function mirrorAdmit(pic, admitEvent) {
       if (!created) return
       rememberUuid(pic.number, created.id)
       if (admitEvent) {
-        await insertActivity(admitEvent, created.id)
+        await insertActivity(stamp(admitEvent), created.id)
       }
     } catch (e) {
       // eslint-disable-next-line no-console
@@ -91,7 +101,7 @@ export function mirrorActivity(picNumber, evt) {
     try {
       const uuid = await resolveUuid(picNumber)
       if (!uuid) return
-      await insertActivity(evt, uuid)
+      await insertActivity(stamp(evt), uuid)
     } catch (e) {
       // eslint-disable-next-line no-console
       console.error('[dualWrite] mirrorActivity failed:', e)
@@ -107,7 +117,7 @@ export function mirrorPicUpdateWithActivity(picNumber, patch, evt) {
       const uuid = await resolveUuid(picNumber)
       await updatePicByNumber(picNumber, patch)
       if (evt && uuid) {
-        await insertActivity(evt, uuid)
+        await insertActivity(stamp(evt), uuid)
       }
     } catch (e) {
       // eslint-disable-next-line no-console

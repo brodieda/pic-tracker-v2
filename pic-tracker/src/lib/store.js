@@ -71,7 +71,19 @@ export function saveEvents(events) {
 
 export function addEvent(evt) {
   const events = getEvents()
-  events.push(evt)
+  // Stamp the device's actor name onto the event if the caller didn't
+  // already set one. Reads localStorage directly to avoid circular imports.
+  let stamped = evt
+  if (!evt.actorName) {
+    let name = 'Anonymous'
+    try {
+      name = localStorage.getItem('pic_actor_name') || 'Anonymous'
+    } catch {
+      /* noop */
+    }
+    stamped = { ...evt, actorName: name }
+  }
+  events.push(stamped)
   saveEvents(events)
 }
 
