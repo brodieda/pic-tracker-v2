@@ -8,6 +8,7 @@ import { createEventAndJoin, joinByCode } from '../lib/supabaseStore'
 import { normalizeCode, isValidCodeFormat } from '../lib/codeGen'
 import { SUPABASE_CONFIGURED } from '../lib/supabaseClient'
 import { initialSync, resetLocalState } from '../lib/syncEngine'
+import ArchiveScreen from './ArchiveScreen'
 
 export default function LandingScreen({ onJoined }) {
   const [mode, setMode] = useState('choose')
@@ -29,6 +30,15 @@ export default function LandingScreen({ onJoined }) {
           </p>
         </div>
       </div>
+    )
+  }
+
+  if (mode === 'archive') {
+    return (
+      <ArchiveScreen
+        onBack={() => setMode('choose')}
+        onArchived={() => setMode('choose')}
+      />
     )
   }
 
@@ -88,14 +98,24 @@ export default function LandingScreen({ onJoined }) {
         </header>
 
         {mode === 'choose' && (
-          <div className="panel p-6 space-y-3">
-            <button onClick={() => setMode('create')} className="btn-primary w-full py-3">
-              Start a new event
-            </button>
-            <button onClick={() => setMode('join')} className="btn-ghost w-full py-3">
-              Join an event
-            </button>
-          </div>
+          <>
+            <div className="panel p-6 space-y-3">
+              <button onClick={() => setMode('create')} className="btn-primary w-full py-3">
+                Start a new event
+              </button>
+              <button onClick={() => setMode('join')} className="btn-ghost w-full py-3">
+                Join an event
+              </button>
+            </div>
+            <div className="text-center">
+              <button
+                onClick={() => setMode('archive')}
+                className="text-xs text-ink-500 hover:text-ink-300 underline-offset-4 hover:underline"
+              >
+                Archive a past event &middot; permanently delete data
+              </button>
+            </div>
+          </>
         )}
 
         {mode === 'create' && (

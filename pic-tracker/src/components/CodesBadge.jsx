@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { getSession, clearSession } from '../lib/eventSession'
-import { endCurrentEvent } from '../lib/supabaseStore'
+import { endCurrentEvent, rotateEventCode } from '../lib/supabaseStore'
 import { exportXlsx } from '../lib/xlsxExport'
 import { getPics, getEvents, getEvent } from '../lib/store'
 
@@ -11,6 +11,7 @@ export default function CodesBadge({ onLeave }) {
   const [copied, setCopied] = useState(null)
   const [menuOpen, setMenuOpen] = useState(false)
   const [endingEvent, setEndingEvent] = useState(false)
+  const [rotatingCode, setRotatingCode] = useState(null) // 'writer' | 'viewer' | 'admit' | null
 
   if (session.role === 'none') return null
 
@@ -26,6 +27,44 @@ export default function CodesBadge({ onLeave }) {
     if (!confirm('Leave this event on this device? You\u2019ll need the code to rejoin.')) return
     await clearSession()
     onLeave?.()
+  }
+
+  const onRotateClick = async (which) => {
+    if (rotatingCode || session.role !== 'writer') return
+
+    const labels = {
+      writer: 'WRITER code (full access)',
+      viewer: 'VIEWER code (read-only)',
+      admit: 'INTAKE code (admit-only)',
+    }
+    const consequence = which === 'writer'
+      ? 'All OTHER writer devices will be locked out.'
+      : which === 'viewer'
+        ? 'All viewer devices will be locked out.'
+        : 'All intake-only devices (rovers) will be locked out.'
+
+    const proceed = confirm(
+      `Rotate the ${labels[which]}?\n\n` +
+      consequence + '\n\n' +
+      'A new code will be generated. You\u2019ll need to share it with anyone who needs the new role.\n\n' +
+      'This is an incident-response action — use it if a code has been leaked.'
+    )
+    if (!proceed) return
+
+    setRotatingCode(which)
+    try {
+      const newCode = await rotateEventCode(which)
+      if (!newCode) {
+        alert('Rotation failed. Check your network and try again.')
+        return
+      }
+      alert(`New ${labels[which]}:\n\n${newCode}\n\nShare this with your team.`)
+    } catch (e) {
+      console.error('rotate failed', e)
+      alert('Rotation failed: ' + (e.message || 'Unknown error'))
+    } finally {
+      setRotatingCode(null)
+    }
   }
 
   const onEndEvent = async () => {
@@ -120,8 +159,12 @@ export default function CodesBadge({ onLeave }) {
 
             {session.role === 'writer' && (
               <div>
-                <div className="text-[10px] font-display tracking-[0.22em] uppercase text-ink-500 mb-1">
-                  Writer code (full access)
+                <div className="text-[10px] font-display tracking-[0.22em] uppercase text-ink-500 mb-1 flex items-center justify-between">
+                  <span>Writer code (full access)</span>
+                  <RotateButton
+                    onClick={() => onRotateClick('writer')}
+                    busy={rotatingCode === 'writer'}
+                  />
                 </div>
                 <CodeCopyBox
                   code={session.writerCode}
@@ -133,8 +176,14 @@ export default function CodesBadge({ onLeave }) {
 
             {(session.role === 'writer' || session.role === 'viewer') && (
               <div>
-                <div className="text-[10px] font-display tracking-[0.22em] uppercase text-ink-500 mb-1">
-                  Viewer code (read-only)
+                <div className="text-[10px] font-display tracking-[0.22em] uppercase text-ink-500 mb-1 flex items-center justify-between">
+                  <span>Viewer code (read-only)</span>
+                  {session.role === 'writer' && (
+                    <RotateButton
+                      onClick={() => onRotateClick('viewer')}
+                      busy={rotatingCode === 'viewer'}
+                    />
+                  )}
                 </div>
                 <CodeCopyBox
                   code={session.viewerCode}
@@ -146,8 +195,12 @@ export default function CodesBadge({ onLeave }) {
 
             {session.role === 'writer' && session.admitCode && (
               <div>
-                <div className="text-[10px] font-display tracking-[0.22em] uppercase text-ink-500 mb-1">
-                  Intake code (admit-only)
+                <div className="text-[10px] font-display tracking-[0.22em] uppercase text-ink-500 mb-1 flex items-center justify-between">
+                  <span>Intake code (admit-only)</span>
+                  <RotateButton
+                    onClick={() => onRotateClick('admit')}
+                    busy={rotatingCode === 'admit'}
+                  />
                 </div>
                 <CodeCopyBox
                   code={session.admitCode}
@@ -188,6 +241,19 @@ function CodeCopyBox({ code, copied, onClick }) {
       <span className="text-[10px] uppercase tracking-widest text-ink-500">
         {copied ? 'copied' : 'copy'}
       </span>
+    </button>
+  )
+}
+
+function RotateButton({ onClick, busy }) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={busy}
+      className="text-[10px] tracking-widest text-ink-500 hover:text-warn-amber transition px-1 py-0.5 rounded normal-case disabled:opacity-50"
+      title="Rotate this code (incident response)"
+    >
+      {busy ? 'rotating\u2026' : '\u21BB rotate'}
     </button>
   )
 }

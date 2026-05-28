@@ -46,6 +46,9 @@ export function EventLogItem({ event }) {
           </span>
         )}
         {event.kpe && <span className="text-xs text-ink-400">· {event.kpe}</span>}
+        {event.actorName && (
+          <span className="text-xs text-ink-500">by {event.actorName}</span>
+        )}
         <span className="text-xs font-display tabular-nums text-ink-500 ml-auto">
           {formatDateTime(event.timestamp)}
         </span>
