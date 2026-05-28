@@ -80,54 +80,27 @@ export default function IntakeOnlyScreen() {
     setPhase('submitting')
     const nowIso = new Date().toISOString()
     try {
-      // 1. Determine the next PIC number. We have to query existing rows since
-      //    RLS blocks SELECT for intake_only. We use a special RPC for this.
-      //    Simplest approach: rely on the database default — but the schema
-      //    requires a number. So we'll attempt with an optimistic number based
-      //    on a server-side helper. For now: get the next number via a small RPC.
-      const { data: nextNumData, error: nextNumErr } = await supabase.rpc('next_pic_number_for_event')
-      if (nextNumErr) throw nextNumErr
-      const number = nextNumData
-
-      // 2. Insert the PIC
-      const picRow = {
-        event_id: session.eventId,
-        number,
-        name: name.trim() || null,
-        description: description.trim() || null,
-        gender,
-        age_range: ageRange,
-        entered_care: nowIso,
-        referred_by: referredBy,
-        substances: substances,
-        presentations: presentations,
-        ejection_flag: false,
-        source: 'intake_only',
-        status: 'in_care',
-      }
-      const { data: insertedPic, error: insertErr } = await supabase
-        .from('pics')
-        .insert([picRow])
-        .select()
-        .single()
-      if (insertErr) throw insertErr
-
-      // 3. Insert the admit activity event
-      const admitEvent = {
-        event_id: session.eventId,
-        pic_id: insertedPic.id,
-        timestamp: nowIso,
-        type: 'admit',
-        code,
-        kpe: null,
-        note: intakeNote.trim() || null,
-        meta: { source: 'intake_only' },
-      }
-      await supabase.from('activity_log').insert([admitEvent])
+      // Use the RPC path — bypasses RLS via SECURITY DEFINER, with code-based
+      // re-verification as a fallback if the JWT isn't being honoured.
+      const { data, error: rpcErr } = await supabase.rpc('intake_only_admit_pic', {
+        p_code: code,
+        p_session_code: session.admitCode || null,
+        p_name: name.trim() || null,
+        p_description: description.trim() || null,
+        p_gender: gender,
+        p_age_range: ageRange,
+        p_referred_by: referredBy,
+        p_substances: substances,
+        p_presentations: presentations,
+        p_intake_note: intakeNote.trim() || null,
+      })
+      if (rpcErr) throw rpcErr
+      const result = Array.isArray(data) ? data[0] : data
+      if (!result || !result.pic_id) throw new Error('No PIC returned')
 
       setSubmittedPic({
-        number: insertedPic.number,
-        id: insertedPic.id,
+        number: result.pic_number,
+        id: result.pic_id,
         eventName: session.eventName,
         timestamp: nowIso,
       })
@@ -143,16 +116,12 @@ export default function IntakeOnlyScreen() {
     if (!noteText.trim() || !submittedPic) return
     setNoteBusy(true)
     try {
-      await supabase.from('activity_log').insert([{
-        event_id: session.eventId,
-        pic_id: submittedPic.id,
-        timestamp: new Date().toISOString(),
-        type: 'note',
-        code: null,
-        kpe: null,
-        note: noteText.trim(),
-        meta: { source: 'intake_only' },
-      }])
+      const { error: rpcErr } = await supabase.rpc('intake_only_add_note', {
+        p_pic_id: submittedPic.id,
+        p_note: noteText.trim(),
+        p_session_code: session.admitCode || null,
+      })
+      if (rpcErr) throw rpcErr
       setNoteAdded(true)
       setNoteText('')
     } catch (e) {
