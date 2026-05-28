@@ -11,6 +11,7 @@ import { useEffect, useRef, useState } from 'react'
  *  - onCommit: (value) => void   (parent handles persistence)
  *  - editing: bool  (controlled — parent can force edit mode if needed)
  *  - onEditingChange: (bool) => void
+ *  - highlight: bool — adds yellow incomplete-state styling
  */
 export default function EditableCell({
   label,
@@ -18,6 +19,7 @@ export default function EditableCell({
   renderEditor,
   editingControlled,
   onEditingChange,
+  highlight = false,
 }) {
   const [editingLocal, setEditingLocal] = useState(false)
   const editing = editingControlled !== undefined ? editingControlled : editingLocal
@@ -40,10 +42,29 @@ export default function EditableCell({
     return () => document.removeEventListener('mousedown', onDocClick)
   }, [editing])
 
+  // Incomplete state: subtle yellow border + tint, slightly stronger when not editing.
+  const panelClass = highlight
+    ? 'panel p-4 transition cursor-text border-code-3/50 bg-code-3/5 hover:border-code-3'
+    : 'panel p-4 hover:border-ink-600 transition cursor-text'
+
+  const labelClass = highlight
+    ? 'text-[10px] font-display tracking-[0.22em] uppercase text-code-3 mb-2 flex items-center justify-between'
+    : 'text-[10px] font-display tracking-[0.22em] uppercase text-ink-500 mb-2 flex items-center justify-between'
+
   return (
-    <div ref={wrapRef} className="panel p-4 hover:border-ink-600 transition cursor-text">
-      <div className="text-[10px] font-display tracking-[0.22em] uppercase text-ink-500 mb-2 flex items-center justify-between">
-        <span>{label}</span>
+    <div ref={wrapRef} className={panelClass}>
+      <div className={labelClass}>
+        <span className="flex items-center gap-1.5">
+          {label}
+          {highlight && (
+            <span
+              className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-code-3 text-ink-950 text-[8px] font-display font-black leading-none"
+              title="Missing — please fill in"
+            >
+              !
+            </span>
+          )}
+        </span>
         {editing ? (
           <button
             onClick={(e) => {

@@ -9,6 +9,7 @@ import {
   CodeDistribution,
   StatSection,
 } from './StatBlocks'
+import TimeSeriesChart from './TimeSeriesChart'
 
 export default function Reports({ refreshKey }) {
   const [pics, setPics] = useState([])
@@ -161,6 +162,13 @@ export default function Reports({ refreshKey }) {
               tone={stats.counts.incomplete > 0 ? 'warn' : 'good'}
               hint={stats.counts.incomplete > 0 ? 'PICs with missing info' : 'All complete'}
             />
+          </div>
+
+          {/* Concurrent load over time */}
+          <div className="mb-4">
+            <StatSection title={`PICs in care over time (${cohortLabel})`}>
+              <TimeSeriesChart pics={filteredPics} />
+            </StatSection>
           </div>
 
           {/* Distributions */}

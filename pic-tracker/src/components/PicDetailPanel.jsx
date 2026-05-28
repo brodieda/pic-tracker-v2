@@ -125,7 +125,7 @@ export default function PicDetailPanel({ picId, onClose, onMutated, openIntent }
   const minsSince = !isDischarged ? minutesSinceLastActivity(pic.id, events) : null
   const latestEvent = latestEventFor(pic.id, events)
   const eventCount = events.filter((e) => e.picId === pic.id).length
-  const { complete, missing } = completenessFor(pic)
+  const { complete, missing, missingFields } = completenessFor(pic)
 
   const afterMutation = () => {
     reload()
@@ -422,10 +422,26 @@ export default function PicDetailPanel({ picId, onClose, onMutated, openIntent }
         </section>
 
         {/* Assigned KPE — inline picker */}
-        <section className="panel p-4">
+        <section className={
+          missingFields.has('assignedKpe')
+            ? 'panel p-4 border-code-3/50 bg-code-3/5'
+            : 'panel p-4'
+        }>
           <div className="flex items-center justify-between mb-2">
-            <span className="text-[10px] font-display tracking-[0.22em] uppercase text-ink-500">
+            <span className={
+              missingFields.has('assignedKpe')
+                ? 'text-[10px] font-display tracking-[0.22em] uppercase text-code-3 flex items-center gap-1.5'
+                : 'text-[10px] font-display tracking-[0.22em] uppercase text-ink-500 flex items-center gap-1.5'
+            }>
               Assigned KPE
+              {missingFields.has('assignedKpe') && (
+                <span
+                  className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-code-3 text-ink-950 text-[8px] font-display font-black leading-none"
+                  title="Missing — please assign"
+                >
+                  !
+                </span>
+              )}
             </span>
             {!editingKpe && (
               <button
@@ -465,6 +481,7 @@ export default function PicDetailPanel({ picId, onClose, onMutated, openIntent }
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <EditableCell
             label="Substances"
+            highlight={missingFields.has('substancesOrPresentations')}
             displayChildren={<ChipDisplay values={pic.substances} other={pic.substanceOther} />}
             renderEditor={() => (
               <ChipEditor
@@ -480,6 +497,7 @@ export default function PicDetailPanel({ picId, onClose, onMutated, openIntent }
           />
           <EditableCell
             label="Presentations"
+            highlight={missingFields.has('substancesOrPresentations')}
             displayChildren={<ChipDisplay values={pic.presentations} other={pic.presentationOther} />}
             renderEditor={() => (
               <ChipEditor
@@ -546,6 +564,7 @@ export default function PicDetailPanel({ picId, onClose, onMutated, openIntent }
         {/* Description */}
         <EditableCell
           label="Description"
+          highlight={missingFields.has('identifier')}
           displayChildren={
             pic.description ? (
               <span className="text-sm text-ink-200">{pic.description}</span>
@@ -583,6 +602,7 @@ export default function PicDetailPanel({ picId, onClose, onMutated, openIntent }
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <EditableCell
                 label="Outcome"
+                highlight={missingFields.has('outcome')}
                 displayChildren={
                   pic.outcome ? (
                     <span className="tag">
@@ -605,6 +625,7 @@ export default function PicDetailPanel({ picId, onClose, onMutated, openIntent }
               />
               <EditableCell
                 label="Referred to"
+                highlight={missingFields.has('referredTo')}
                 displayChildren={<ChipDisplay values={referredToList} other={pic.referredToOther} />}
                 renderEditor={() => (
                   <ChipEditor
@@ -620,6 +641,7 @@ export default function PicDetailPanel({ picId, onClose, onMutated, openIntent }
               />
               <EditableCell
                 label="Medical involved"
+                highlight={missingFields.has('medicalInvolved')}
                 displayChildren={
                   pic.medicalInvolved == null ? (
                     <span className="text-ink-500 italic text-sm">Not set</span>
@@ -677,6 +699,7 @@ export default function PicDetailPanel({ picId, onClose, onMutated, openIntent }
 
             <EditableCell
               label="TL sign-off"
+              highlight={missingFields.has('tlSignoff')}
               displayChildren={
                 pic.tlSignoff ? (
                   <span className="inline-flex items-center gap-1.5 bg-code-3/15 border border-code-3/40 text-code-3 text-sm font-semibold px-3 py-1 rounded-full">
