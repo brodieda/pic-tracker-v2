@@ -1,24 +1,9 @@
-// lib/supabaseStore.js — parallel async API mirroring store.js and the mutation
-// functions in helpers.js. The dualStore layer calls into here for the Supabase
-// half of dual-write.
-//
-// All functions are async and return Promises. On Supabase config absence or
-// network failure, they log and resolve with null/empty rather than throw —
-// dual-write must never break the localStorage path.
+// lib/supabaseStore.js — async API mirroring localStorage store and helpers.
+// Uses the single global supabase client; auth context comes from the JWT
+// automatically, no header injection.
 
-import { supabase, SUPABASE_CONFIGURED, withCodes } from './supabaseClient'
-import { getSession } from './eventSession'
-import { generateCode } from './codeGen'
-
-// ---------- Helpers ----------
-
-function clientForSession() {
-  if (!SUPABASE_CONFIGURED) return null
-  const s = getSession()
-  if (s.role === 'writer') return withCodes({ writerCode: s.writerCode, viewerCode: s.viewerCode })
-  if (s.role === 'viewer') return withCodes({ viewerCode: s.viewerCode })
-  return null
-}
+import { supabase, SUPABASE_CONFIGURED } from './supabaseClient'
+import { getSession, setSessionData } from './eventSession'
 
 function logError(where, err) {
   if (!err) return
@@ -26,8 +11,7 @@ function logError(where, err) {
   console.error(`[supabaseStore] ${where}:`, err.message || err)
 }
 
-// ---------- snake_case <-> camelCase translation ----------
-// Done explicitly per-table so the field list is documented and review-able.
+// ---------- Translation ----------
 
 function eventFromDb(row) {
   if (!row) return null
@@ -36,21 +20,18 @@ function eventFromDb(row) {
     name: row.name,
     writerCode: row.writer_code,
     viewerCode: row.viewer_code,
+    admitCode: row.admit_code,
     shift1Team: row.shift1_team || [],
     shift2Team: row.shift2_team || [],
     code3CheckIntervalMinutes: row.code3_check_interval_minutes,
     capacity: row.capacity,
     isActive: row.is_active,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
   }
 }
 
 function eventToDb(e) {
   const out = {}
   if ('name' in e) out.name = e.name
-  if ('writerCode' in e) out.writer_code = e.writerCode
-  if ('viewerCode' in e) out.viewer_code = e.viewerCode
   if ('shift1Team' in e) out.shift1_team = e.shift1Team
   if ('shift2Team' in e) out.shift2_team = e.shift2Team
   if ('code3CheckIntervalMinutes' in e) out.code3_check_interval_minutes = e.code3CheckIntervalMinutes
@@ -62,7 +43,7 @@ function eventToDb(e) {
 function picFromDb(row) {
   if (!row) return null
   return {
-    id: row.id, // Supabase UUID — different from localStorage `pic_001` IDs
+    id: row.id,
     eventId: row.event_id,
     number: row.number,
     name: row.name,
@@ -88,6 +69,7 @@ function picFromDb(row) {
     tlSignoff: row.tl_signoff,
     ejectionFlag: row.ejection_flag,
     securityNotified: row.security_notified,
+    source: row.source || 'writer',
     status: row.status,
   }
 }
@@ -119,6 +101,7 @@ function picToDb(p, eventId) {
   if ('tlSignoff' in p) out.tl_signoff = p.tlSignoff
   if ('ejectionFlag' in p) out.ejection_flag = !!p.ejectionFlag
   if ('securityNotified' in p) out.security_notified = p.securityNotified
+  if ('source' in p) out.source = p.source
   if ('status' in p) out.status = p.status
   return out
 }
@@ -151,227 +134,213 @@ function activityToDb(e, eventId, picUuid) {
   }
 }
 
-// ---------- Event lifecycle ----------
+// ---------- Auth flow ----------
 
-// Create a new event in Supabase. Generates writer/viewer codes if not provided.
-// Returns the created event (with codes) or null on failure.
-// Used by the "Create event" flow on the landing screen.
-export async function createEvent({ name, shift1Team = [], shift2Team = [], capacity = null }) {
-  if (!supabase) {
-    logError('createEvent', 'Supabase not configured')
-    return null
-  }
-  // Generate unique codes, retry on collision (rare but possible).
-  for (let attempt = 0; attempt < 5; attempt++) {
-    const writerCode = generateCode(6)
-    const viewerCode = generateCode(6)
-    const { data, error } = await supabase
-      .from('events')
-      .insert([
-        {
-          name: name || '',
-          writer_code: writerCode,
-          viewer_code: viewerCode,
-          shift1_team: shift1Team,
-          shift2_team: shift2Team,
-          capacity,
-          is_active: true,
-        },
-      ])
-      .select()
-      .single()
-    if (!error) return eventFromDb(data)
-    // 23505 = unique_violation. Retry with new codes.
-    if (error.code === '23505') continue
-    logError('createEvent', error)
-    return null
-  }
-  logError('createEvent', 'Code generation collided 5 times — giving up')
-  return null
-}
-
-// Join an existing event by code. Looks up the event row and returns it +
-// detected role ('writer' or 'viewer') based on which field the code matched.
-// Returns null if the code doesn't match any event.
-export async function joinEventByCode(code) {
-  if (!supabase) return null
+// Sign in anonymously + bind the session to an event by code.
+// Returns { event, role } on success, throws on failure.
+export async function joinByCode(code) {
+  if (!supabase) throw new Error('Supabase not configured')
   const normalized = (code || '').toUpperCase().trim()
-  if (!normalized) return null
+  if (!normalized) throw new Error('Empty code')
 
-  // Try as a writer code first.
-  {
-    const sb = withCodes({ writerCode: normalized })
-    const { data, error } = await sb
-      .from('events')
-      .select('*')
-      .eq('writer_code', normalized)
-      .maybeSingle()
-    if (!error && data) return { event: eventFromDb(data), role: 'writer' }
+  // 1. Sign in anonymously (creates a Supabase auth user if not signed in already).
+  const { data: signInData, error: signInError } = await supabase.auth.signInAnonymously()
+  if (signInError) {
+    logError('signInAnonymously', signInError)
+    throw signInError
   }
 
-  // Then as a viewer code.
-  {
-    const sb = withCodes({ viewerCode: normalized })
-    const { data, error } = await sb
-      .from('events')
-      .select('*')
-      .eq('viewer_code', normalized)
-      .maybeSingle()
-    if (!error && data) return { event: eventFromDb(data), role: 'viewer' }
+  // 2. Call RPC to set our metadata. This SECURITY DEFINER function verifies
+  //    the code and binds event_id + role to our auth user.
+  const { data: bindData, error: bindError } = await supabase.rpc('set_session_event_metadata', {
+    p_code: normalized,
+  })
+  if (bindError) {
+    logError('set_session_event_metadata', bindError)
+    // Sign out so we don't leave a half-bound session lying around
+    await supabase.auth.signOut()
+    throw bindError
+  }
+  const binding = Array.isArray(bindData) ? bindData[0] : bindData
+  if (!binding) {
+    await supabase.auth.signOut()
+    throw new Error('Invalid code')
   }
 
-  return null
+  // 3. Refresh the session so the new app_metadata appears in the JWT.
+  const { error: refreshError } = await supabase.auth.refreshSession()
+  if (refreshError) {
+    logError('refreshSession', refreshError)
+    // Non-fatal: continue, the next request will pick up the JWT.
+  }
+
+  // 4. Look up the full event row (RLS will now allow this since we have the JWT).
+  const { data: evRow, error: evError } = await supabase
+    .from('events')
+    .select('*')
+    .eq('id', binding.event_id)
+    .single()
+  if (evError) {
+    logError('joinByCode load event', evError)
+    throw evError
+  }
+  const event = eventFromDb(evRow)
+
+  // 5. Cache the session locally for fast UI checks. Only expose codes the
+  //    role is allowed to see.
+  setSessionData({
+    role: binding.role,
+    eventId: event.id,
+    eventName: event.name,
+    writerCode: binding.role === 'writer' ? event.writerCode : null,
+    viewerCode: binding.role === 'writer' || binding.role === 'viewer' ? event.viewerCode : null,
+    admitCode: binding.role === 'writer' ? event.admitCode : null,
+  })
+
+  return { event, role: binding.role }
 }
 
-// Load the current event for this session.
+// Create a new event and join as writer. Generates codes server-side.
+export async function createEventAndJoin({ name, shift1Team = [], shift2Team = [], capacity = null }) {
+  if (!supabase) throw new Error('Supabase not configured')
+  const { data, error } = await supabase.rpc('create_event_with_codes', {
+    p_name: name || '',
+    p_shift1: shift1Team,
+    p_shift2: shift2Team,
+    p_capacity: capacity,
+  })
+  if (error) {
+    logError('create_event_with_codes', error)
+    throw error
+  }
+  const created = Array.isArray(data) ? data[0] : data
+  if (!created) throw new Error('Event creation returned no rows')
+
+  // Now join with the writer code so our session gets bound.
+  const result = await joinByCode(created.writer_code)
+  return result
+}
+
+// ---------- Standard reads/writes ----------
+
 export async function getCurrentEvent() {
-  const sb = clientForSession()
-  if (!sb) return null
+  if (!supabase) return null
   const s = getSession()
   if (!s.eventId) return null
-  const { data, error } = await sb.from('events').select('*').eq('id', s.eventId).maybeSingle()
-  if (error) {
-    logError('getCurrentEvent', error)
-    return null
-  }
+  const { data, error } = await supabase.from('events').select('*').eq('id', s.eventId).maybeSingle()
+  if (error) { logError('getCurrentEvent', error); return null }
   return eventFromDb(data)
 }
 
-// Update the current event. Writer-only (RLS enforced).
 export async function updateCurrentEvent(patch) {
-  const sb = clientForSession()
-  if (!sb) return null
+  if (!supabase) return null
   const s = getSession()
   if (!s.eventId || s.role !== 'writer') return null
-  const { data, error } = await sb
+  const { data, error } = await supabase
     .from('events')
     .update(eventToDb(patch))
     .eq('id', s.eventId)
     .select()
     .single()
-  if (error) {
-    logError('updateCurrentEvent', error)
-    return null
-  }
+  if (error) { logError('updateCurrentEvent', error); return null }
   return eventFromDb(data)
 }
 
-// ---------- PICs ----------
+// End event = set is_active = false. Writer only.
+export async function endCurrentEvent() {
+  if (!supabase) return null
+  const s = getSession()
+  if (!s.eventId || s.role !== 'writer') return null
+  const { data, error } = await supabase
+    .from('events')
+    .update({ is_active: false })
+    .eq('id', s.eventId)
+    .select()
+    .single()
+  if (error) { logError('endCurrentEvent', error); return null }
+  return eventFromDb(data)
+}
 
 export async function getPicsForCurrentEvent() {
-  const sb = clientForSession()
-  if (!sb) return []
+  if (!supabase) return []
   const s = getSession()
   if (!s.eventId) return []
-  const { data, error } = await sb
+  const { data, error } = await supabase
     .from('pics')
     .select('*')
     .eq('event_id', s.eventId)
     .order('number', { ascending: true })
-  if (error) {
-    logError('getPicsForCurrentEvent', error)
-    return []
-  }
+  if (error) { logError('getPicsForCurrentEvent', error); return [] }
   return (data || []).map(picFromDb)
 }
 
-// Find an existing Supabase PIC row by (event_id, number). Used by dual-write
-// to translate localStorage's `pic_001`-style IDs to Supabase UUIDs when
-// adding activity log entries after the PIC's been created.
 export async function findPicUuidByNumber(number) {
-  const sb = clientForSession()
-  if (!sb) return null
+  if (!supabase) return null
   const s = getSession()
   if (!s.eventId) return null
-  const { data, error } = await sb
+  const { data, error } = await supabase
     .from('pics')
     .select('id')
     .eq('event_id', s.eventId)
     .eq('number', number)
     .maybeSingle()
-  if (error) {
-    logError('findPicUuidByNumber', error)
-    return null
-  }
+  if (error) { logError('findPicUuidByNumber', error); return null }
   return data?.id || null
 }
 
-// Insert a new PIC. Returns the created row (with Supabase UUID) or null.
+// Insert a PIC. The frontend passes source as part of the pic object.
+// RLS will allow writer→writer-source, intake_only→intake_only-source.
 export async function insertPic(pic) {
-  const sb = clientForSession()
-  if (!sb) return null
+  if (!supabase) return null
   const s = getSession()
-  if (!s.eventId || s.role !== 'writer') return null
-  const { data, error } = await sb
+  if (!s.eventId) return null
+  const { data, error } = await supabase
     .from('pics')
     .insert([picToDb(pic, s.eventId)])
     .select()
     .single()
-  if (error) {
-    logError('insertPic', error)
-    return null
-  }
+  if (error) { logError('insertPic', error); return null }
   return picFromDb(data)
 }
 
-// Update a PIC by `number` (because the dual-write layer doesn't know the UUID).
 export async function updatePicByNumber(number, patch) {
-  const sb = clientForSession()
-  if (!sb) return null
+  if (!supabase) return null
   const s = getSession()
   if (!s.eventId || s.role !== 'writer') return null
-  const { data, error } = await sb
+  const { data, error } = await supabase
     .from('pics')
     .update(picToDb(patch))
     .eq('event_id', s.eventId)
     .eq('number', number)
     .select()
     .single()
-  if (error) {
-    logError('updatePicByNumber', error)
-    return null
-  }
+  if (error) { logError('updatePicByNumber', error); return null }
   return picFromDb(data)
 }
 
-// ---------- Activity log ----------
-
 export async function getActivityForCurrentEvent() {
-  const sb = clientForSession()
-  if (!sb) return []
+  if (!supabase) return []
   const s = getSession()
   if (!s.eventId) return []
-  const { data, error } = await sb
+  const { data, error } = await supabase
     .from('activity_log')
     .select('*')
     .eq('event_id', s.eventId)
     .order('timestamp', { ascending: true })
-  if (error) {
-    logError('getActivityForCurrentEvent', error)
-    return []
-  }
+  if (error) { logError('getActivityForCurrentEvent', error); return [] }
   return (data || []).map(activityFromDb)
 }
 
-// Insert an activity log entry. Needs the PIC's Supabase UUID, so the caller
-// should look it up via findPicUuidByNumber if working from a localStorage PIC.
 export async function insertActivity(evt, picUuid) {
-  const sb = clientForSession()
-  if (!sb) return null
+  if (!supabase) return null
   const s = getSession()
-  if (!s.eventId || s.role !== 'writer') return null
-  if (!picUuid) {
-    logError('insertActivity', 'no picUuid')
-    return null
-  }
-  const { data, error } = await sb
+  if (!s.eventId) return null
+  if (!picUuid) { logError('insertActivity', 'no picUuid'); return null }
+  const { data, error } = await supabase
     .from('activity_log')
     .insert([activityToDb(evt, s.eventId, picUuid)])
     .select()
     .single()
-  if (error) {
-    logError('insertActivity', error)
-    return null
-  }
+  if (error) { logError('insertActivity', error); return null }
   return activityFromDb(data)
 }

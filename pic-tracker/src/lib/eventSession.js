@@ -1,22 +1,16 @@
-// lib/eventSession.js — tracks the device's current event join state.
-//
-// Stored in localStorage so refreshes don't kick the device out of the event.
-// One of three states:
-//   - 'none'        — device hasn't joined anything yet (show landing screen)
-//   - 'writer'      — device joined with the writer code (full access)
-//   - 'viewer'      — device joined with the viewer code (read-only)
-//
-// When a writer creates a new event, that device automatically becomes the writer
-// for it (it's the only device that has the writer code at that moment).
+// lib/eventSession.js — wraps Supabase auth + caches role for fast UI checks.
+
+import { supabase } from './supabaseClient'
 
 const KEY = 'pic_session'
 
 const DEFAULT_SESSION = {
-  role: 'none', // 'none' | 'writer' | 'viewer'
-  eventId: null, // Supabase event UUID
-  eventName: null, // for display
-  writerCode: null, // only set when role === 'writer'
-  viewerCode: null, // set for both writer and viewer roles
+  role: 'none', // 'none' | 'writer' | 'viewer' | 'intake_only'
+  eventId: null,
+  eventName: null,
+  writerCode: null,
+  viewerCode: null,
+  admitCode: null,
 }
 
 function read() {
@@ -38,45 +32,25 @@ function write(s) {
   }
 }
 
-export function getSession() {
-  return read()
+export function getSession() { return read() }
+export function isWriter() { return read().role === 'writer' }
+export function isViewer() { return read().role === 'viewer' }
+export function isIntakeOnly() { return read().role === 'intake_only' }
+export function hasJoined() { return read().role !== 'none' }
+
+export function setSessionData(s) {
+  write({ ...DEFAULT_SESSION, ...s })
 }
 
-export function isWriter() {
-  return read().role === 'writer'
-}
-
-export function isViewer() {
-  return read().role === 'viewer'
-}
-
-export function hasJoined() {
-  return read().role !== 'none'
-}
-
-// Called when this device successfully creates a new event (and is therefore the writer).
-export function setWriterSession({ eventId, eventName, writerCode, viewerCode }) {
-  write({ role: 'writer', eventId, eventName, writerCode, viewerCode })
-}
-
-// Called when this device joins an existing event with the writer code.
-export function setWriterSessionFromJoin({ eventId, eventName, writerCode, viewerCode }) {
-  write({ role: 'writer', eventId, eventName, writerCode, viewerCode })
-}
-
-// Called when this device joins with the viewer code.
-export function setViewerSession({ eventId, eventName, viewerCode }) {
-  write({ role: 'viewer', eventId, eventName, writerCode: null, viewerCode })
-}
-
-// Leave the current event — back to landing screen on next load.
-export function clearSession() {
-  write({ ...DEFAULT_SESSION })
-}
-
-// Update cached event name without changing role/codes (e.g. after rename in settings).
 export function updateCachedEventName(name) {
   const s = read()
   if (s.role === 'none') return
   write({ ...s, eventName: name })
+}
+
+export async function clearSession() {
+  if (supabase) {
+    try { await supabase.auth.signOut() } catch (e) { console.error('signOut failed', e) }
+  }
+  try { localStorage.removeItem(KEY) } catch (e) { /* noop */ }
 }

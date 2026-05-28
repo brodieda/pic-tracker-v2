@@ -54,6 +54,7 @@ function picToLocal(p) {
     tlSignoff: p.tlSignoff,
     ejectionFlag: !!p.ejectionFlag,
     securityNotified: p.securityNotified,
+    source: p.source || 'writer',
     status: p.status,
   }
 }
