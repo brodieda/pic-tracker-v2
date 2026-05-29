@@ -176,13 +176,45 @@ export async function joinByCode(code) {
     // Non-fatal: continue, the next request will pick up the JWT.
   }
 
-  // 4. Look up the full event row (RLS will now allow this since we have the JWT).
-  const { data: evRow, error: evError } = await supabase
-    .from('events')
-    .select('*')
-    .eq('id', binding.event_id)
-    .single()
-  if (evError) {
+  // After refreshSession(), supabase-js can momentarily lose auth headers
+  // on the very next request (observed: first follow-up request goes out
+  // without the apikey header, gets a 500, and the error masks as "stack
+  // depth limit exceeded" through some PostgREST quirk).
+  //
+  // Wait a brief moment for the auth client to settle, and retry the
+  // event fetch up to 3 times with backoff if needed.
+  let evRow = null
+  let evError = null
+  for (let attempt = 0; attempt < 3; attempt++) {
+    if (attempt > 0) {
+      await new Promise((r) => setTimeout(r, 200 * attempt))
+    } else {
+      // Initial small settle delay even on first try
+      await new Promise((r) => setTimeout(r, 50))
+    }
+    const res = await supabase
+      .from('events')
+      .select('*')
+      .eq('id', binding.event_id)
+      .single()
+    if (!res.error) {
+      evRow = res.data
+      evError = null
+      break
+    }
+    evError = res.error
+    // If it's a 401/apikey error, retry. For other errors, fail fast.
+    const msg = (res.error.message || '').toLowerCase()
+    const isAuthRace =
+      msg.includes('apikey') ||
+      msg.includes('jwt') ||
+      msg.includes('stack depth') ||
+      res.error.code === '500'
+    if (!isAuthRace) break
+  }
+
+  // 4. Process the event row (or fail with the captured error).
+  if (evError && !evRow) {
     logError('joinByCode load event', evError)
     throw evError
   }
