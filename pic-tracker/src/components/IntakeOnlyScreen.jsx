@@ -9,7 +9,7 @@
 // Mobile-first design: large tap targets, single column, minimal scrolling.
 
 import { useEffect, useState } from 'react'
-import { CODES, REFERRED_BY, REFERRED_BY_COLORS, SUBSTANCES, PRESENTATIONS, GENDERS, AGE_RANGES } from '../constants/options'
+import { CODES, REFERRED_BY, REFERRED_BY_COLORS, SUBSTANCES, SUBSTANCE_COLORS, PRESENTATIONS, PRESENTATION_COLORS, GENDERS, GENDER_COLORS, AGE_RANGES, AGE_COLORS } from '../constants/options'
 import { supabase } from '../lib/supabaseClient'
 import { getSession, clearSession } from '../lib/eventSession'
 
@@ -287,13 +287,13 @@ export default function IntakeOnlyScreen() {
             <div className="text-[10px] font-display tracking-[0.22em] uppercase text-ink-500 mb-2">
               Gender
             </div>
-            <ChipRow options={GENDERS} value={gender} onChange={setGender} />
+            <ChipRow options={GENDERS} value={gender} onChange={setGender} colorMap={GENDER_COLORS} />
           </div>
           <div>
             <div className="text-[10px] font-display tracking-[0.22em] uppercase text-ink-500 mb-2">
               Age range
             </div>
-            <ChipRow options={AGE_RANGES} value={ageRange} onChange={setAgeRange} />
+            <ChipRow options={AGE_RANGES} value={ageRange} onChange={setAgeRange} colorMap={AGE_COLORS} />
           </div>
         </div>
 
@@ -310,7 +310,7 @@ export default function IntakeOnlyScreen() {
           <div className="text-[10px] font-display tracking-[0.22em] uppercase text-ink-500 mb-2">
             Substances
           </div>
-          <ChipRow options={SUBSTANCES} value={substances} onChange={setSubstances} multi />
+          <ChipRow options={SUBSTANCES} value={substances} onChange={setSubstances} multi colorMap={SUBSTANCE_COLORS} />
         </div>
 
         {/* Presentations */}
@@ -318,7 +318,7 @@ export default function IntakeOnlyScreen() {
           <div className="text-[10px] font-display tracking-[0.22em] uppercase text-ink-500 mb-2">
             Presentations
           </div>
-          <ChipRow options={PRESENTATIONS} value={presentations} onChange={setPresentations} multi />
+          <ChipRow options={PRESENTATIONS} value={presentations} onChange={setPresentations} multi colorMap={PRESENTATION_COLORS} />
         </div>
 
         {/* Note */}

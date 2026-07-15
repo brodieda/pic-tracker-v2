@@ -1,5 +1,5 @@
 /**
- * ShieldIcon — used everywhere the "Security Monitored" flag is shown.
+ * ShieldIcon — used everywhere the "Security Flag" is shown.
  * Props:
  *  - className: sizing/color classes (e.g. "w-3.5 h-3.5")
  */

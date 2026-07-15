@@ -87,7 +87,7 @@ export default function DischargeModal({ open, pic, eventCfg, onClose, onDischar
 
         {/* Body */}
         <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
-          {/* Security Monitored reminder — first thing they see */}
+          {/* Security Flag reminder — first thing they see */}
           {isEjectionFlagged && (
             <div className="flex items-start gap-3 px-4 py-3 rounded-lg bg-slate-100 text-ink-950 border-2 border-slate-100">
               <span className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-ink-950 text-slate-100 shrink-0 leading-none">
@@ -95,7 +95,7 @@ export default function DischargeModal({ open, pic, eventCfg, onClose, onDischar
               </span>
               <div className="min-w-0 flex-1">
                 <div className="text-xs font-display font-bold uppercase tracking-widest">
-                  Security Monitored — Action Required
+                  Security Flag — Action Required
                 </div>
                 <div className="text-sm mt-0.5">
                   This patron is on the ejection pathway. RSA/Security must be notified before they leave the space.
@@ -312,7 +312,7 @@ export default function DischargeModal({ open, pic, eventCfg, onClose, onDischar
               </h3>
             </div>
             <div className="px-5 py-4 text-sm text-ink-200">
-              This patron was flagged as Security Monitored and you've recorded that
+              This patron has a Security Flag and you've recorded that
               Security/RSA has <span className="font-bold text-code-1">not</span> been notified.
               <div className="mt-2 text-ink-400">
                 Discharge anyway?

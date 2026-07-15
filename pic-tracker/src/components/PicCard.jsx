@@ -215,12 +215,12 @@ export default function PicCard({ pic, events, eventCfg, allPics, onClick, onMar
                   }`}
                   title={
                     !isDischarged
-                      ? 'Security Monitored — RSA/Security to be notified before discharge'
+                      ? 'Security Flag — RSA/Security to be notified before discharge'
                       : pic.securityNotified === true
-                      ? 'Security Monitored — Security notified at discharge'
+                      ? 'Security Flag — Security notified at discharge'
                       : pic.securityNotified === false
-                      ? 'Security Monitored — Security NOT notified at discharge'
-                      : 'Security Monitored — notification status not recorded'
+                      ? 'Security Flag — Security NOT notified at discharge'
+                      : 'Security Flag — notification status not recorded'
                   }
                 >
                   <ShieldIcon className="w-3 h-3" />

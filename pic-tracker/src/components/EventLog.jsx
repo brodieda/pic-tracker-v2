@@ -24,8 +24,8 @@ function flagChangeSummary(meta) {
   if (!meta) return null
   if (meta.flag === 'ejection') {
     return meta.value
-      ? '⚑ Flagged Security Monitored'
-      : '⚑ Security Monitored flag cleared'
+      ? '⚑ Security Flag set'
+      : '⚑ Security Flag cleared'
   }
   return null
 }

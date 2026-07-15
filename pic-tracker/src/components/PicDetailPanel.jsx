@@ -32,9 +32,13 @@ import {
   REFERRED_TO_COLORS,
   referralTagClass,
   SUBSTANCES,
+  SUBSTANCE_COLORS,
   PRESENTATIONS,
+  PRESENTATION_COLORS,
   GENDERS,
+  GENDER_COLORS,
   AGE_RANGES,
+  AGE_COLORS,
   OUTCOMES,
 } from '../constants/options'
 import CodeBadge from './CodeBadge'
@@ -393,7 +397,7 @@ export default function PicDetailPanel({ picId, onClose, onMutated, openIntent }
           </div>
         </section>
 
-        {/* Security monitored — compact, sits under code */}
+        {/* Security Flag — compact, sits under code */}
         <div>
           {pic.ejectionFlag ? (
             <div
@@ -409,21 +413,21 @@ export default function PicDetailPanel({ picId, onClose, onMutated, openIntent }
               title={
                 isDischarged
                   ? pic.securityNotified === true
-                    ? 'Security Monitored — Security notified at discharge'
+                    ? 'Security Flag — Security notified at discharge'
                     : pic.securityNotified === false
-                    ? 'Security Monitored — Security NOT notified at discharge'
-                    : 'Security Monitored — notification status not recorded'
+                    ? 'Security Flag — Security NOT notified at discharge'
+                    : 'Security Flag — notification status not recorded'
                   : 'Ejection pathway — notify RSA/Security before this patron leaves the space'
               }
             >
               <ShieldIcon className="w-3.5 h-3.5" />
-              Security monitored
+              Security Flag
               {!isDischarged && (
                 <button
                   onClick={onToggleEjection}
                   className="ml-1 text-ink-950/60 hover:text-ink-950"
-                  title="Remove the Security Monitored flag"
-                  aria-label="Remove the Security Monitored flag"
+                  title="Remove the Security Flag"
+                  aria-label="Remove the Security Flag"
                 >
                   ✕
                 </button>
@@ -437,7 +441,7 @@ export default function PicDetailPanel({ picId, onClose, onMutated, openIntent }
                 title="RSA/Security ejection or possible security intervention"
               >
                 <ShieldIcon className="w-3.5 h-3.5" />
-                Security monitored
+                Security Flag
               </button>
             )
           )}
@@ -511,6 +515,7 @@ export default function PicDetailPanel({ picId, onClose, onMutated, openIntent }
                 value={pic.substances || []}
                 otherValue={pic.substanceOther || ''}
                 multi
+                colorMap={SUBSTANCE_COLORS}
                 onCommit={(value, otherValue) =>
                   updatePicAndReload({ substances: value, substanceOther: otherValue })
                 }
@@ -527,6 +532,7 @@ export default function PicDetailPanel({ picId, onClose, onMutated, openIntent }
                 value={pic.presentations || []}
                 otherValue={pic.presentationOther || ''}
                 multi
+                colorMap={PRESENTATION_COLORS}
                 onCommit={(value, otherValue) =>
                   updatePicAndReload({ presentations: value, presentationOther: otherValue })
                 }
@@ -568,6 +574,7 @@ export default function PicDetailPanel({ picId, onClose, onMutated, openIntent }
                   <ChipEditor
                     options={GENDERS}
                     value={pic.gender}
+                    colorMap={GENDER_COLORS}
                     onCommit={(value) => updatePicAndReload({ gender: value })}
                   />
                 </div>
@@ -576,6 +583,7 @@ export default function PicDetailPanel({ picId, onClose, onMutated, openIntent }
                   <ChipEditor
                     options={AGE_RANGES}
                     value={pic.ageRange}
+                    colorMap={AGE_COLORS}
                     onCommit={(value) => updatePicAndReload({ ageRange: value })}
                   />
                 </div>

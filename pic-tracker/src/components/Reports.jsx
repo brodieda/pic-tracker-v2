@@ -136,7 +136,7 @@ export default function Reports({ refreshKey }) {
               tone={stats.medical.count > 0 ? 'danger' : null}
             />
             <StatBigNumber
-              label="Security monitored"
+              label="Security Flag"
               value={stats.security.flagged}
               suffix={
                 stats.security.notification.total > 0

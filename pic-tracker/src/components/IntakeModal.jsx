@@ -15,9 +15,13 @@ import {
   REFERRED_BY,
   REFERRED_BY_COLORS,
   SUBSTANCES,
+  SUBSTANCE_COLORS,
   PRESENTATIONS,
+  PRESENTATION_COLORS,
   GENDERS,
+  GENDER_COLORS,
   AGE_RANGES,
+  AGE_COLORS,
   CODES,
 } from '../constants/options'
 import ChipGroup from './ChipGroup'
@@ -257,78 +261,85 @@ export default function IntakeModal({ open, onClose, onCreated }) {
             hint="1 = emergency, 5 = lowest"
           >
             <div className="space-y-2">
-              <div className="flex items-stretch gap-2">
-                {/* Code 1 — same height, narrower width */}
-                {(() => {
-                  const c = CODES[0]
-                  const active = form.code === 1
-                  return (
-                    <button
-                      key={1}
-                      type="button"
-                      onClick={() => onSelectCode(1)}
-                      className={`relative h-20 w-14 rounded-xl font-display font-bold ${c.tw} text-white transition border-2 flex flex-col items-center justify-center shrink-0 ${
-                        active
-                          ? 'border-white scale-[1.02] shadow-lg'
-                          : 'border-transparent opacity-60 hover:opacity-100'
-                      }`}
-                      title="Code 1 — Emergency"
-                    >
-                      <span className="text-xs leading-none mb-1">⚠</span>
-                      <span className="leading-none text-2xl">1</span>
-                      <span className="text-[9px] uppercase tracking-widest font-semibold opacity-80 mt-1">
-                        Emerg
-                      </span>
-                    </button>
-                  )
-                })()}
-                <div className="w-px bg-ink-800 mx-1" />
-                {/* Codes 2-5 — full size, descriptor inline-stacked */}
-                {CODES.slice(1).map((c) => {
-                  const active = form.code === c.code
-                  const tone = c.code === 3 ? 'text-ink-950' : 'text-white'
-                  return (
-                    <button
-                      key={c.code}
-                      type="button"
-                      onClick={() => onSelectCode(c.code)}
-                      className={`relative flex-1 h-20 rounded-xl font-display font-bold ${c.tw} ${tone} transition border-2 ${
-                        active
-                          ? 'border-white scale-[1.02] shadow-lg'
-                          : 'border-transparent opacity-70 hover:opacity-100'
-                      }`}
-                    >
-                      <div className="flex flex-col items-center justify-center leading-tight">
-                        <span className="text-2xl">{c.code}</span>
-                        {c.desc && (
-                          <span className="text-[10px] uppercase tracking-widest font-semibold opacity-80 mt-0.5">
-                            {c.desc}
-                          </span>
-                        )}
-                      </div>
-                    </button>
-                  )
-                })}
+              <div className="flex items-stretch gap-3">
+                {/* Left column: Code 1, Code 2, Security — small stacked pills */}
+                <div className="flex flex-col gap-2 w-36 shrink-0">
+                  {[CODES[0], CODES[1]].map((c) => {
+                    const active = form.code === c.code
+                    const toneOff =
+                      c.code === 1
+                        ? 'bg-code-1/10 border-code-1/40 text-code-1 hover:border-code-1/70'
+                        : 'bg-code-2/10 border-code-2/40 text-code-2 hover:border-code-2/70'
+                    const toneOn =
+                      c.code === 1
+                        ? 'bg-code-1 border-code-1 text-white'
+                        : 'bg-code-2 border-code-2 text-white'
+                    return (
+                      <button
+                        key={c.code}
+                        type="button"
+                        onClick={() => onSelectCode(c.code)}
+                        aria-pressed={active}
+                        className={`inline-flex items-center gap-1.5 w-full px-2.5 py-1.5 rounded-lg border text-xs font-display font-semibold transition ${
+                          active ? toneOn : toneOff
+                        }`}
+                        title={`Code ${c.code} — ${c.desc}`}
+                      >
+                        <span className="font-black text-sm leading-none">{c.code}</span>
+                        <span>{c.desc}</span>
+                      </button>
+                    )
+                  })}
+                  <button
+                    type="button"
+                    onClick={() => update({ ejectionFlag: !form.ejectionFlag })}
+                    aria-pressed={form.ejectionFlag}
+                    className={`inline-flex items-center gap-1.5 w-full px-2.5 py-1.5 rounded-lg border text-xs font-display font-semibold transition ${
+                      form.ejectionFlag
+                        ? 'bg-slate-100 border-slate-100 text-ink-950'
+                        : 'bg-ink-900 border-ink-700 text-ink-400 hover:border-ink-500'
+                    }`}
+                    title="RSA/Security ejection or possible security intervention"
+                  >
+                    <ShieldIcon className="w-3.5 h-3.5" />
+                    Security Flag
+                  </button>
+                </div>
+
+                {/* Right: Codes 3, 4, 5 — big primary buttons */}
+                <div className="flex-1 flex gap-2">
+                  {CODES.slice(2).map((c) => {
+                    const active = form.code === c.code
+                    const tone = c.code === 3 ? 'text-ink-950' : 'text-white'
+                    return (
+                      <button
+                        key={c.code}
+                        type="button"
+                        onClick={() => onSelectCode(c.code)}
+                        className={`relative flex-1 rounded-xl font-display font-bold ${c.tw} ${tone} transition border-2 ${
+                          active
+                            ? 'border-white scale-[1.02] shadow-lg'
+                            : 'border-transparent opacity-70 hover:opacity-100'
+                        }`}
+                      >
+                        <div className="flex flex-col items-center justify-center leading-tight py-3">
+                          <span className="text-2xl">{c.code}</span>
+                          {c.desc && (
+                            <span className="text-[10px] uppercase tracking-widest font-semibold opacity-80 mt-0.5">
+                              {c.desc}
+                            </span>
+                          )}
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
               </div>
               {form.code === 1 && (
                 <div className="text-xs text-code-1 font-semibold flex items-center gap-2 pl-1">
                   ⚠ Medical emergency — escalate immediately
                 </div>
               )}
-              <button
-                type="button"
-                onClick={() => update({ ejectionFlag: !form.ejectionFlag })}
-                aria-pressed={form.ejectionFlag}
-                className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-display font-semibold transition ${
-                  form.ejectionFlag
-                    ? 'bg-slate-100 border-slate-100 text-ink-950'
-                    : 'bg-ink-900 border-ink-700 text-ink-400 hover:border-ink-500'
-                }`}
-                title="RSA/Security ejection or possible security intervention"
-              >
-                <ShieldIcon className="w-3.5 h-3.5" />
-                Security monitored
-              </button>
             </div>
           </FieldRow>
 
@@ -375,6 +386,7 @@ export default function IntakeModal({ open, onClose, onCreated }) {
               value={form.substances}
               onChange={(v) => update({ substances: v })}
               multi
+              colorMap={SUBSTANCE_COLORS}
               otherValue={form.substanceOther}
               onOtherChange={(v) => update({ substanceOther: v })}
             />
@@ -386,6 +398,7 @@ export default function IntakeModal({ open, onClose, onCreated }) {
               value={form.presentations}
               onChange={(v) => update({ presentations: v })}
               multi
+              colorMap={PRESENTATION_COLORS}
               otherValue={form.presentationOther}
               onOtherChange={(v) => update({ presentationOther: v })}
             />
@@ -409,6 +422,7 @@ export default function IntakeModal({ open, onClose, onCreated }) {
                     options={GENDERS}
                     value={form.gender}
                     onChange={(v) => update({ gender: v })}
+                    colorMap={GENDER_COLORS}
                   />
                 </FieldRow>
                 <FieldRow label="Age range">
@@ -416,6 +430,7 @@ export default function IntakeModal({ open, onClose, onCreated }) {
                     options={AGE_RANGES}
                     value={form.ageRange}
                     onChange={(v) => update({ ageRange: v })}
+                    colorMap={AGE_COLORS}
                   />
                 </FieldRow>
                 <FieldRow label="Intake note">

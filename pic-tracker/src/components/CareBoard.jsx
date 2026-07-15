@@ -337,10 +337,10 @@ function DischargedRow({ pic, eventCfg, allPics, onClick }) {
             }`}
             title={
               pic.securityNotified === true
-                ? 'Security Monitored — Security notified at discharge'
+                ? 'Security Flag — Security notified at discharge'
                 : pic.securityNotified === false
-                ? 'Security Monitored — Security NOT notified at discharge'
-                : 'Security Monitored — notification status not recorded'
+                ? 'Security Flag — Security NOT notified at discharge'
+                : 'Security Flag — notification status not recorded'
             }
           >
             <ShieldIcon className="w-3.5 h-3.5" />
