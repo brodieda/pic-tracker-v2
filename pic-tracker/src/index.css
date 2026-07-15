@@ -51,6 +51,24 @@
   --scrollbar-thumb-hover: rgb(170 177 194);
 }
 
+/* Referral chip text is too pale on light surfaces — darken the text and
+   firm up the tint/border under the light theme. Higher selector
+   specificity than the base .ref-* classes, so these win in light mode. */
+@layer components {
+  :root[data-theme='light'] .ref-off-sky,
+  :root[data-theme='light'] .reftag-sky     { @apply bg-sky-500/15 text-sky-700 border-sky-500/40; }
+  :root[data-theme='light'] .ref-off-violet,
+  :root[data-theme='light'] .reftag-violet  { @apply bg-violet-500/15 text-violet-700 border-violet-500/40; }
+  :root[data-theme='light'] .ref-off-amber,
+  :root[data-theme='light'] .reftag-amber   { @apply bg-amber-500/15 text-amber-700 border-amber-500/40; }
+  :root[data-theme='light'] .ref-off-rose,
+  :root[data-theme='light'] .reftag-rose    { @apply bg-rose-500/15 text-rose-700 border-rose-500/40; }
+  :root[data-theme='light'] .ref-off-indigo,
+  :root[data-theme='light'] .reftag-indigo  { @apply bg-indigo-500/15 text-indigo-700 border-indigo-500/40; }
+  :root[data-theme='light'] .ref-off-emerald,
+  :root[data-theme='light'] .reftag-emerald { @apply bg-emerald-500/15 text-emerald-700 border-emerald-500/40; }
+}
+
 @layer base {
   html, body, #root {
     @apply h-full;
@@ -103,6 +121,43 @@
   .chip-tint-on {
     @apply chip bg-blue-500 text-white border-blue-500;
   }
+
+  /* ============================================================
+     Referral chips (Ref-by / Ref-to) — per-source colours.
+     Self-contained: each class includes its base layout so it can
+     be applied on its own. Text shades are theme-aware — light
+     shades on the dark theme, dark shades under [data-theme='light']
+     — so they stay legible in both. Selected (-on) uses a solid
+     fill readable on either theme.
+     ------------------------------------------------------------
+     ref-off-*  : editable, unselected (based on .chip)
+     ref-on-*   : editable, selected   (based on .chip)
+     reftag-*   : read-only display    (based on .tag, smaller)
+     ============================================================ */
+
+  /* Editable — unselected (tint) */
+  .ref-off-sky     { @apply chip bg-sky-500/10 text-sky-300 border-sky-500/30 hover:border-sky-400/60; }
+  .ref-off-violet  { @apply chip bg-violet-500/10 text-violet-300 border-violet-500/30 hover:border-violet-400/60; }
+  .ref-off-amber   { @apply chip bg-amber-500/10 text-amber-300 border-amber-500/30 hover:border-amber-400/60; }
+  .ref-off-rose    { @apply chip bg-rose-500/10 text-rose-300 border-rose-500/30 hover:border-rose-400/60; }
+  .ref-off-indigo  { @apply chip bg-indigo-500/10 text-indigo-300 border-indigo-500/30 hover:border-indigo-400/60; }
+  .ref-off-emerald { @apply chip bg-emerald-500/10 text-emerald-300 border-emerald-500/30 hover:border-emerald-400/60; }
+
+  /* Editable — selected (solid) */
+  .ref-on-sky      { @apply chip bg-sky-600 text-white border-sky-600; }
+  .ref-on-violet   { @apply chip bg-violet-600 text-white border-violet-600; }
+  .ref-on-amber    { @apply chip bg-amber-600 text-white border-amber-600; }
+  .ref-on-rose     { @apply chip bg-rose-600 text-white border-rose-600; }
+  .ref-on-indigo   { @apply chip bg-indigo-600 text-white border-indigo-600; }
+  .ref-on-emerald  { @apply chip bg-emerald-600 text-white border-emerald-600; }
+
+  /* Read-only display tags (smaller) */
+  .reftag-sky      { @apply tag bg-sky-500/10 text-sky-300 border-sky-500/30; }
+  .reftag-violet   { @apply tag bg-violet-500/10 text-violet-300 border-violet-500/30; }
+  .reftag-amber    { @apply tag bg-amber-500/10 text-amber-300 border-amber-500/30; }
+  .reftag-rose     { @apply tag bg-rose-500/10 text-rose-300 border-rose-500/30; }
+  .reftag-indigo   { @apply tag bg-indigo-500/10 text-indigo-300 border-indigo-500/30; }
+  .reftag-emerald  { @apply tag bg-emerald-500/10 text-emerald-300 border-emerald-500/30; }
   .panel {
     @apply bg-ink-900 border border-ink-800 rounded-xl;
   }
