@@ -7,9 +7,9 @@ const KEY_THEME = 'pic_theme'
 const KEY_SIZE = 'pic_font_size'
 
 const SIZE_PX = {
-  small: '15px',
-  normal: '17px',
-  large: '20px',
+  small: '17px',
+  normal: '19px',
+  large: '22px',
 }
 
 function readKey(key, fallback) {
