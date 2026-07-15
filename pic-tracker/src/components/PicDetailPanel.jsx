@@ -30,7 +30,7 @@ import {
   REFERRED_BY_COLORS,
   REFERRED_TO,
   REFERRED_TO_COLORS,
-  referralTagClass,
+  displayTagClass,
   SUBSTANCES,
   SUBSTANCE_COLORS,
   PRESENTATIONS,
@@ -508,7 +508,7 @@ export default function PicDetailPanel({ picId, onClose, onMutated, openIntent }
           <EditableCell
             label="Substances"
             highlight={missingFields.has('substancesOrPresentations')}
-            displayChildren={<ChipDisplay values={pic.substances} other={pic.substanceOther} />}
+            displayChildren={<ChipDisplay values={pic.substances} other={pic.substanceOther} colored />}
             renderEditor={() => (
               <ChipEditor
                 options={SUBSTANCES}
@@ -525,7 +525,7 @@ export default function PicDetailPanel({ picId, onClose, onMutated, openIntent }
           <EditableCell
             label="Presentations"
             highlight={missingFields.has('substancesOrPresentations')}
-            displayChildren={<ChipDisplay values={pic.presentations} other={pic.presentationOther} />}
+            displayChildren={<ChipDisplay values={pic.presentations} other={pic.presentationOther} colored />}
             renderEditor={() => (
               <ChipEditor
                 options={PRESENTATIONS}
@@ -560,8 +560,8 @@ export default function PicDetailPanel({ picId, onClose, onMutated, openIntent }
             displayChildren={
               pic.gender || pic.ageRange ? (
                 <div className="flex flex-wrap gap-1">
-                  {pic.gender && <span className="tag">{pic.gender}</span>}
-                  {pic.ageRange && <span className="tag">{pic.ageRange}</span>}
+                  {pic.gender && <span className={displayTagClass(pic.gender) || 'tag'}>{pic.gender}</span>}
+                  {pic.ageRange && <span className={displayTagClass(pic.ageRange) || 'tag'}>{pic.ageRange}</span>}
                 </div>
               ) : (
                 <span className="text-ink-500 italic text-sm">Not set</span>
@@ -876,7 +876,7 @@ function ChipDisplay({ values, other, colored = false }) {
   return (
     <div className="flex flex-wrap gap-1">
       {displayList.map((s, i) => (
-        <span key={`${s}-${i}`} className={(colored && referralTagClass(s)) || 'tag'}>
+        <span key={`${s}-${i}`} className={(colored && displayTagClass(s)) || 'tag'}>
           {s}
         </span>
       ))}
