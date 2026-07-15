@@ -29,6 +29,8 @@ import {
   REFERRED_BY,
   REFERRED_BY_COLORS,
   REFERRED_TO,
+  REFERRED_TO_COLORS,
+  referralTagClass,
   SUBSTANCES,
   PRESENTATIONS,
   GENDERS,
@@ -533,7 +535,7 @@ export default function PicDetailPanel({ picId, onClose, onMutated, openIntent }
           />
           <EditableCell
             label="Referred by"
-            displayChildren={<ChipDisplay values={referredByList} other={pic.referredByOther} />}
+            displayChildren={<ChipDisplay values={referredByList} other={pic.referredByOther} colored />}
             renderEditor={() => (
               <ChipEditor
                 options={REFERRED_BY}
@@ -647,13 +649,14 @@ export default function PicDetailPanel({ picId, onClose, onMutated, openIntent }
               <EditableCell
                 label="Referred to"
                 highlight={missingFields.has('referredTo')}
-                displayChildren={<ChipDisplay values={referredToList} other={pic.referredToOther} />}
+                displayChildren={<ChipDisplay values={referredToList} other={pic.referredToOther} colored />}
                 renderEditor={() => (
                   <ChipEditor
                     options={REFERRED_TO}
                     value={referredToList}
                     otherValue={pic.referredToOther || ''}
                     multi
+                    colorMap={REFERRED_TO_COLORS}
                     onCommit={(value, otherValue) =>
                       updatePicAndReload({ referredTo: value, referredToOther: otherValue })
                     }
@@ -853,7 +856,7 @@ export default function PicDetailPanel({ picId, onClose, onMutated, openIntent }
 
 // ---------- Subcomponents ----------
 
-function ChipDisplay({ values, other }) {
+function ChipDisplay({ values, other, colored = false }) {
   const list = Array.isArray(values) ? values : values ? [values] : []
   const displayList = [
     ...list.filter((s) => s !== 'Other'),
@@ -865,7 +868,7 @@ function ChipDisplay({ values, other }) {
   return (
     <div className="flex flex-wrap gap-1">
       {displayList.map((s, i) => (
-        <span key={`${s}-${i}`} className="tag">
+        <span key={`${s}-${i}`} className={`tag ${colored ? referralTagClass(s) : ''}`}>
           {s}
         </span>
       ))}

@@ -12,7 +12,7 @@ import {
   wasEverCode2,
 } from '../lib/helpers'
 import { completenessFor } from '../lib/completeness'
-import { CODES } from '../constants/options'
+import { CODES, referralTagClass } from '../constants/options'
 import ShieldIcon from './ShieldIcon'
 
 function CodePill({ code }) {
@@ -283,7 +283,7 @@ export default function PicCard({ pic, events, eventCfg, allPics, onClick, onMar
                     Ref by
                   </span>
                   {referredByDisplay.map((v, i) => (
-                    <span key={i} className="tag">{v}</span>
+                    <span key={i} className={`tag ${referralTagClass(v)}`}>{v}</span>
                   ))}
                 </span>
               </>
@@ -317,7 +317,7 @@ export default function PicCard({ pic, events, eventCfg, allPics, onClick, onMar
                     Ref to
                   </span>
                   {referredToDisplay.map((v, i) => (
-                    <span key={i} className="tag">{v}</span>
+                    <span key={i} className={`tag ${referralTagClass(v)}`}>{v}</span>
                   ))}
                 </span>
               </>

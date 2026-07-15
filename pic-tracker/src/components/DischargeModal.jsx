@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { dischargePic, getAssignedKpe, nowIso, formatClock } from '../lib/helpers'
-import { OUTCOMES, REFERRED_TO } from '../constants/options'
+import { OUTCOMES, REFERRED_TO, REFERRED_TO_COLORS } from '../constants/options'
 import ChipGroup from './ChipGroup'
 import ShieldIcon from './ShieldIcon'
 import KpeChipPicker from './KpeChipPicker'
@@ -149,6 +149,7 @@ export default function DischargeModal({ open, pic, eventCfg, onClose, onDischar
               value={referredTo}
               onChange={setReferredTo}
               multi
+              colorMap={REFERRED_TO_COLORS}
               otherValue={referredToOther}
               onOtherChange={setReferredToOther}
             />
