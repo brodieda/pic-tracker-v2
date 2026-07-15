@@ -7,34 +7,13 @@ export const REFERRED_BY = ['Self', 'Friend', 'Security', 'Medical', 'Police', '
 // (red/orange/yellow/blue/green, teal/purple) so nothing is confused with
 // severity codes or shift pills.
 export const REFERRED_BY_COLORS = {
-  Self: {
-    off: 'bg-sky-500/10 text-sky-300 border-sky-500/25 hover:border-sky-400/50',
-    on: 'bg-sky-500 text-white border-sky-500',
-  },
-  Friend: {
-    off: 'bg-violet-500/10 text-violet-300 border-violet-500/25 hover:border-violet-400/50',
-    on: 'bg-violet-500 text-white border-violet-500',
-  },
-  Security: {
-    off: 'bg-amber-500/10 text-amber-300 border-amber-500/25 hover:border-amber-400/50',
-    on: 'bg-amber-500 text-white border-amber-500',
-  },
-  Medical: {
-    off: 'bg-rose-500/10 text-rose-300 border-rose-500/25 hover:border-rose-400/50',
-    on: 'bg-rose-500 text-white border-rose-500',
-  },
-  Police: {
-    off: 'bg-indigo-500/10 text-indigo-300 border-indigo-500/25 hover:border-indigo-400/50',
-    on: 'bg-indigo-500 text-white border-indigo-500',
-  },
-  Rovers: {
-    off: 'bg-emerald-500/10 text-emerald-300 border-emerald-500/25 hover:border-emerald-400/50',
-    on: 'bg-emerald-500 text-white border-emerald-500',
-  },
-  Other: {
-    off: 'chip-off',
-    on: 'chip-on',
-  },
+  Self: { off: 'ref-off-sky', on: 'ref-on-sky' },
+  Friend: { off: 'ref-off-violet', on: 'ref-on-violet' },
+  Security: { off: 'ref-off-amber', on: 'ref-on-amber' },
+  Medical: { off: 'ref-off-rose', on: 'ref-on-rose' },
+  Police: { off: 'ref-off-indigo', on: 'ref-on-indigo' },
+  Rovers: { off: 'ref-off-emerald', on: 'ref-on-emerald' },
+  Other: { off: 'chip-off', on: 'chip-on' },
 }
 
 export const REFERRED_TO = ['Self', 'Friends', 'Medical', 'Security', 'Police', 'Other']
@@ -45,13 +24,13 @@ export const REFERRED_TO = ['Self', 'Friends', 'Medical', 'Security', 'Police', 
 // 'Friends' (referred-to) shares the 'Friend' colour. Unknowns / free-text /
 // 'Other' fall back to the plain grey .tag (empty string = no colour override).
 export const REFERRAL_TAG_COLORS = {
-  Self: 'bg-sky-500/10 text-sky-300 border-sky-500/30',
-  Friend: 'bg-violet-500/10 text-violet-300 border-violet-500/30',
-  Friends: 'bg-violet-500/10 text-violet-300 border-violet-500/30',
-  Security: 'bg-amber-500/10 text-amber-300 border-amber-500/30',
-  Medical: 'bg-rose-500/10 text-rose-300 border-rose-500/30',
-  Police: 'bg-indigo-500/10 text-indigo-300 border-indigo-500/30',
-  Rovers: 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30',
+  Self: 'reftag-sky',
+  Friend: 'reftag-violet',
+  Friends: 'reftag-violet',
+  Security: 'reftag-amber',
+  Medical: 'reftag-rose',
+  Police: 'reftag-indigo',
+  Rovers: 'reftag-emerald',
 }
 
 export function referralTagClass(label) {
@@ -62,30 +41,12 @@ export function referralTagClass(label) {
 // mirroring REFERRED_BY_COLORS so the Ref-to concept is coloured consistently
 // with Ref-by. 'Friends' here shares the 'Friend' hue from referred-by.
 export const REFERRED_TO_COLORS = {
-  Self: {
-    off: 'bg-sky-500/10 text-sky-300 border-sky-500/25 hover:border-sky-400/50',
-    on: 'bg-sky-500 text-white border-sky-500',
-  },
-  Friends: {
-    off: 'bg-violet-500/10 text-violet-300 border-violet-500/25 hover:border-violet-400/50',
-    on: 'bg-violet-500 text-white border-violet-500',
-  },
-  Medical: {
-    off: 'bg-rose-500/10 text-rose-300 border-rose-500/25 hover:border-rose-400/50',
-    on: 'bg-rose-500 text-white border-rose-500',
-  },
-  Security: {
-    off: 'bg-amber-500/10 text-amber-300 border-amber-500/25 hover:border-amber-400/50',
-    on: 'bg-amber-500 text-white border-amber-500',
-  },
-  Police: {
-    off: 'bg-indigo-500/10 text-indigo-300 border-indigo-500/25 hover:border-indigo-400/50',
-    on: 'bg-indigo-500 text-white border-indigo-500',
-  },
-  Other: {
-    off: 'chip-off',
-    on: 'chip-on',
-  },
+  Self: { off: 'ref-off-sky', on: 'ref-on-sky' },
+  Friends: { off: 'ref-off-violet', on: 'ref-on-violet' },
+  Medical: { off: 'ref-off-rose', on: 'ref-on-rose' },
+  Security: { off: 'ref-off-amber', on: 'ref-on-amber' },
+  Police: { off: 'ref-off-indigo', on: 'ref-on-indigo' },
+  Other: { off: 'chip-off', on: 'chip-on' },
 }
 
 
