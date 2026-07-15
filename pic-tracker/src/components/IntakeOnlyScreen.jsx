@@ -263,7 +263,7 @@ export default function IntakeOnlyScreen() {
             </div>
             <input
               className="input"
-              placeholder="e.g. Leah"
+              placeholder="PIC Name"
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
@@ -274,7 +274,7 @@ export default function IntakeOnlyScreen() {
             </div>
             <input
               className="input"
-              placeholder="e.g. red shirt, male, with friend in white"
+              placeholder="Description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
             />
