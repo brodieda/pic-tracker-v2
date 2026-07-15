@@ -51,31 +51,42 @@ export const REFERRED_TO_COLORS = {
 
 
 export const SUBSTANCES = [
-  'Alcohol',
+  // Stimulants
   'MDMA',
-  'LSD',
-  'Ketamine',
   'Cocaine',
-  'GHB',
-  'Cannabis',
-  'Mushrooms',
   'Amphetamines',
+  // Depressants
+  'Alcohol',
+  'GHB',
+  // Psychedelics
+  'LSD',
+  'Mushrooms',
+  // Dissociative
+  'Ketamine',
+  // Cannabis
+  'Cannabis',
+  // Neutral
   'Unknown',
   'None',
   'Other',
 ]
 
 export const PRESENTATIONS = [
+  // Thermal
   'Cold',
   'Overheated',
+  // Mental health
   'Anxiety',
   'Mental health',
+  'Confusion',
+  // Physical
   'Physical injury',
   'Dehydration',
   'Vomiting',
-  'Confusion',
+  // Welfare
   'Lost / separated',
   'Sleep / rest',
+  // Neutral
   'Other',
 ]
 
@@ -153,3 +164,34 @@ export const PRESENTATION_COLORS = {
 // Gender / age → soft neutral highlight on selection only
 export const GENDER_COLORS = Object.fromEntries(GENDERS.map((g) => [g, SOFT]))
 export const AGE_COLORS = Object.fromEntries(AGE_RANGES.map((a) => [a, SOFT]))
+
+// Small read-only tag class for any chip label, derived from its colour map,
+// so read-only displays (e.g. the detail panel) match the picker colours.
+// Values written as literals so Tailwind keeps them.
+const TAG_FOR_HUE = {
+  rose: 'reftag-rose',
+  indigo: 'reftag-indigo',
+  fuchsia: 'reftag-fuchsia',
+  cyan: 'reftag-cyan',
+  emerald: 'reftag-emerald',
+  violet: 'reftag-violet',
+  amber: 'reftag-amber',
+  sky: 'reftag-sky',
+  slate: 'reftag-slate',
+}
+const hueOfClass = (cls) => {
+  const m = cls && cls.match(/-(?:off|on)-([a-z]+)$/)
+  return m ? m[1] : null
+}
+export function displayTagClass(label) {
+  const entry =
+    SUBSTANCE_COLORS[label] ||
+    PRESENTATION_COLORS[label] ||
+    REFERRED_BY_COLORS[label] ||
+    REFERRED_TO_COLORS[label] ||
+    GENDER_COLORS[label] ||
+    AGE_COLORS[label]
+  if (!entry) return ''
+  const hue = hueOfClass(entry.off) || hueOfClass(entry.on)
+  return (hue && TAG_FOR_HUE[hue]) || ''
+}
