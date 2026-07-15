@@ -20,6 +20,7 @@ import {
   CODES,
 } from '../constants/options'
 import ChipGroup from './ChipGroup'
+import ShieldIcon from './ShieldIcon'
 import Code1Warning from './Code1Warning'
 
 const initialForm = {
@@ -216,14 +217,11 @@ export default function IntakeModal({ open, onClose, onCreated }) {
         {/* Body */}
         <div className="flex-1 overflow-y-auto px-6 py-6 space-y-5">
           {/* Name + time-in row */}
-          <FieldRow
-            label="PIC name / descriptor"
-            hint="Optional — # is the identifier"
-          >
+          <FieldRow label="PIC name">
             <div className="flex flex-col sm:flex-row gap-2">
               <input
                 className="input"
-                placeholder="e.g. Leah, or 'red shirt male'"
+                placeholder="Leah"
                 value={form.name}
                 onChange={(e) => update({ name: e.target.value })}
                 autoFocus
@@ -242,6 +240,12 @@ export default function IntakeModal({ open, onClose, onCreated }) {
                 </button>
               </div>
             </div>
+            <input
+              className="input mt-2"
+              placeholder="Description — what they're wearing, anything distinctive…"
+              value={form.description}
+              onChange={(e) => update({ description: e.target.value })}
+            />
           </FieldRow>
 
           <div className="divider" />
@@ -310,6 +314,20 @@ export default function IntakeModal({ open, onClose, onCreated }) {
                   ⚠ Medical emergency — escalate immediately
                 </div>
               )}
+              <button
+                type="button"
+                onClick={() => update({ ejectionFlag: !form.ejectionFlag })}
+                aria-pressed={form.ejectionFlag}
+                className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-display font-semibold transition ${
+                  form.ejectionFlag
+                    ? 'bg-slate-100 border-slate-100 text-ink-950'
+                    : 'bg-ink-900 border-ink-700 text-ink-400 hover:border-ink-500'
+                }`}
+                title="RSA/Security ejection or possible security intervention"
+              >
+                <ShieldIcon className="w-3.5 h-3.5" />
+                Security monitored
+              </button>
             </div>
           </FieldRow>
 
@@ -344,6 +362,7 @@ export default function IntakeModal({ open, onClose, onCreated }) {
               value={form.referredBy}
               onChange={(v) => update({ referredBy: v })}
               multi
+              tone="tint"
               otherValue={form.referredByOther}
               onOtherChange={(v) => update({ referredByOther: v })}
             />
@@ -371,39 +390,6 @@ export default function IntakeModal({ open, onClose, onCreated }) {
             />
           </FieldRow>
 
-          <FieldRow label="Security monitored" hint="RSA/Security ejection or possible security intervention">
-            <button
-              type="button"
-              onClick={() => update({ ejectionFlag: !form.ejectionFlag })}
-              aria-pressed={form.ejectionFlag}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border-2 transition text-left ${
-                form.ejectionFlag
-                  ? 'bg-slate-100 border-slate-100 text-ink-950'
-                  : 'bg-ink-900 border-ink-700 text-ink-300 hover:border-ink-500'
-              }`}
-            >
-              <span
-                className={`flex items-center justify-center w-6 h-6 rounded border-2 text-xs font-bold shrink-0 transition ${
-                  form.ejectionFlag
-                    ? 'bg-ink-950 border-ink-950 text-slate-100'
-                    : 'bg-ink-950 border-ink-600 text-transparent'
-                }`}
-                aria-hidden="true"
-              >
-                ✓
-              </span>
-              <span className="flex-1">
-                <span className="font-display font-bold text-sm tracking-wide flex items-center gap-2">
-                  <span aria-hidden="true">⚑</span>
-                  Flag as Security Monitored
-                </span>
-                <span className="block text-[11px] mt-0.5 opacity-80 normal-case font-normal">
-                  Patron is on the ejection pathway — RSA/Security must be notified before they leave the space.
-                </span>
-              </span>
-            </button>
-          </FieldRow>
-
           {/* Optional disclosure */}
           <div className="border-t border-ink-800 pt-5">
             <button
@@ -412,7 +398,7 @@ export default function IntakeModal({ open, onClose, onCreated }) {
               className="flex items-center gap-2 text-sm font-display font-semibold tracking-wide text-ink-300 hover:text-ink-100"
             >
               <span className={`inline-block transition ${showOptional ? 'rotate-90' : ''}`}>›</span>
-              Optional details (gender, age, description, intake note)
+              Optional details (gender, age, intake note)
             </button>
 
             {showOptional && (
@@ -429,14 +415,6 @@ export default function IntakeModal({ open, onClose, onCreated }) {
                     options={AGE_RANGES}
                     value={form.ageRange}
                     onChange={(v) => update({ ageRange: v })}
-                  />
-                </FieldRow>
-                <FieldRow label="Description">
-                  <input
-                    className="input"
-                    placeholder="What they're wearing, anything distinctive…"
-                    value={form.description}
-                    onChange={(e) => update({ description: e.target.value })}
                   />
                 </FieldRow>
                 <FieldRow label="Intake note">

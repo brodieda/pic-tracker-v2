@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { dischargePic, getAssignedKpe, nowIso, formatClock } from '../lib/helpers'
 import { OUTCOMES, REFERRED_TO } from '../constants/options'
 import ChipGroup from './ChipGroup'
+import ShieldIcon from './ShieldIcon'
 import KpeChipPicker from './KpeChipPicker'
 import TimeDateEditor from './TimeDateEditor'
 
@@ -89,8 +90,8 @@ export default function DischargeModal({ open, pic, eventCfg, onClose, onDischar
           {/* Security Monitored reminder — first thing they see */}
           {isEjectionFlagged && (
             <div className="flex items-start gap-3 px-4 py-3 rounded-lg bg-slate-100 text-ink-950 border-2 border-slate-100">
-              <span className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-ink-950 text-slate-100 text-sm font-display font-black shrink-0 leading-none">
-                ⚑
+              <span className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-ink-950 text-slate-100 shrink-0 leading-none">
+                <ShieldIcon className="w-3.5 h-3.5" />
               </span>
               <div className="min-w-0 flex-1">
                 <div className="text-xs font-display font-bold uppercase tracking-widest">
@@ -302,8 +303,8 @@ export default function DischargeModal({ open, pic, eventCfg, onClose, onDischar
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
           <div className="w-full sm:max-w-md bg-ink-950 rounded-2xl border-2 border-slate-100 shadow-2xl overflow-hidden">
             <div className="px-5 py-4 border-b border-ink-800 flex items-center gap-3">
-              <span className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-slate-100 text-ink-950 font-display font-black">
-                ⚑
+              <span className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-slate-100 text-ink-950">
+                <ShieldIcon className="w-4 h-4" />
               </span>
               <h3 className="font-display font-bold text-base text-ink-100">
                 Security not notified

@@ -17,6 +17,7 @@ export default function ChipGroup({
   multi = false,
   otherValue = '',
   onOtherChange,
+  tone = 'neutral',
 }) {
   const isOn = (opt) => (multi ? value?.includes(opt) : value === opt)
 
@@ -30,6 +31,8 @@ export default function ChipGroup({
   }
 
   const otherSelected = multi ? value?.includes('Other') : value === 'Other'
+  const onClass = tone === 'tint' ? 'chip-tint-on' : 'chip-on'
+  const offClass = tone === 'tint' ? 'chip-tint-off' : 'chip-off'
 
   return (
     <div className="space-y-2">
@@ -39,7 +42,7 @@ export default function ChipGroup({
             key={opt}
             type="button"
             onClick={() => toggle(opt)}
-            className={isOn(opt) ? 'chip-on' : 'chip-off'}
+            className={isOn(opt) ? onClass : offClass}
           >
             {opt}
           </button>

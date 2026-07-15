@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { getPics, getEvents, getEvent } from '../lib/store'
 import PicCard from './PicCard'
+import ShieldIcon from './ShieldIcon'
 import {
   addCheckEvent,
   getAssignedKpe,
@@ -327,7 +328,7 @@ function DischargedRow({ pic, eventCfg, allPics, onClick }) {
         )}
         {pic.ejectionFlag && (
           <span
-            className={`text-base leading-none ${
+            className={`leading-none ${
               pic.securityNotified === true
                 ? 'text-code-5'
                 : pic.securityNotified === false
@@ -342,7 +343,7 @@ function DischargedRow({ pic, eventCfg, allPics, onClick }) {
                 : 'Security Monitored — notification status not recorded'
             }
           >
-            ⚑
+            <ShieldIcon className="w-3.5 h-3.5" />
           </span>
         )}
       </div>

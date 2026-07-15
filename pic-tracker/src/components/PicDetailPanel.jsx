@@ -35,6 +35,7 @@ import {
   OUTCOMES,
 } from '../constants/options'
 import CodeBadge from './CodeBadge'
+import ShieldIcon from './ShieldIcon'
 import EditableCell from './EditableCell'
 import EventLog, { EventLogItem } from './EventLog'
 import Code1Warning from './Code1Warning'
@@ -321,38 +322,6 @@ export default function PicDetailPanel({ picId, onClose, onMutated, openIntent }
 
       {/* Body */}
       <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
-        {/* Security Monitored banner — actionable reminder */}
-        {pic.ejectionFlag && (
-          <div className="flex items-start gap-3 px-4 py-3 rounded-lg bg-slate-100 text-ink-950 border-2 border-slate-100">
-            <span className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-ink-950 text-slate-100 text-sm font-display font-black shrink-0 leading-none">
-              ⚑
-            </span>
-            <div className="min-w-0 flex-1">
-              <div className="text-xs font-display font-bold uppercase tracking-widest">
-                Security Monitored
-              </div>
-              <div className="text-sm mt-0.5">
-                {isDischarged
-                  ? pic.securityNotified === true
-                    ? 'Security/RSA was notified at discharge.'
-                    : pic.securityNotified === false
-                    ? 'Security/RSA was NOT notified at discharge.'
-                    : 'Notification status not recorded.'
-                  : 'Ejection pathway — notify RSA/Security before this patron leaves the space.'}
-              </div>
-            </div>
-            {!isDischarged && (
-              <button
-                onClick={onToggleEjection}
-                className="text-[10px] uppercase tracking-widest text-ink-950/70 hover:text-ink-950 underline-offset-4 hover:underline shrink-0 self-center"
-                title="Remove the Security Monitored flag"
-              >
-                clear flag
-              </button>
-            )}
-          </div>
-        )}
-
         {/* Incomplete record banner */}
         {!complete && (
           <div className="flex items-start gap-3 px-4 py-3 rounded-lg border border-code-3/40 bg-code-3/10">
@@ -420,6 +389,56 @@ export default function PicDetailPanel({ picId, onClose, onMutated, openIntent }
             })}
           </div>
         </section>
+
+        {/* Security monitored — compact, sits under code */}
+        <div>
+          {pic.ejectionFlag ? (
+            <div
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-display font-semibold ${
+                isDischarged
+                  ? pic.securityNotified === true
+                    ? 'bg-code-5/15 border-code-5/50 text-code-5'
+                    : pic.securityNotified === false
+                    ? 'bg-code-1/15 border-code-1/50 text-code-1'
+                    : 'bg-ink-800 border-ink-700 text-ink-400'
+                  : 'bg-slate-100 border-slate-100 text-ink-950'
+              }`}
+              title={
+                isDischarged
+                  ? pic.securityNotified === true
+                    ? 'Security Monitored — Security notified at discharge'
+                    : pic.securityNotified === false
+                    ? 'Security Monitored — Security NOT notified at discharge'
+                    : 'Security Monitored — notification status not recorded'
+                  : 'Ejection pathway — notify RSA/Security before this patron leaves the space'
+              }
+            >
+              <ShieldIcon className="w-3.5 h-3.5" />
+              Security monitored
+              {!isDischarged && (
+                <button
+                  onClick={onToggleEjection}
+                  className="ml-1 text-ink-950/60 hover:text-ink-950"
+                  title="Remove the Security Monitored flag"
+                  aria-label="Remove the Security Monitored flag"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+          ) : (
+            !isDischarged && (
+              <button
+                onClick={onToggleEjection}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-display font-semibold bg-ink-900 border-ink-700 text-ink-400 hover:border-ink-500 transition"
+                title="RSA/Security ejection or possible security intervention"
+              >
+                <ShieldIcon className="w-3.5 h-3.5" />
+                Security monitored
+              </button>
+            )
+          )}
+        </div>
 
         {/* Assigned KPE — inline picker */}
         <section className={
@@ -520,6 +539,7 @@ export default function PicDetailPanel({ picId, onClose, onMutated, openIntent }
                 value={referredByList}
                 otherValue={pic.referredByOther || ''}
                 multi
+                tone="tint"
                 onCommit={(value, otherValue) =>
                   updatePicAndReload({ referredBy: value, referredByOther: otherValue })
                 }
@@ -803,16 +823,6 @@ export default function PicDetailPanel({ picId, onClose, onMutated, openIntent }
         {/* Discharge button — only shown when in-care */}
         {!isDischarged && (
           <div className="pt-2 space-y-2">
-            {!pic.ejectionFlag && (
-              <button
-                onClick={onToggleEjection}
-                className="w-full inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold tracking-wide transition bg-ink-900 border-2 border-dashed border-ink-700 text-ink-300 hover:border-slate-100 hover:text-slate-100"
-                title="Flag this patron as Security Monitored — RSA/Security ejection pathway"
-              >
-                <span aria-hidden="true">⚑</span>
-                Flag as Security Monitored
-              </button>
-            )}
             <button
               onClick={() => setDischargeOpen(true)}
               className="btn-primary w-full text-base py-3"
@@ -862,7 +872,7 @@ function ChipDisplay({ values, other }) {
   )
 }
 
-function ChipEditor({ options, value, otherValue, onCommit, multi = false }) {
+function ChipEditor({ options, value, otherValue, onCommit, multi = false, tone = 'neutral' }) {
   const [v, setV] = useState(value)
   const [o, setO] = useState(otherValue || '')
 
@@ -880,6 +890,8 @@ function ChipEditor({ options, value, otherValue, onCommit, multi = false }) {
   }
 
   const otherSelected = multi ? v?.includes('Other') : v === 'Other'
+  const onClass = tone === 'tint' ? 'chip-tint-on' : 'chip-on'
+  const offClass = tone === 'tint' ? 'chip-tint-off' : 'chip-off'
 
   return (
     <div className="space-y-2">
@@ -889,7 +901,7 @@ function ChipEditor({ options, value, otherValue, onCommit, multi = false }) {
             key={opt}
             type="button"
             onClick={() => toggle(opt)}
-            className={isOn(opt) ? 'chip-on' : 'chip-off'}
+            className={isOn(opt) ? onClass : offClass}
           >
             {opt}
           </button>

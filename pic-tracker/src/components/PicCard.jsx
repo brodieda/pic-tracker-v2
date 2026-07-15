@@ -13,6 +13,7 @@ import {
 } from '../lib/helpers'
 import { completenessFor } from '../lib/completeness'
 import { CODES } from '../constants/options'
+import ShieldIcon from './ShieldIcon'
 
 function CodePill({ code }) {
   if (code == null) {
@@ -191,14 +192,6 @@ export default function PicCard({ pic, events, eventCfg, allPics, onClick, onMar
                 INTAKE
               </span>
             )}
-            {pic.ejectionFlag && (
-              <span
-                className="inline-flex items-center gap-1 bg-slate-100 text-ink-950 text-[10px] font-display font-bold uppercase tracking-widest px-1.5 h-7 rounded-md shrink-0 border border-slate-100"
-                title="Security Monitored — RSA/Security to be notified before discharge"
-              >
-                ⚑ SEC
-              </span>
-            )}
             {everCode2 && !isDischarged && (
               <span
                 className="inline-flex items-center gap-1 bg-code-2/15 border border-code-2/50 text-code-2 text-[10px] font-display font-bold uppercase tracking-widest px-1.5 h-7 rounded-md shrink-0"
@@ -207,7 +200,33 @@ export default function PicCard({ pic, events, eventCfg, allPics, onClick, onMar
                 ⚑ MH
               </span>
             )}
-            <CodePill code={code} />
+            <div className="flex flex-col items-center gap-1 shrink-0">
+              <CodePill code={code} />
+              {pic.ejectionFlag && (
+                <span
+                  className={`leading-none ${
+                    !isDischarged
+                      ? 'text-ink-200'
+                      : pic.securityNotified === true
+                      ? 'text-code-5'
+                      : pic.securityNotified === false
+                      ? 'text-code-1'
+                      : 'text-ink-500'
+                  }`}
+                  title={
+                    !isDischarged
+                      ? 'Security Monitored — RSA/Security to be notified before discharge'
+                      : pic.securityNotified === true
+                      ? 'Security Monitored — Security notified at discharge'
+                      : pic.securityNotified === false
+                      ? 'Security Monitored — Security NOT notified at discharge'
+                      : 'Security Monitored — notification status not recorded'
+                  }
+                >
+                  <ShieldIcon className="w-3 h-3" />
+                </span>
+              )}
+            </div>
             <div className="flex flex-col items-end gap-1.5 shrink-0">
               <span className={`text-sm font-display font-semibold tabular-nums whitespace-nowrap leading-none pt-1.5 ${timeColor}`}>
                 {isDischarged ? (
@@ -287,33 +306,6 @@ export default function PicCard({ pic, events, eventCfg, allPics, onClick, onMar
                 <span className="text-ink-700">·</span>
                 <span className="text-[10px] bg-code-1/20 border border-code-1/40 text-code-1 rounded px-1.5 py-0.5 font-bold uppercase tracking-widest shrink-0">
                   Medical
-                </span>
-              </>
-            )}
-            {isDischarged && pic.ejectionFlag && (
-              <>
-                <span className="text-ink-700">·</span>
-                <span
-                  className={`text-[10px] rounded px-1.5 py-0.5 font-bold uppercase tracking-widest shrink-0 border ${
-                    pic.securityNotified === true
-                      ? 'bg-code-5/15 border-code-5/40 text-code-5'
-                      : pic.securityNotified === false
-                      ? 'bg-code-1/15 border-code-1/40 text-code-1'
-                      : 'bg-ink-800 border-ink-700 text-ink-400'
-                  }`}
-                  title={
-                    pic.securityNotified === true
-                      ? 'Security notified at discharge'
-                      : pic.securityNotified === false
-                      ? 'Security NOT notified at discharge'
-                      : 'Security notification not recorded'
-                  }
-                >
-                  {pic.securityNotified === true
-                    ? '✓ Sec notified'
-                    : pic.securityNotified === false
-                    ? '✗ Sec not notified'
-                    : 'Sec ?'}
                 </span>
               </>
             )}
