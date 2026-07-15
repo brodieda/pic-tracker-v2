@@ -4,7 +4,7 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        display: ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
+        display: ['"Inter Tight"', 'system-ui', 'sans-serif'],
         body: ['"Inter Tight"', 'system-ui', 'sans-serif'],
       },
       colors: {
