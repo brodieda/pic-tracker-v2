@@ -13,6 +13,7 @@ import { nowIso, formatClock } from '../lib/helpers'
 import { mirrorAdmit } from '../lib/dualWrite'
 import {
   REFERRED_BY,
+  REFERRED_BY_COLORS,
   SUBSTANCES,
   PRESENTATIONS,
   GENDERS,
@@ -362,7 +363,7 @@ export default function IntakeModal({ open, onClose, onCreated }) {
               value={form.referredBy}
               onChange={(v) => update({ referredBy: v })}
               multi
-              tone="tint"
+              colorMap={REFERRED_BY_COLORS}
               otherValue={form.referredByOther}
               onOtherChange={(v) => update({ referredByOther: v })}
             />

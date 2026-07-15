@@ -9,7 +9,7 @@
 // Mobile-first design: large tap targets, single column, minimal scrolling.
 
 import { useEffect, useState } from 'react'
-import { CODES, REFERRED_BY, SUBSTANCES, PRESENTATIONS, GENDERS, AGE_RANGES } from '../constants/options'
+import { CODES, REFERRED_BY, REFERRED_BY_COLORS, SUBSTANCES, PRESENTATIONS, GENDERS, AGE_RANGES } from '../constants/options'
 import { supabase } from '../lib/supabaseClient'
 import { getSession, clearSession } from '../lib/eventSession'
 
@@ -302,7 +302,7 @@ export default function IntakeOnlyScreen() {
           <div className="text-[10px] font-display tracking-[0.22em] uppercase text-ink-500 mb-2">
             Referred by
           </div>
-          <ChipRow options={REFERRED_BY} value={referredBy} onChange={setReferredBy} multi tone="tint" />
+          <ChipRow options={REFERRED_BY} value={referredBy} onChange={setReferredBy} multi colorMap={REFERRED_BY_COLORS} />
         </div>
 
         {/* Substances */}
@@ -352,7 +352,7 @@ export default function IntakeOnlyScreen() {
 
 // Simple chip row component (mobile-friendly, large tap targets).
 // Supports both single-select (value is a string/number) and multi-select (value is an array).
-function ChipRow({ options, value, onChange, multi = false, tone = 'neutral' }) {
+function ChipRow({ options, value, onChange, multi = false, tone = 'neutral', colorMap = null }) {
   const isSelected = (optValue) => {
     if (multi) return Array.isArray(value) && value.includes(optValue)
     return value === optValue
@@ -371,15 +371,20 @@ function ChipRow({ options, value, onChange, multi = false, tone = 'neutral' }) 
         const label = typeof opt === 'string' ? opt : (opt.label || opt.value)
         const val = typeof opt === 'string' ? opt : (opt.value ?? opt.label)
         if (val === 'Other') return null // skip "Other" for now in intake-only — keeps it fast
-        const onClass = tone === 'tint' ? 'bg-blue-500 text-white border-blue-500' : 'bg-ink-100 text-ink-950 border-white'
-        const offClass = tone === 'tint' ? 'bg-blue-500/10 text-blue-300 border-blue-500/25 hover:border-blue-400/50' : 'bg-ink-900 text-ink-300 border-ink-700 hover:border-ink-500'
+        const on = isSelected(val)
+        let cls
+        if (colorMap?.[val]) {
+          cls = on ? colorMap[val].on : colorMap[val].off
+        } else if (tone === 'tint') {
+          cls = on ? 'bg-blue-500 text-white border-blue-500' : 'bg-blue-500/10 text-blue-300 border-blue-500/25 hover:border-blue-400/50'
+        } else {
+          cls = on ? 'bg-ink-100 text-ink-950 border-white' : 'bg-ink-900 text-ink-300 border-ink-700 hover:border-ink-500'
+        }
         return (
           <button
             key={val}
             onClick={() => toggle(val)}
-            className={`px-3 py-2 rounded-lg text-sm font-display font-semibold border transition ${
-              isSelected(val) ? onClass : offClass
-            }`}
+            className={`px-3 py-2 rounded-lg text-sm font-display font-semibold border transition ${cls}`}
           >
             {label}
           </button>
