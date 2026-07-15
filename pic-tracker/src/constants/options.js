@@ -99,3 +99,57 @@ export const CODES = [
   { code: 4, label: 'Code 4', desc: 'Mild', tw: 'bg-code-4' },
   { code: 5, label: 'Code 5', desc: 'Nothing', tw: 'bg-code-5' },
 ]
+
+// ============================================================
+// Category colours for substances / presentations / gender / age.
+//
+// These are SUPER pale washes (lighter than the referral chips) that
+// group options by category so the picker is scannable at a glance.
+// The category hue is shown even when a chip is unselected; selection
+// firms it up (see .cat-off-* / .cat-on-* in index.css). Neutral
+// options (Unknown / None / Other) stay plain grey.
+//
+// Substances grouped by drug class; presentations by presentation type.
+// Gender / age carry no per-option meaning, so they use a single soft
+// neutral highlight on selection only (plain when unselected).
+// ============================================================
+
+// NOTE: class names must be written as complete literal strings (not built
+// dynamically) so Tailwind's content scanner keeps them and doesn't purge them.
+const PLAIN = { off: 'chip-off', on: 'chip-on' }
+const SOFT = { off: 'chip-off', on: 'cat-on-slate' }
+
+// Substances → drug class
+export const SUBSTANCE_COLORS = {
+  MDMA: { off: 'cat-off-rose', on: 'cat-on-rose' },
+  Cocaine: { off: 'cat-off-rose', on: 'cat-on-rose' },
+  Amphetamines: { off: 'cat-off-rose', on: 'cat-on-rose' },
+  Alcohol: { off: 'cat-off-indigo', on: 'cat-on-indigo' },
+  GHB: { off: 'cat-off-indigo', on: 'cat-on-indigo' },
+  LSD: { off: 'cat-off-fuchsia', on: 'cat-on-fuchsia' },
+  Mushrooms: { off: 'cat-off-fuchsia', on: 'cat-on-fuchsia' },
+  Ketamine: { off: 'cat-off-cyan', on: 'cat-on-cyan' },
+  Cannabis: { off: 'cat-off-emerald', on: 'cat-on-emerald' },
+  Unknown: PLAIN,
+  None: PLAIN,
+  Other: PLAIN,
+}
+
+// Presentations → type
+export const PRESENTATION_COLORS = {
+  Cold: { off: 'cat-off-cyan', on: 'cat-on-cyan' },
+  Overheated: { off: 'cat-off-cyan', on: 'cat-on-cyan' },
+  Anxiety: { off: 'cat-off-violet', on: 'cat-on-violet' },
+  'Mental health': { off: 'cat-off-violet', on: 'cat-on-violet' },
+  Confusion: { off: 'cat-off-violet', on: 'cat-on-violet' },
+  'Physical injury': { off: 'cat-off-rose', on: 'cat-on-rose' },
+  Dehydration: { off: 'cat-off-rose', on: 'cat-on-rose' },
+  Vomiting: { off: 'cat-off-rose', on: 'cat-on-rose' },
+  'Lost / separated': { off: 'cat-off-amber', on: 'cat-on-amber' },
+  'Sleep / rest': { off: 'cat-off-amber', on: 'cat-on-amber' },
+  Other: PLAIN,
+}
+
+// Gender / age → soft neutral highlight on selection only
+export const GENDER_COLORS = Object.fromEntries(GENDERS.map((g) => [g, SOFT]))
+export const AGE_COLORS = Object.fromEntries(AGE_RANGES.map((a) => [a, SOFT]))
