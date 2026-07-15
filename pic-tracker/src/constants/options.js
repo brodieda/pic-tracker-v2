@@ -2,6 +2,41 @@
 
 export const REFERRED_BY = ['Self', 'Friend', 'Security', 'Medical', 'Police', 'Rovers', 'Other']
 
+// Per-option colours for referred-by chips, so each source reads as a distinct
+// colour at a glance rather than one flat tint. Kept off the code/shift hues
+// (red/orange/yellow/blue/green, teal/purple) so nothing is confused with
+// severity codes or shift pills.
+export const REFERRED_BY_COLORS = {
+  Self: {
+    off: 'bg-sky-500/10 text-sky-300 border-sky-500/25 hover:border-sky-400/50',
+    on: 'bg-sky-500 text-white border-sky-500',
+  },
+  Friend: {
+    off: 'bg-violet-500/10 text-violet-300 border-violet-500/25 hover:border-violet-400/50',
+    on: 'bg-violet-500 text-white border-violet-500',
+  },
+  Security: {
+    off: 'bg-amber-500/10 text-amber-300 border-amber-500/25 hover:border-amber-400/50',
+    on: 'bg-amber-500 text-white border-amber-500',
+  },
+  Medical: {
+    off: 'bg-rose-500/10 text-rose-300 border-rose-500/25 hover:border-rose-400/50',
+    on: 'bg-rose-500 text-white border-rose-500',
+  },
+  Police: {
+    off: 'bg-indigo-500/10 text-indigo-300 border-indigo-500/25 hover:border-indigo-400/50',
+    on: 'bg-indigo-500 text-white border-indigo-500',
+  },
+  Rovers: {
+    off: 'bg-emerald-500/10 text-emerald-300 border-emerald-500/25 hover:border-emerald-400/50',
+    on: 'bg-emerald-500 text-white border-emerald-500',
+  },
+  Other: {
+    off: 'chip-off',
+    on: 'chip-on',
+  },
+}
+
 export const REFERRED_TO = ['Self', 'Friends', 'Medical', 'Security', 'Police', 'Other']
 
 
