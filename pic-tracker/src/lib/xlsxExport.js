@@ -64,7 +64,7 @@ function buildPicRow(pic, events) {
     'Outcome': pic.outcome === 'Other' ? pic.outcomeOther || 'Other' : pic.outcome || '',
     'Referred to': joinList(normalizeReferredTo(pic), pic.referredToOther),
     'Medical involved': bool(pic.medicalInvolved),
-    'Security monitored': bool(!!pic.ejectionFlag),
+    'Security Flag': bool(!!pic.ejectionFlag),
     'Security notified at discharge': pic.ejectionFlag ? bool(pic.securityNotified) : '',
     'Assigned KPE': getAssignedKpe(pic) || '',
     'Last KPE': pic.lastKpe || '',
