@@ -868,7 +868,7 @@ function ChipDisplay({ values, other, colored = false }) {
   return (
     <div className="flex flex-wrap gap-1">
       {displayList.map((s, i) => (
-        <span key={`${s}-${i}`} className={`tag ${colored ? referralTagClass(s) : ''}`}>
+        <span key={`${s}-${i}`} className={(colored && referralTagClass(s)) || 'tag'}>
           {s}
         </span>
       ))}

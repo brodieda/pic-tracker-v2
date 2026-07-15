@@ -283,7 +283,7 @@ export default function PicCard({ pic, events, eventCfg, allPics, onClick, onMar
                     Ref by
                   </span>
                   {referredByDisplay.map((v, i) => (
-                    <span key={i} className={`tag ${referralTagClass(v)}`}>{v}</span>
+                    <span key={i} className={referralTagClass(v) || 'tag'}>{v}</span>
                   ))}
                 </span>
               </>
@@ -317,7 +317,7 @@ export default function PicCard({ pic, events, eventCfg, allPics, onClick, onMar
                     Ref to
                   </span>
                   {referredToDisplay.map((v, i) => (
-                    <span key={i} className={`tag ${referralTagClass(v)}`}>{v}</span>
+                    <span key={i} className={referralTagClass(v) || 'tag'}>{v}</span>
                   ))}
                 </span>
               </>
