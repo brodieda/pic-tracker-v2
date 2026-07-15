@@ -16,7 +16,7 @@
    ============================================================ */
 
 :root {
-  --base-font-size: 17px;
+  --base-font-size: 19px;
 
   /* Dark theme defaults — RGB triplets so Tailwind /N opacity modifiers work */
   --ink-950: 10 12 16;       /* #0a0c10 */
