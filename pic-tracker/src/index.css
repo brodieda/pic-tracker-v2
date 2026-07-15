@@ -97,6 +97,12 @@
   .chip-on {
     @apply chip bg-ink-100 text-ink-950 border-ink-100;
   }
+  .chip-tint-off {
+    @apply chip bg-blue-500/10 text-blue-300 border-blue-500/25 hover:border-blue-400/50;
+  }
+  .chip-tint-on {
+    @apply chip bg-blue-500 text-white border-blue-500;
+  }
   .panel {
     @apply bg-ink-900 border border-ink-800 rounded-xl;
   }
