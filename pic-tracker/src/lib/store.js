@@ -12,6 +12,7 @@ const DEFAULT_EVENT = {
   name: '',
   shift1Team: [],
   shift2Team: [],
+  tls: [], // names (across both teams) flagged as Team Leads
   code3CheckIntervalMinutes: 15,
   capacity: null, // null = unlimited
 }

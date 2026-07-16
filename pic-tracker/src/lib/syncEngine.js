@@ -83,6 +83,7 @@ function eventToLocal(e) {
     name: e.name || '',
     shift1Team: e.shift1Team || [],
     shift2Team: e.shift2Team || [],
+    tls: e.tls || [],
     code3CheckIntervalMinutes: e.code3CheckIntervalMinutes || 15,
     capacity: e.capacity,
   }

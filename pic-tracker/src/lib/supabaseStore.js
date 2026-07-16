@@ -23,6 +23,7 @@ function eventFromDb(row) {
     admitCode: row.admit_code,
     shift1Team: row.shift1_team || [],
     shift2Team: row.shift2_team || [],
+    tls: row.tls || [],
     code3CheckIntervalMinutes: row.code3_check_interval_minutes,
     capacity: row.capacity,
     isActive: row.is_active,
@@ -283,6 +284,26 @@ export async function updateCurrentEvent(patch) {
     .single()
   if (error) { logError('updateCurrentEvent', error); return null }
   return eventFromDb(data)
+}
+
+// Mirror the Team Lead list separately from the main event update, so that if
+// the `tls` column hasn't been added to the events table yet, the failure is
+// isolated — the rest of the settings still save. Once the column exists this
+// starts persisting automatically; until then it's a harmless no-op that logs.
+export async function updateCurrentEventTls(tls) {
+  if (!supabase) return null
+  const s = getSession()
+  if (!s.eventId || s.role !== 'writer') return null
+  const { error } = await supabase
+    .from('events')
+    .update({ tls: tls || [] })
+    .eq('id', s.eventId)
+  if (error) {
+    // Most likely the `tls` column doesn't exist yet — don't treat as fatal.
+    console.warn('[supabaseStore] TL mirror skipped (is the tls column added?):', error.message)
+    return { ok: false }
+  }
+  return { ok: true }
 }
 
 // End event = set is_active = false. Writer only.
