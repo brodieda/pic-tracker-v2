@@ -69,7 +69,7 @@ export default function ActorNameBadge() {
               if (e.key === 'Enter') save()
               if (e.key === 'Escape') cancel()
             }}
-            placeholder="e.g. Brodie"
+            placeholder="Your name"
             maxLength={60}
             className="w-full bg-ink-900 border border-ink-700 focus:border-ink-500 rounded-md px-3 py-2 text-ink-100 font-display"
           />
