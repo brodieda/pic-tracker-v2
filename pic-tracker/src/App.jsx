@@ -13,7 +13,7 @@ import IntakeOnlyScreen from './components/IntakeOnlyScreen'
 import { getEvent, getPics } from './lib/store'
 import { hasJoined, getSession, clearSession } from './lib/eventSession'
 import { SUPABASE_CONFIGURED } from './lib/supabaseClient'
-import { startBackgroundSync, stopBackgroundSync } from './lib/syncEngine'
+import { startBackgroundSync, stopBackgroundSync, backgroundSync } from './lib/syncEngine'
 
 export default function App() {
   const [view, setView] = useState('board')
@@ -22,6 +22,7 @@ export default function App() {
   const [activePicId, setActivePicId] = useState(null)
   const [openIntent, setOpenIntent] = useState(null)
   const [joined, setJoined] = useState(!SUPABASE_CONFIGURED || hasJoined())
+  const [refreshing, setRefreshing] = useState(false)
 
   const sessionRole = SUPABASE_CONFIGURED ? getSession().role : 'writer'
   const isViewer = sessionRole === 'viewer'
@@ -44,6 +45,7 @@ export default function App() {
     const intervalMs = isViewer ? 3000 : 5000
     startBackgroundSync({
       intervalMs,
+      immediate: true,
       onSync: () => setRefreshKey((k) => k + 1),
       onSessionInvalid: async () => {
         // Event ended, code rotated, or session otherwise killed by the
@@ -58,6 +60,31 @@ export default function App() {
   }, [joined, isViewer, isIntakeOnly])
 
   const refresh = () => setRefreshKey((k) => k + 1)
+
+  // Manual force-refresh: pull fresh state from Supabase now, overwriting the
+  // local cache. This is the reliable way to clear stale data — a browser
+  // reload won't, since the cache is in localStorage, not fetched files.
+  const forceRefresh = async () => {
+    if (refreshing) return
+    if (!SUPABASE_CONFIGURED) {
+      refresh()
+      return
+    }
+    setRefreshing(true)
+    try {
+      const result = await backgroundSync()
+      if (!result.ok && result.reason === 'session_invalid') {
+        stopBackgroundSync()
+        await clearSession()
+        alert('This event has ended or your access has been revoked. Returning to start.')
+        setJoined(false)
+        return
+      }
+      refresh()
+    } finally {
+      setRefreshing(false)
+    }
+  }
 
   if (SUPABASE_CONFIGURED && !joined) {
     return <LandingScreen onJoined={() => setJoined(true)} />
@@ -92,6 +119,28 @@ export default function App() {
               <CodesBadge onLeave={() => setJoined(false)} />
             )}
             {SUPABASE_CONFIGURED && <ActorNameBadge />}
+            {SUPABASE_CONFIGURED && (
+              <button
+                onClick={forceRefresh}
+                disabled={refreshing}
+                title="Refresh — pull the latest data from the server"
+                aria-label="Refresh data"
+                className="inline-flex items-center justify-center w-9 h-9 rounded-md bg-ink-800 border border-ink-700 hover:border-ink-500 text-ink-300 hover:text-ink-100 transition disabled:opacity-50"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`}
+                >
+                  <path d="M21 12a9 9 0 1 1-2.64-6.36" />
+                  <path d="M21 3v6h-6" />
+                </svg>
+              </button>
+            )}
             <ThemeToggle />
             <span className="text-xs text-ink-500 font-display tracking-wider hidden sm:inline">
               v0.6
