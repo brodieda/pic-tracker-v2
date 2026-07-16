@@ -98,18 +98,18 @@ export default function App() {
   return (
     <div className="min-h-full">
       <header className="sticky top-0 z-30 bg-ink-950/85 backdrop-blur border-b border-ink-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-14 flex items-center gap-4">
-          <div className="flex items-baseline gap-2 mr-3">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-2 sm:py-0 sm:h-14 flex flex-wrap sm:flex-nowrap items-center gap-x-4 gap-y-2">
+          <div className="flex items-baseline gap-2 mr-1 sm:mr-3 order-1">
             <span className="font-display font-bold text-lg tracking-tight">PIC</span>
             <span className="font-display font-bold text-lg tracking-tight text-ink-400">tracker</span>
           </div>
-          <nav className="flex gap-1">
+          <nav className="order-last sm:order-2 w-full sm:w-auto flex gap-1 overflow-x-auto">
             <NavButton active={view === 'board'} onClick={() => setView('board')}>Board</NavButton>
             <NavButton active={view === 'dashboard'} onClick={() => setView('dashboard')}>Dashboard</NavButton>
             <NavButton active={view === 'reports'} onClick={() => setView('reports')}>Reports</NavButton>
             <NavButton active={view === 'settings'} onClick={() => setView('settings')}>Settings</NavButton>
           </nav>
-          <div className="ml-auto flex items-center gap-2">
+          <div className="order-2 sm:order-3 ml-auto flex items-center gap-2">
             {isViewer && (
               <span className="text-[10px] font-display font-bold uppercase tracking-widest px-2 py-1 rounded bg-shift-2/15 text-shift-2 border border-shift-2/40">
                 Read only
