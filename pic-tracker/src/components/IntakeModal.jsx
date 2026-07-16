@@ -226,7 +226,7 @@ export default function IntakeModal({ open, onClose, onCreated }) {
             <div className="flex flex-col sm:flex-row gap-2">
               <input
                 className="input"
-                placeholder="Leah"
+                placeholder="PIC Name"
                 value={form.name}
                 onChange={(e) => update({ name: e.target.value })}
                 autoFocus
@@ -247,7 +247,7 @@ export default function IntakeModal({ open, onClose, onCreated }) {
             </div>
             <input
               className="input mt-2"
-              placeholder="Description — what they're wearing, anything distinctive…"
+              placeholder="Description"
               value={form.description}
               onChange={(e) => update({ description: e.target.value })}
             />
@@ -345,7 +345,7 @@ export default function IntakeModal({ open, onClose, onCreated }) {
 
           <div className="divider" />
 
-          <FieldRow label="Assigned KPE" hint="Optional — can assign later">
+          <FieldRow label="Assigned KPE" hint="Optional - can assign later">
 
             <input
               className="input"
