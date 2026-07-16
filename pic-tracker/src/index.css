@@ -81,6 +81,7 @@
   :root[data-theme='light'] .cat-off-amber   { @apply bg-amber-500/[0.08] text-amber-700 border-amber-500/30; }
 
   /* Category chips — light theme: selected is solid (no override needed). */
+  :root[data-theme='light'] .secflag-on { @apply bg-slate-800 text-white border-slate-800; }
 }
 
 @layer base {
@@ -203,6 +204,13 @@
 
   /* Gender / age — solid neutral when selected (no category hue) */
   .cat-on-slate    { @apply chip bg-slate-600 text-white border-slate-600; }
+
+  /* Security Flag — active/flagged state. An inverted high-contrast pill:
+     a light fill on the dark theme, a dark fill on the light theme, so it
+     stays clearly visible on both panel backgrounds (a plain white pill was
+     invisible in light mode). Text uses currentColor so nested icons/✕ flip
+     with it automatically. */
+  .secflag-on { @apply bg-slate-100 text-slate-900 border-slate-100; }
   .panel {
     @apply bg-ink-900 border border-ink-800 rounded-xl;
   }
