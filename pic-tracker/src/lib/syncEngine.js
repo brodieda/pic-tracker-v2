@@ -171,15 +171,21 @@ let _intervalId = null
 //                        device's JWT has been kicked (event ended, code
 //                        rotated, etc). Caller should clearSession() and
 //                        return to landing.
-export function startBackgroundSync({ intervalMs = 15000, onSync, onSessionInvalid } = {}) {
+export function startBackgroundSync({ intervalMs = 15000, onSync, onSessionInvalid, immediate = false } = {}) {
   stopBackgroundSync()
-  _intervalId = setInterval(async () => {
+  const run = async () => {
     const result = await backgroundSync()
     if (result.ok && onSync) onSync(result)
     if (!result.ok && result.reason === 'session_invalid' && onSessionInvalid) {
       onSessionInvalid()
     }
-  }, intervalMs)
+    return result
+  }
+  // Fire once right away so a freshly-opened device shows live data instead of
+  // the stale localStorage cache from a previous session (which otherwise
+  // lingers until the first interval tick).
+  if (immediate) run()
+  _intervalId = setInterval(run, intervalMs)
 }
 
 export function stopBackgroundSync() {
