@@ -391,7 +391,7 @@ export default function PicDetailPanel({ picId, onClose, onMutated, openIntent }
                         : pic.securityNotified === false
                         ? 'bg-code-1/15 border-code-1/50 text-code-1'
                         : 'bg-ink-800 border-ink-700 text-ink-400'
-                      : 'bg-slate-100 border-slate-100 text-ink-950'
+                      : 'secflag-on'
                   }`}
                   title={
                     isDischarged
@@ -408,7 +408,7 @@ export default function PicDetailPanel({ picId, onClose, onMutated, openIntent }
                   {!isDischarged && (
                     <button
                       onClick={onToggleEjection}
-                      className="ml-auto inline-flex items-center justify-center w-5 h-5 rounded-full bg-ink-950/15 hover:bg-ink-950/30 text-ink-950 text-[11px] leading-none"
+                      className="ml-auto inline-flex items-center justify-center w-5 h-5 rounded-full border border-current/40 hover:border-current text-current text-[11px] leading-none opacity-80 hover:opacity-100"
                       title="Remove the Security Flag"
                       aria-label="Remove the Security Flag"
                     >

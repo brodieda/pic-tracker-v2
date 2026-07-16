@@ -296,7 +296,7 @@ export default function IntakeModal({ open, onClose, onCreated }) {
                     aria-pressed={form.ejectionFlag}
                     className={`inline-flex items-center gap-1.5 w-full px-2.5 py-1.5 rounded-lg border text-xs font-display font-semibold transition ${
                       form.ejectionFlag
-                        ? 'bg-slate-100 border-slate-100 text-ink-950'
+                        ? 'secflag-on'
                         : 'bg-ink-900 border-ink-700 text-ink-400 hover:border-ink-500'
                     }`}
                     title="RSA/Security ejection or possible security intervention"

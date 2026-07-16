@@ -204,7 +204,7 @@ export default function PicCard({ pic, events, eventCfg, allPics, onClick, onMar
               <span
                 className={`inline-flex items-center gap-1 text-[10px] font-display font-bold uppercase tracking-widest px-1.5 h-7 rounded-md shrink-0 border ${
                   !isDischarged
-                    ? 'bg-slate-100 border-slate-100 text-ink-950'
+                    ? 'secflag-on'
                     : pic.securityNotified === true
                     ? 'bg-code-5/15 border-code-5/50 text-code-5'
                     : pic.securityNotified === false
