@@ -60,7 +60,7 @@ export default function KpePickerModal({ open, currentKpe, shift1Team, shift2Tea
               <div className="flex items-center gap-2 mb-2.5">
                 <span className="w-2.5 h-2.5 rounded-full bg-shift-1" />
                 <span className="text-[10px] font-display tracking-[0.22em] uppercase text-ink-400">
-                  Shift 1
+                  Team 1
                 </span>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -89,7 +89,7 @@ export default function KpePickerModal({ open, currentKpe, shift1Team, shift2Tea
               <div className="flex items-center gap-2 mb-2.5">
                 <span className="w-2.5 h-2.5 rounded-full bg-shift-2" />
                 <span className="text-[10px] font-display tracking-[0.22em] uppercase text-ink-400">
-                  Shift 2
+                  Team 2
                 </span>
               </div>
               <div className="flex flex-wrap gap-2">

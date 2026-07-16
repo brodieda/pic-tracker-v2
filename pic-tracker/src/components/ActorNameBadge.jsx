@@ -5,6 +5,7 @@
 // Not shown for intake-only role (they enter their name on the intake form).
 
 import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { getActorName, setActorName } from '../lib/actorName'
 import { isWriter, isViewer } from '../lib/eventSession'
 
@@ -46,7 +47,7 @@ export default function ActorNameBadge() {
   }
 
   if (editing) {
-    return (
+    return createPortal(
       <div className="fixed inset-0 z-50 bg-ink-900/80 flex items-center justify-center px-4">
         <div className="panel w-full max-w-sm p-5 space-y-4">
           <div>
@@ -90,7 +91,8 @@ export default function ActorNameBadge() {
             </button>
           </div>
         </div>
-      </div>
+      </div>,
+      document.body
     )
   }
 

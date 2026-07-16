@@ -123,11 +123,11 @@ export default function PicCard({ pic, events, eventCfg, allPics, onClick, onMar
   if (monitorState === 'overdue') timeColor = 'text-code-1 font-bold'
   else if (monitorState === 'due_soon') timeColor = 'text-code-3 font-semibold'
 
-  // Card border: overdue red ring > due-soon yellow ring > MH (any time at code 2) orange tint
+  // Card border stays neutral for welfare-check states — the red/bold time and
+  // the solid "Mark checked" button carry the signal instead of a whole-card ring.
+  // Only the persistent MH tint (ever Code 2) still colours the border.
   let borderClass = 'border-ink-800'
-  if (monitorState === 'overdue') borderClass = 'border-code-1 ring-2 ring-code-1/40'
-  else if (monitorState === 'due_soon') borderClass = 'border-code-3 ring-1 ring-code-3/30'
-  else if (everCode2 && !isDischarged) borderClass = 'border-code-2/60'
+  if (everCode2 && !isDischarged) borderClass = 'border-code-2/60'
 
   const demogParts = []
   if (pic.gender) demogParts.push(abbrevGender(pic.gender))

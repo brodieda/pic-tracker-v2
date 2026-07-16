@@ -114,7 +114,7 @@ export default function EventSettings({ onSaved }) {
       <section className="panel p-6 space-y-5">
         <div className="flex items-center gap-3">
           <span className="w-3 h-3 rounded-full bg-shift-1" />
-          <h3 className="font-display font-semibold text-lg">Shift 1 roster</h3>
+          <h3 className="font-display font-semibold text-lg">Team 1</h3>
           <span className="text-xs text-ink-500 ml-auto">{shift1.length} on team</span>
         </div>
         <RosterField
@@ -124,14 +124,14 @@ export default function EventSettings({ onSaved }) {
             markDirty()
           }}
           accentClass="bg-shift-1"
-          placeholder="Add shift 1 KPE…"
+          placeholder="Add Team 1 member…"
         />
       </section>
 
       <section className="panel p-6 space-y-5">
         <div className="flex items-center gap-3">
           <span className="w-3 h-3 rounded-full bg-shift-2" />
-          <h3 className="font-display font-semibold text-lg">Shift 2 roster</h3>
+          <h3 className="font-display font-semibold text-lg">Team 2</h3>
           <span className="text-xs text-ink-500 ml-auto">{shift2.length} on team</span>
         </div>
         <RosterField
@@ -141,7 +141,7 @@ export default function EventSettings({ onSaved }) {
             markDirty()
           }}
           accentClass="bg-shift-2"
-          placeholder="Add shift 2 KPE…"
+          placeholder="Add Team 2 member…"
         />
       </section>
 

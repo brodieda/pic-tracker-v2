@@ -351,101 +351,113 @@ export default function PicDetailPanel({ picId, onClose, onMutated, openIntent }
           <div className="text-[10px] font-display tracking-[0.22em] uppercase text-ink-500 mb-2">
             Update code
           </div>
-          <div className="flex items-stretch gap-2">
-            {(() => {
-              const c = CODES[0]
-              const active = code === 1
-              return (
-                <button
-                  key={1}
-                  type="button"
-                  onClick={() => onCodeTap(1)}
-                  className={`relative h-16 w-12 rounded-xl font-display font-bold ${c.tw} text-white transition border-2 flex flex-col items-center justify-center shrink-0 ${
-                    active ? 'border-white shadow-lg' : 'border-transparent opacity-60 hover:opacity-100'
-                  }`}
-                  title="Code 1 — Emergency"
-                >
-                  <span className="text-xs leading-none mb-0.5">⚠</span>
-                  <span className="leading-none text-xl">1</span>
-                </button>
-              )
-            })()}
-            <div className="w-px bg-ink-800 mx-1" />
-            {CODES.slice(1).map((c) => {
-              const active = code === c.code
-              const tone = c.code === 3 ? 'text-ink-950' : 'text-white'
-              return (
-                <button
-                  key={c.code}
-                  type="button"
-                  onClick={() => onCodeTap(c.code)}
-                  className={`relative flex-1 h-16 rounded-xl font-display font-bold ${c.tw} ${tone} transition border-2 ${
-                    active ? 'border-white shadow-lg' : 'border-transparent opacity-70 hover:opacity-100'
-                  }`}
-                >
-                  <div className="flex flex-col items-center justify-center leading-tight">
-                    <span className="text-xl">{c.code}</span>
-                    {c.desc && (
-                      <span className="text-[9px] uppercase tracking-widest font-semibold opacity-80">
-                        {c.desc}
-                      </span>
-                    )}
-                  </div>
-                </button>
-              )
-            })}
-          </div>
-        </section>
+          <div className="flex items-stretch gap-3">
+            {/* Left column: Code 1, Code 2, Security — small stacked pills */}
+            <div className="flex flex-col gap-2 w-36 shrink-0">
+              {[CODES[0], CODES[1]].map((c) => {
+                const active = code === c.code
+                const toneOff =
+                  c.code === 1
+                    ? 'bg-code-1/10 border-code-1/40 text-code-1 hover:border-code-1/70'
+                    : 'bg-code-2/10 border-code-2/40 text-code-2 hover:border-code-2/70'
+                const toneOn =
+                  c.code === 1
+                    ? 'bg-code-1 border-code-1 text-white'
+                    : 'bg-code-2 border-code-2 text-white'
+                return (
+                  <button
+                    key={c.code}
+                    type="button"
+                    onClick={() => onCodeTap(c.code)}
+                    aria-pressed={active}
+                    className={`inline-flex items-center gap-1.5 w-full px-2.5 py-1.5 rounded-lg border text-xs font-display font-semibold transition ${
+                      active ? toneOn : toneOff
+                    }`}
+                    title={`Code ${c.code} — ${c.desc}`}
+                  >
+                    <span className="font-black text-sm leading-none">{c.code}</span>
+                    <span>{c.desc}</span>
+                  </button>
+                )
+              })}
 
-        {/* Security Flag — compact, sits under code */}
-        <div>
-          {pic.ejectionFlag ? (
-            <div
-              className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-display font-semibold ${
-                isDischarged
-                  ? pic.securityNotified === true
-                    ? 'bg-code-5/15 border-code-5/50 text-code-5'
-                    : pic.securityNotified === false
-                    ? 'bg-code-1/15 border-code-1/50 text-code-1'
-                    : 'bg-ink-800 border-ink-700 text-ink-400'
-                  : 'bg-slate-100 border-slate-100 text-ink-950'
-              }`}
-              title={
-                isDischarged
-                  ? pic.securityNotified === true
-                    ? 'Security Flag — Security notified at discharge'
-                    : pic.securityNotified === false
-                    ? 'Security Flag — Security NOT notified at discharge'
-                    : 'Security Flag — notification status not recorded'
-                  : 'Ejection pathway — notify RSA/Security before this patron leaves the space'
-              }
-            >
-              <ShieldIcon className="w-3.5 h-3.5" />
-              Security Flag
-              {!isDischarged && (
-                <button
-                  onClick={onToggleEjection}
-                  className="ml-1 text-ink-950/60 hover:text-ink-950"
-                  title="Remove the Security Flag"
-                  aria-label="Remove the Security Flag"
+              {/* Security Flag — same stack, keeps its in-care / discharged states */}
+              {pic.ejectionFlag ? (
+                <div
+                  className={`inline-flex items-center gap-1.5 w-full px-2.5 py-1.5 rounded-lg border text-xs font-display font-semibold ${
+                    isDischarged
+                      ? pic.securityNotified === true
+                        ? 'bg-code-5/15 border-code-5/50 text-code-5'
+                        : pic.securityNotified === false
+                        ? 'bg-code-1/15 border-code-1/50 text-code-1'
+                        : 'bg-ink-800 border-ink-700 text-ink-400'
+                      : 'bg-slate-100 border-slate-100 text-ink-950'
+                  }`}
+                  title={
+                    isDischarged
+                      ? pic.securityNotified === true
+                        ? 'Security Flag — Security notified at discharge'
+                        : pic.securityNotified === false
+                        ? 'Security Flag — Security NOT notified at discharge'
+                        : 'Security Flag — notification status not recorded'
+                      : 'Ejection pathway — notify RSA/Security before this patron leaves the space'
+                  }
                 >
-                  ✕
-                </button>
+                  <ShieldIcon className="w-3.5 h-3.5" />
+                  Security Flag
+                  {!isDischarged && (
+                    <button
+                      onClick={onToggleEjection}
+                      className="ml-auto text-ink-950/60 hover:text-ink-950"
+                      title="Remove the Security Flag"
+                      aria-label="Remove the Security Flag"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+              ) : (
+                !isDischarged && (
+                  <button
+                    onClick={onToggleEjection}
+                    className="inline-flex items-center gap-1.5 w-full px-2.5 py-1.5 rounded-lg border text-xs font-display font-semibold bg-ink-900 border-ink-700 text-ink-400 hover:border-ink-500 transition"
+                    title="RSA/Security ejection or possible security intervention"
+                  >
+                    <ShieldIcon className="w-3.5 h-3.5" />
+                    Security Flag
+                  </button>
+                )
               )}
             </div>
-          ) : (
-            !isDischarged && (
-              <button
-                onClick={onToggleEjection}
-                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-display font-semibold bg-ink-900 border-ink-700 text-ink-400 hover:border-ink-500 transition"
-                title="RSA/Security ejection or possible security intervention"
-              >
-                <ShieldIcon className="w-3.5 h-3.5" />
-                Security Flag
-              </button>
-            )
-          )}
-        </div>
+
+            {/* Right: Codes 3, 4, 5 — big buttons */}
+            <div className="flex-1 flex gap-2">
+              {CODES.slice(2).map((c) => {
+                const active = code === c.code
+                const tone = c.code === 3 ? 'text-ink-950' : 'text-white'
+                return (
+                  <button
+                    key={c.code}
+                    type="button"
+                    onClick={() => onCodeTap(c.code)}
+                    className={`relative flex-1 rounded-xl font-display font-bold ${c.tw} ${tone} transition border-2 ${
+                      active ? 'border-white shadow-lg' : 'border-transparent opacity-70 hover:opacity-100'
+                    }`}
+                  >
+                    <div className="flex flex-col items-center justify-center leading-tight py-3">
+                      <span className="text-xl">{c.code}</span>
+                      {c.desc && (
+                        <span className="text-[9px] uppercase tracking-widest font-semibold opacity-80">
+                          {c.desc}
+                        </span>
+                      )}
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        </section>
 
         {/* Assigned KPE — inline picker */}
         <section className={
