@@ -263,7 +263,7 @@ export default function IntakeModal({ open, onClose, onCreated }) {
             <div className="space-y-2">
               <div className="flex items-stretch gap-3">
                 {/* Left column: Code 1, Code 2, Security — small stacked pills */}
-                <div className="flex flex-col gap-2 w-36 shrink-0">
+                <div className="flex flex-col gap-2 w-32 sm:w-36 shrink-0">
                   {[CODES[0], CODES[1]].map((c) => {
                     const active = form.code === c.code
                     const toneOff =

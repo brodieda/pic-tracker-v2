@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { getEvent, saveEvent } from '../lib/store'
 import RosterField from './RosterField'
 import { getStoredTheme, setTheme as applyAndStoreTheme, getStoredSize, setSize as applyAndStoreSize, resolveTheme } from '../lib/theme'
-import { updateCurrentEvent } from '../lib/supabaseStore'
+import { updateCurrentEvent, updateCurrentEventTls } from '../lib/supabaseStore'
 import { SUPABASE_CONFIGURED } from '../lib/supabaseClient'
 import { isWriter, updateCachedEventName } from '../lib/eventSession'
 
@@ -10,6 +10,7 @@ export default function EventSettings({ onSaved }) {
   const [name, setName] = useState('')
   const [shift1, setShift1] = useState([])
   const [shift2, setShift2] = useState([])
+  const [tls, setTls] = useState([])
   const [interval, setInterval] = useState(15)
   const [capacity, setCapacity] = useState('')
   const [savedAt, setSavedAt] = useState(null)
@@ -20,27 +21,49 @@ export default function EventSettings({ onSaved }) {
     setName(e.name || '')
     setShift1(e.shift1Team || [])
     setShift2(e.shift2Team || [])
+    setTls(e.tls || [])
     setInterval(e.code3CheckIntervalMinutes || 15)
     setCapacity(e.capacity == null ? '' : String(e.capacity))
   }, [])
 
   const markDirty = () => setDirty(true)
 
+  // Toggle a name's Team Lead status.
+  const toggleTl = (nameToToggle) => {
+    setTls((prev) =>
+      prev.includes(nameToToggle)
+        ? prev.filter((n) => n !== nameToToggle)
+        : [...prev, nameToToggle]
+    )
+    markDirty()
+  }
+
+  // Drop any TL flags whose name is no longer on either roster.
+  const pruneTls = (s1, s2) => {
+    setTls((prev) => prev.filter((n) => s1.includes(n) || s2.includes(n)))
+  }
+
   const handleSave = () => {
     const capNumber = capacity === '' ? null : Number(capacity)
+    // Only keep TL flags for names still on a roster.
+    const cleanTls = tls.filter((n) => shift1.includes(n) || shift2.includes(n))
     const eventData = {
       name: name.trim(),
       shift1Team: shift1,
       shift2Team: shift2,
+      tls: cleanTls,
       code3CheckIntervalMinutes: Number(interval) || 15,
       capacity: capNumber && capNumber > 0 ? capNumber : null,
     }
     saveEvent(eventData)
+    setTls(cleanTls)
     setSavedAt(new Date())
     setDirty(false)
-    // Mirror to Supabase (writer-only, no-op otherwise)
+    // Mirror to Supabase (writer-only, no-op otherwise). TLs mirror separately
+    // so a missing `tls` column can't block the rest of the settings.
     if (SUPABASE_CONFIGURED && isWriter()) {
       updateCurrentEvent(eventData).catch((e) => console.error('event mirror failed', e))
+      updateCurrentEventTls(cleanTls).catch((e) => console.error('tls mirror failed', e))
       updateCachedEventName(eventData.name)
     }
     onSaved?.()
@@ -115,16 +138,21 @@ export default function EventSettings({ onSaved }) {
         <div className="flex items-center gap-3">
           <span className="w-3 h-3 rounded-full bg-shift-1" />
           <h3 className="font-display font-semibold text-lg">Team 1</h3>
-          <span className="text-xs text-ink-500 ml-auto">{shift1.length} on team</span>
+          <span className="text-xs text-ink-500 ml-auto">
+            {shift1.length} on team{shift1.filter((n) => tls.includes(n)).length > 0 && ` · ${shift1.filter((n) => tls.includes(n)).length} lead`}
+          </span>
         </div>
         <RosterField
           names={shift1}
           onChange={(v) => {
             setShift1(v)
+            pruneTls(v, shift2)
             markDirty()
           }}
           accentClass="bg-shift-1"
           placeholder="Add Team 1 member…"
+          tlNames={tls}
+          onToggleTl={toggleTl}
         />
       </section>
 
@@ -132,16 +160,21 @@ export default function EventSettings({ onSaved }) {
         <div className="flex items-center gap-3">
           <span className="w-3 h-3 rounded-full bg-shift-2" />
           <h3 className="font-display font-semibold text-lg">Team 2</h3>
-          <span className="text-xs text-ink-500 ml-auto">{shift2.length} on team</span>
+          <span className="text-xs text-ink-500 ml-auto">
+            {shift2.length} on team{shift2.filter((n) => tls.includes(n)).length > 0 && ` · ${shift2.filter((n) => tls.includes(n)).length} lead`}
+          </span>
         </div>
         <RosterField
           names={shift2}
           onChange={(v) => {
             setShift2(v)
+            pruneTls(shift1, v)
             markDirty()
           }}
           accentClass="bg-shift-2"
           placeholder="Add Team 2 member…"
+          tlNames={tls}
+          onToggleTl={toggleTl}
         />
       </section>
 

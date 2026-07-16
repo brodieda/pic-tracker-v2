@@ -353,7 +353,7 @@ export default function PicDetailPanel({ picId, onClose, onMutated, openIntent }
           </div>
           <div className="flex items-stretch gap-3">
             {/* Left column: Code 1, Code 2, Security — small stacked pills */}
-            <div className="flex flex-col gap-2 w-36 shrink-0">
+            <div className="flex flex-col gap-2 w-32 sm:w-36 shrink-0">
               {[CODES[0], CODES[1]].map((c) => {
                 const active = code === c.code
                 const toneOff =
@@ -758,6 +758,8 @@ export default function PicDetailPanel({ picId, onClose, onMutated, openIntent }
                   currentKpe={pic.tlSignoff}
                   shift1Team={eventCfg.shift1Team || []}
                   shift2Team={eventCfg.shift2Team || []}
+                  restrictTo={eventCfg.tls || []}
+                  emptyHint="No Team Leads flagged yet — set them in Settings, or type a name below."
                   onSelect={(v) => updatePicAndReload({ tlSignoff: v })}
                   onDone={done}
                   allowClear={false}

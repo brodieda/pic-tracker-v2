@@ -276,6 +276,8 @@ export default function DischargeModal({ open, pic, eventCfg, onClose, onDischar
                 currentKpe={tlSignoff}
                 shift1Team={eventCfg?.shift1Team || []}
                 shift2Team={eventCfg?.shift2Team || []}
+                restrictTo={eventCfg?.tls || []}
+                emptyHint="No Team Leads flagged yet — set them in Settings, or type a name below."
                 onSelect={setTlSignoff}
                 onDone={() => setEditingTlSignoff(false)}
               />

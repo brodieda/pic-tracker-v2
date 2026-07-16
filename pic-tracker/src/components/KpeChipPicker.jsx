@@ -19,6 +19,8 @@ export default function KpeChipPicker({
   onSelect,
   onDone,
   allowClear = true,
+  restrictTo = null,
+  emptyHint = 'No KPEs configured. Type a name below.',
 }) {
   const [custom, setCustom] = useState('')
 
@@ -40,8 +42,12 @@ export default function KpeChipPicker({
     onDone?.()
   }
 
-  const shift1 = shift1Team || []
-  const shift2Only = (shift2Team || []).filter((n) => !shift1.includes(n))
+  // When restrictTo is provided (e.g. TL sign-off), only show those names.
+  const restrictSet = restrictTo != null ? new Set(restrictTo) : null
+  const shift1 = (shift1Team || []).filter((n) => !restrictSet || restrictSet.has(n))
+  const shift2Only = (shift2Team || []).filter(
+    (n) => !shift1.includes(n) && (!restrictSet || restrictSet.has(n))
+  )
 
   return (
     <div className="space-y-3">
@@ -105,7 +111,7 @@ export default function KpeChipPicker({
 
       {shift1.length === 0 && shift2Only.length === 0 && (
         <p className="text-xs text-ink-500 italic">
-          No KPEs configured. Type a name below.
+          {emptyHint}
         </p>
       )}
 
