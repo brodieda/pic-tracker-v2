@@ -408,7 +408,7 @@ export default function PicDetailPanel({ picId, onClose, onMutated, openIntent }
                   {!isDischarged && (
                     <button
                       onClick={onToggleEjection}
-                      className="ml-auto text-ink-950/60 hover:text-ink-950"
+                      className="ml-auto inline-flex items-center justify-center w-5 h-5 rounded-full bg-ink-950/15 hover:bg-ink-950/30 text-ink-950 text-[11px] leading-none"
                       title="Remove the Security Flag"
                       aria-label="Remove the Security Flag"
                     >

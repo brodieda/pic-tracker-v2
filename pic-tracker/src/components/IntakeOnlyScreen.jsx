@@ -239,19 +239,29 @@ export default function IntakeOnlyScreen() {
             Code <span className="text-code-1">*</span>
           </div>
           <div className="grid grid-cols-5 gap-2">
-            {CODES.map((c) => (
-              <button
-                key={c.code}
-                onClick={() => setCode(c.code === code ? null : c.code)}
-                className={`h-16 rounded-xl font-display font-bold text-2xl border-2 transition tabular-nums ${
-                  code === c.code
-                    ? `bg-code-${c.code} text-white border-white shadow-lg`
-                    : `bg-code-${c.code}/15 border-code-${c.code}/50 text-code-${c.code} hover:border-code-${c.code}`
-                }`}
-              >
-                {c.code}
-              </button>
-            ))}
+            {CODES.map((c) => {
+              const active = code === c.code
+              // Static per-code classes — written as literals so Tailwind keeps
+              // them all (dynamic `bg-code-${n}` gets purged, which is why Code 4
+              // was rendering with no colour).
+              const CODE_BTN = {
+                1: { on: 'bg-code-1 text-white border-white', off: 'bg-code-1/15 border-code-1/50 text-code-1 hover:border-code-1' },
+                2: { on: 'bg-code-2 text-white border-white', off: 'bg-code-2/15 border-code-2/50 text-code-2 hover:border-code-2' },
+                3: { on: 'bg-code-3 text-ink-950 border-white', off: 'bg-code-3/15 border-code-3/50 text-code-3 hover:border-code-3' },
+                4: { on: 'bg-code-4 text-white border-white', off: 'bg-code-4/15 border-code-4/50 text-code-4 hover:border-code-4' },
+                5: { on: 'bg-code-5 text-white border-white', off: 'bg-code-5/15 border-code-5/50 text-code-5 hover:border-code-5' },
+              }
+              const cls = active ? CODE_BTN[c.code].on : CODE_BTN[c.code].off
+              return (
+                <button
+                  key={c.code}
+                  onClick={() => setCode(c.code === code ? null : c.code)}
+                  className={`h-16 rounded-xl font-display font-bold text-2xl border-2 transition tabular-nums shadow-lg ${cls} ${active ? '' : 'shadow-none'}`}
+                >
+                  {c.code}
+                </button>
+              )
+            })}
           </div>
         </div>
 

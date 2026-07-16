@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react'
-import { getEvent, saveEvent } from '../lib/store'
+import { useEffect, useMemo, useState } from 'react'
+import { getEvent, saveEvent, getPics } from '../lib/store'
+import { getAssignedKpe } from '../lib/helpers'
 import RosterField from './RosterField'
 import { getStoredTheme, setTheme as applyAndStoreTheme, getStoredSize, setSize as applyAndStoreSize, resolveTheme } from '../lib/theme'
 import { updateCurrentEvent, updateCurrentEventTls } from '../lib/supabaseStore'
@@ -15,6 +16,7 @@ export default function EventSettings({ onSaved }) {
   const [capacity, setCapacity] = useState('')
   const [savedAt, setSavedAt] = useState(null)
   const [dirty, setDirty] = useState(false)
+  const [pics, setPics] = useState([])
 
   useEffect(() => {
     const e = getEvent()
@@ -24,7 +26,34 @@ export default function EventSettings({ onSaved }) {
     setTls(e.tls || [])
     setInterval(e.code3CheckIntervalMinutes || 15)
     setCapacity(e.capacity == null ? '' : String(e.capacity))
+    setPics(getPics() || [])
   }, [])
+
+  // KPE names that have been used on a PIC this event but aren't on either team.
+  const unassigned = useMemo(() => {
+    const rostered = new Set([...shift1, ...shift2])
+    const seen = new Set()
+    const out = []
+    for (const p of pics) {
+      for (const nm of [getAssignedKpe(p), p.intakeKpe]) {
+        const clean = (nm || '').trim()
+        if (clean && !rostered.has(clean) && !seen.has(clean)) {
+          seen.add(clean)
+          out.push(clean)
+        }
+      }
+    }
+    return out
+  }, [pics, shift1, shift2])
+
+  const addUnassignedTo = (name, team) => {
+    if (team === 1) {
+      if (!shift1.includes(name)) setShift1([...shift1, name])
+    } else {
+      if (!shift2.includes(name)) setShift2([...shift2, name])
+    }
+    markDirty()
+  }
 
   const markDirty = () => setDirty(true)
 
@@ -177,6 +206,48 @@ export default function EventSettings({ onSaved }) {
           onToggleTl={toggleTl}
         />
       </section>
+
+      {unassigned.length > 0 && (
+        <section className="panel p-6 space-y-4 border-dashed">
+          <div className="flex items-center gap-3">
+            <span className="w-3 h-3 rounded-full bg-ink-500" />
+            <h3 className="font-display font-semibold text-lg">Unassigned</h3>
+            <span className="text-xs text-ink-500 ml-auto">{unassigned.length} in use</span>
+          </div>
+          <p className="text-xs text-ink-500">
+            Names entered as a KPE during intake that aren’t on a team yet. Add
+            them to a team to keep the roster tidy.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {unassigned.map((n) => (
+              <span
+                key={n}
+                className="inline-flex items-center gap-2 rounded-full pl-3 pr-1.5 py-1 text-sm font-medium bg-ink-800 border border-ink-700 text-ink-100"
+              >
+                {n}
+                <span className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => addUnassignedTo(n, 1)}
+                    className="text-[11px] font-display font-bold px-2 py-0.5 rounded-full bg-shift-1/15 border border-shift-1/50 text-shift-1 hover:bg-shift-1/30 transition"
+                    title={`Add ${n} to Team 1`}
+                  >
+                    + Team 1
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => addUnassignedTo(n, 2)}
+                    className="text-[11px] font-display font-bold px-2 py-0.5 rounded-full bg-shift-2/15 border border-shift-2/50 text-shift-2 hover:bg-shift-2/30 transition"
+                    title={`Add ${n} to Team 2`}
+                  >
+                    + Team 2
+                  </button>
+                </span>
+              </span>
+            ))}
+          </div>
+        </section>
+      )}
 
       <DisplaySection />
 

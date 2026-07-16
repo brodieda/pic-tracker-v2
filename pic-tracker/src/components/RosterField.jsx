@@ -43,37 +43,47 @@ export default function RosterField({
         {names.length === 0 && (
           <span className="text-ink-500 text-sm italic">No one added yet</span>
         )}
-        {names.map((n) => (
-          <span
-            key={n}
-            className={`inline-flex items-center gap-1.5 rounded-full pl-1.5 pr-1.5 py-1 text-sm font-medium text-white ${accentClass}`}
-          >
-            {tlEnabled && (
+        {names.map((n) => {
+          const lead = tlEnabled && isTl(n)
+          return (
+            <span
+              key={n}
+              className={`inline-flex items-center gap-1.5 rounded-full pl-1.5 pr-1.5 py-1 text-sm font-medium text-white ${accentClass} ${
+                lead ? 'ring-2 ring-amber-400' : ''
+              }`}
+            >
+              {tlEnabled && (
+                <button
+                  type="button"
+                  onClick={() => onToggleTl(n)}
+                  aria-pressed={lead}
+                  title={lead ? `${n} is a Team Lead — tap to unset` : `Mark ${n} as Team Lead`}
+                  className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-sm leading-none transition ${
+                    lead
+                      ? 'bg-amber-400 text-ink-950'
+                      : 'bg-black/20 text-white/50 hover:bg-black/35 hover:text-white'
+                  }`}
+                >
+                  {lead ? '★' : '☆'}
+                </button>
+              )}
+              <span className={tlEnabled ? '' : 'pl-1.5'}>{n}</span>
+              {lead && (
+                <span className="text-[9px] font-display font-black uppercase tracking-wider text-amber-100">
+                  Lead
+                </span>
+              )}
               <button
                 type="button"
-                onClick={() => onToggleTl(n)}
-                aria-pressed={isTl(n)}
-                title={isTl(n) ? `${n} is a Team Lead — tap to unset` : `Mark ${n} as Team Lead`}
-                className={`inline-flex items-center justify-center h-6 px-1.5 rounded-full text-[10px] font-display font-black tracking-wider leading-none transition ${
-                  isTl(n)
-                    ? 'bg-amber-400 text-ink-950'
-                    : 'bg-black/25 text-white/70 hover:bg-black/40 hover:text-white'
-                }`}
+                onClick={() => remove(n)}
+                className="rounded-full w-6 h-6 inline-flex items-center justify-center bg-black/25 hover:bg-black/45 text-white text-xs leading-none"
+                aria-label={`Remove ${n}`}
               >
-                TL
+                ×
               </button>
-            )}
-            <span className={tlEnabled ? '' : 'pl-1.5'}>{n}</span>
-            <button
-              type="button"
-              onClick={() => remove(n)}
-              className="rounded-full w-6 h-6 inline-flex items-center justify-center bg-black/25 hover:bg-black/45 text-white text-xs leading-none"
-              aria-label={`Remove ${n}`}
-            >
-              ×
-            </button>
-          </span>
-        ))}
+            </span>
+          )
+        })}
       </div>
       <div className="flex gap-2">
         <input

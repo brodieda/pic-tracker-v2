@@ -200,33 +200,31 @@ export default function PicCard({ pic, events, eventCfg, allPics, onClick, onMar
                 ⚑ MH
               </span>
             )}
-            <div className="flex flex-col items-center gap-1 shrink-0">
-              <CodePill code={code} />
-              {pic.ejectionFlag && (
-                <span
-                  className={`leading-none ${
-                    !isDischarged
-                      ? 'text-ink-200'
-                      : pic.securityNotified === true
-                      ? 'text-code-5'
-                      : pic.securityNotified === false
-                      ? 'text-code-1'
-                      : 'text-ink-500'
-                  }`}
-                  title={
-                    !isDischarged
-                      ? 'Security Flag — RSA/Security to be notified before discharge'
-                      : pic.securityNotified === true
-                      ? 'Security Flag — Security notified at discharge'
-                      : pic.securityNotified === false
-                      ? 'Security Flag — Security NOT notified at discharge'
-                      : 'Security Flag — notification status not recorded'
-                  }
-                >
-                  <ShieldIcon className="w-3 h-3" />
-                </span>
-              )}
-            </div>
+            {pic.ejectionFlag && (
+              <span
+                className={`inline-flex items-center gap-1 text-[10px] font-display font-bold uppercase tracking-widest px-1.5 h-7 rounded-md shrink-0 border ${
+                  !isDischarged
+                    ? 'bg-slate-100 border-slate-100 text-ink-950'
+                    : pic.securityNotified === true
+                    ? 'bg-code-5/15 border-code-5/50 text-code-5'
+                    : pic.securityNotified === false
+                    ? 'bg-code-1/15 border-code-1/50 text-code-1'
+                    : 'bg-ink-800 border-ink-700 text-ink-400'
+                }`}
+                title={
+                  !isDischarged
+                    ? 'Security Flag — RSA/Security to be notified before discharge'
+                    : pic.securityNotified === true
+                    ? 'Security Flag — Security notified at discharge'
+                    : pic.securityNotified === false
+                    ? 'Security Flag — Security NOT notified at discharge'
+                    : 'Security Flag — notification status not recorded'
+                }
+              >
+                <ShieldIcon className="w-3 h-3" /> SEC
+              </span>
+            )}
+            <CodePill code={code} />
             <div className="flex flex-col items-end gap-1.5 shrink-0">
               <span className={`text-sm font-display font-semibold tabular-nums whitespace-nowrap leading-none pt-1.5 ${timeColor}`}>
                 {isDischarged ? (
