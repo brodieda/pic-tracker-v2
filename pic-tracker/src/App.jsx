@@ -123,7 +123,7 @@ export default function App() {
               <button
                 onClick={forceRefresh}
                 disabled={refreshing}
-                title="Refresh — pull the latest data from the server"
+                title="Refresh"
                 aria-label="Refresh data"
                 className="inline-flex items-center justify-center w-9 h-9 rounded-md bg-ink-800 border border-ink-700 hover:border-ink-500 text-ink-300 hover:text-ink-100 transition disabled:opacity-50"
               >
