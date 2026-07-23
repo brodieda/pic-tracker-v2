@@ -103,7 +103,7 @@ export default function FloorCheck({ refreshKey, onPicClick }) {
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 mb-4">
         <h2 className="font-display font-bold text-xl">Floor check</h2>
         <span className="text-sm text-ink-500">
-          {rows.length} in care{overdueCount > 0 && ` · ${overdueCount} overdue`} · most urgent first
+          {rows.length} in care{overdueCount > 0 && ` · ${overdueCount} overdue`}
         </span>
       </div>
 
