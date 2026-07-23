@@ -66,24 +66,62 @@ export default function TimeSeriesChart({ pics }) {
       bucketCount = Math.ceil((end - start) / bucketSize)
     }
 
-    const points = []
+    // Event sweep: +1 at each entry, -1 at each exit. At a shared timestamp,
+    // process exits before entries so someone leaving exactly as another
+    // arrives isn't counted as concurrent. This gives the true concurrency
+    // step-function, which (a) fixes the peak (short stays that start & end
+    // between two 15-min samples used to vanish) and (b) lets us hold a flat
+    // value between changes instead of sloping diagonally.
+    const trans = []
+    for (const p of pics) {
+      const enter = p.enteredCare ? new Date(p.enteredCare).getTime() : null
+      if (enter == null) continue
+      const left = p.leftCare ? new Date(p.leftCare).getTime() : null
+      trans.push({ t: enter, d: 1 })
+      if (left != null) trans.push({ t: left, d: -1 })
+    }
+    trans.sort((a, b) => a.t - b.t || a.d - b.d) // -1 before +1 at ties
+
+    // Collapse into step points: concurrency `c` holds from time `t` onward.
+    const steps = []
+    let running = 0
+    for (let k = 0; k < trans.length; ) {
+      const tt = trans[k].t
+      while (k < trans.length && trans[k].t === tt) {
+        running += trans[k].d
+        k++
+      }
+      steps.push({ t: tt, c: running })
+    }
+
+    // True peak from the sweep.
     let peak = 0
     let peakAt = null
+    for (const s of steps) {
+      if (s.c > peak) {
+        peak = s.c
+        peakAt = s.t
+      }
+    }
+
+    // Max concurrency reached at any moment within [a, b).
+    const maxConcurrencyInRange = (a, b) => {
+      let startC = 0
+      for (const s of steps) {
+        if (s.t <= a) startC = s.c
+        else break
+      }
+      let m = startC
+      for (const s of steps) {
+        if (s.t >= a && s.t < b) m = Math.max(m, s.c)
+      }
+      return m
+    }
+
+    const points = []
     for (let i = 0; i < bucketCount; i++) {
       const t = start + i * bucketSize
-      let n = 0
-      for (const p of pics) {
-        const enter = p.enteredCare ? new Date(p.enteredCare).getTime() : null
-        if (enter == null || enter > t) continue
-        const left = p.leftCare ? new Date(p.leftCare).getTime() : null
-        if (left != null && left <= t) continue
-        n++
-      }
-      points.push({ t, n })
-      if (n > peak) {
-        peak = n
-        peakAt = t
-      }
+      points.push({ t, n: maxConcurrencyInRange(t, t + bucketSize) })
     }
 
     return { points, start, end, peak, peakAt, bucketSize }
@@ -124,8 +162,10 @@ export default function TimeSeriesChart({ pics }) {
       linePath += `M ${x} ${y}`
       areaPath += `M ${x} ${PAD_T + plotH} L ${x} ${y}`
     } else {
-      linePath += ` L ${x} ${y}`
-      areaPath += ` L ${x} ${y}`
+      // Step: hold the previous level across to this x, then move vertically.
+      const prevY = yFor(points[i - 1].n)
+      linePath += ` L ${x} ${prevY} L ${x} ${y}`
+      areaPath += ` L ${x} ${prevY} L ${x} ${y}`
     }
     if (i === points.length - 1) {
       areaPath += ` L ${x} ${PAD_T + plotH} Z`

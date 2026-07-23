@@ -25,6 +25,7 @@ import {
   CODES,
 } from '../constants/options'
 import ChipGroup from './ChipGroup'
+import KpeChipPicker from './KpeChipPicker'
 import ShieldIcon from './ShieldIcon'
 import Code1Warning from './Code1Warning'
 
@@ -346,24 +347,13 @@ export default function IntakeModal({ open, onClose, onCreated }) {
           <div className="divider" />
 
           <FieldRow label="Assigned KPE" hint="Optional - can assign later">
-
-            <input
-              className="input"
-              list="kpe-list"
-              placeholder="Start typing a name…"
-              value={form.intakeKpe}
-              onChange={(e) => update({ intakeKpe: e.target.value })}
+            <KpeChipPicker
+              currentKpe={form.intakeKpe}
+              shift1Team={eventCfg.shift1Team || []}
+              shift2Team={eventCfg.shift2Team || []}
+              onSelect={(v) => update({ intakeKpe: v || '' })}
+              emptyHint="No KPEs configured yet — add rosters in Settings."
             />
-            <datalist id="kpe-list">
-              {allKpes.map((n) => (
-                <option key={n} value={n} />
-              ))}
-            </datalist>
-            {allKpes.length === 0 && (
-              <p className="text-xs text-code-3 mt-2">
-                No KPEs configured yet — add rosters in Settings.
-              </p>
-            )}
           </FieldRow>
 
           <div className="divider" />
