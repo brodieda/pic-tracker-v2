@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import EventSettings from './components/EventSettings'
 import CareBoard from './components/CareBoard'
 import FloorCheck from './components/FloorCheck'
