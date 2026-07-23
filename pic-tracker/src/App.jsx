@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import EventSettings from './components/EventSettings'
 import CareBoard from './components/CareBoard'
+import FloorCheck from './components/FloorCheck'
 import IntakeModal from './components/IntakeModal'
 import PicDetailPanel from './components/PicDetailPanel'
 import Dashboard from './components/Dashboard'
@@ -10,7 +11,8 @@ import LandingScreen from './components/LandingScreen'
 import CodesBadge from './components/CodesBadge'
 import ActorNameBadge from './components/ActorNameBadge'
 import IntakeOnlyScreen from './components/IntakeOnlyScreen'
-import { getEvent, getPics } from './lib/store'
+import { getEvent, getPics, getEvents } from './lib/store'
+import { code3MonitorStateFor, currentCodeFor } from './lib/helpers'
 import { hasJoined, getSession, clearSession } from './lib/eventSession'
 import { SUPABASE_CONFIGURED } from './lib/supabaseClient'
 import { startBackgroundSync, stopBackgroundSync, backgroundSync } from './lib/syncEngine'
@@ -24,6 +26,10 @@ export default function App() {
   const [joined, setJoined] = useState(!SUPABASE_CONFIGURED || hasJoined())
   const [refreshing, setRefreshing] = useState(false)
   const [toast, setToast] = useState(null) // { text, ok } | null
+  const [lastSyncAt, setLastSyncAt] = useState(null)
+  const [online, setOnline] = useState(typeof navigator === 'undefined' ? true : navigator.onLine)
+  const [now, setNow] = useState(Date.now())
+  const [overdueDismissedAt, setOverdueDismissedAt] = useState(0)
 
   // Auto-dismiss the refresh confirmation.
   useEffect(() => {
@@ -31,6 +37,21 @@ export default function App() {
     const t = setTimeout(() => setToast(null), 2200)
     return () => clearTimeout(t)
   }, [toast])
+
+  // Track online/offline + a slow tick so the connection dot and overdue
+  // counts stay current even when no sync is landing.
+  useEffect(() => {
+    const on = () => setOnline(true)
+    const off = () => setOnline(false)
+    window.addEventListener('online', on)
+    window.addEventListener('offline', off)
+    const id = setInterval(() => setNow(Date.now()), 5000)
+    return () => {
+      window.removeEventListener('online', on)
+      window.removeEventListener('offline', off)
+      clearInterval(id)
+    }
+  }, [])
 
   const sessionRole = SUPABASE_CONFIGURED ? getSession().role : 'writer'
   const isViewer = sessionRole === 'viewer'
@@ -54,7 +75,10 @@ export default function App() {
     startBackgroundSync({
       intervalMs,
       immediate: true,
-      onSync: () => setRefreshKey((k) => k + 1),
+      onSync: () => {
+        setLastSyncAt(Date.now())
+        setRefreshKey((k) => k + 1)
+      },
       onSessionInvalid: async () => {
         // Event ended, code rotated, or session otherwise killed by the
         // server. Clear local state and bounce to landing.
@@ -90,6 +114,7 @@ export default function App() {
         return
       }
       if (result.ok) {
+        setLastSyncAt(Date.now())
         refresh()
         setToast({ text: 'Refreshed — up to date', ok: true })
       } else {
@@ -103,6 +128,48 @@ export default function App() {
       setRefreshing(false)
     }
   }
+
+  // --- Connection status (for the header dot) ---
+  const syncIntervalMs = isViewer ? 3000 : 5000
+  const syncedAgoMs = lastSyncAt ? now - lastSyncAt : null
+  const stale = syncedAgoMs == null || syncedAgoMs > syncIntervalMs * 3
+  const connStatus = refreshing ? 'syncing' : !online || stale ? 'offline' : 'live'
+  const syncedAgoLabel = (() => {
+    if (syncedAgoMs == null) return 'not yet synced'
+    const s = Math.round(syncedAgoMs / 1000)
+    if (s < 60) return `${s}s ago`
+    return `${Math.floor(s / 60)}m ago`
+  })()
+
+  // --- Attention alerts (overdue welfare checks + high-acuity in care) ---
+  const alerts = useMemo(() => {
+    const pics = getPics()
+    const events = getEvents()
+    const cfg = getEvent()
+    let overdue = 0
+    let acuity = 0
+    for (const p of pics) {
+      if (p.status !== 'in_care') continue
+      if (code3MonitorStateFor(p.id, events, cfg, Date.now()) === 'overdue') overdue++
+      const c = currentCodeFor(p.id, events)
+      if (c === 1 || c === 2) acuity++
+    }
+    return { overdue, acuity, total: overdue + acuity }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refreshKey, now])
+
+  // Reset the dismissal once everything's clear, so new alerts re-show.
+  useEffect(() => {
+    if (alerts.total === 0 && overdueDismissedAt !== 0) setOverdueDismissedAt(0)
+  }, [alerts.total, overdueDismissedAt])
+
+  const showAlertBar = alerts.total > 0 && alerts.total > overdueDismissedAt
+  const alertText = (() => {
+    const parts = []
+    if (alerts.overdue > 0) parts.push(`${alerts.overdue} check${alerts.overdue > 1 ? 's' : ''} overdue`)
+    if (alerts.acuity > 0) parts.push(`${alerts.acuity} high-acuity (code 1–2)`)
+    return parts.join(' · ')
+  })()
 
   if (SUPABASE_CONFIGURED && !joined) {
     return <LandingScreen onJoined={() => setJoined(true)} />
@@ -123,6 +190,7 @@ export default function App() {
           </div>
           <nav className="order-last sm:order-2 w-full sm:w-auto flex gap-1 overflow-x-auto">
             <NavButton active={view === 'board'} onClick={() => setView('board')}>Board</NavButton>
+            <NavButton active={view === 'floor'} onClick={() => setView('floor')}>Floor</NavButton>
             <NavButton active={view === 'dashboard'} onClick={() => setView('dashboard')}>Dashboard</NavButton>
             <NavButton active={view === 'reports'} onClick={() => setView('reports')}>Reports</NavButton>
             <NavButton active={view === 'settings'} onClick={() => setView('settings')}>Settings</NavButton>
@@ -137,6 +205,31 @@ export default function App() {
               <CodesBadge onLeave={() => setJoined(false)} />
             )}
             {SUPABASE_CONFIGURED && <ActorNameBadge />}
+            {SUPABASE_CONFIGURED && (
+              <span
+                className="inline-flex items-center gap-1.5 pl-1"
+                title={
+                  connStatus === 'live'
+                    ? `Live — synced ${syncedAgoLabel}`
+                    : connStatus === 'syncing'
+                    ? 'Syncing…'
+                    : `Offline / stale — last synced ${syncedAgoLabel}`
+                }
+              >
+                <span
+                  className={`w-2.5 h-2.5 rounded-full ${
+                    connStatus === 'live'
+                      ? 'bg-code-5'
+                      : connStatus === 'syncing'
+                      ? 'bg-code-3 animate-pulse'
+                      : 'bg-ink-500'
+                  }`}
+                />
+                <span className="text-[10px] font-display uppercase tracking-widest text-ink-500 hidden md:inline">
+                  {connStatus === 'live' ? 'Live' : connStatus === 'syncing' ? 'Sync' : 'Offline'}
+                </span>
+              </span>
+            )}
             {SUPABASE_CONFIGURED && (
               <button
                 onClick={forceRefresh}
@@ -181,8 +274,25 @@ export default function App() {
           }
         />
       )}
+      {view === 'floor' && (
+        <FloorCheck
+          refreshKey={refreshKey}
+          onPicClick={(id) => {
+            setOpenIntent(null)
+            setActivePicId(id)
+          }}
+        />
+      )}
       {view === 'dashboard' && <Dashboard refreshKey={refreshKey} />}
-      {view === 'reports' && <Reports refreshKey={refreshKey} />}
+      {view === 'reports' && (
+        <Reports
+          refreshKey={refreshKey}
+          onPicClick={(id) => {
+            setOpenIntent(null)
+            setActivePicId(id)
+          }}
+        />
+      )}
       {view === 'settings' && <EventSettings onSaved={refresh} readOnly={isViewer} />}
 
       <IntakeModal
@@ -202,26 +312,50 @@ export default function App() {
         onMutated={refresh}
       />
 
-      {toast && (
-        <div className="fixed inset-x-0 bottom-6 z-50 flex justify-center px-4 pointer-events-none">
-          <div
-            role="status"
-            className={`pointer-events-auto flex items-center gap-2 rounded-full pl-3 pr-4 py-2 text-sm font-display font-semibold shadow-lg border ${
-              toast.ok
-                ? 'bg-ink-800 border-ink-700 text-ink-100'
-                : 'bg-code-1/15 border-code-1/50 text-code-1'
-            }`}
-          >
-            <span
-              className={`inline-flex items-center justify-center w-5 h-5 rounded-full text-xs ${
-                toast.ok ? 'bg-code-5 text-white' : 'bg-code-1 text-white'
+      {(showAlertBar || toast) && (
+        <div className="fixed inset-x-0 bottom-6 z-50 flex flex-col items-center gap-2 px-4 pointer-events-none">
+          {showAlertBar && (
+            <div className="pointer-events-auto flex items-center gap-3 rounded-full pl-4 pr-2 py-2 text-sm font-display font-semibold shadow-lg bg-code-1/15 border border-code-1/50 text-code-1">
+              <span>⚠ {alertText}</span>
+              <button
+                onClick={() => {
+                  setView('floor')
+                  setOverdueDismissedAt(alerts.total)
+                }}
+                className="rounded-full bg-code-1 text-white px-3 py-1 text-xs font-bold hover:opacity-90"
+              >
+                View
+              </button>
+              <button
+                onClick={() => setOverdueDismissedAt(alerts.total)}
+                className="px-2 text-code-1/70 hover:text-code-1 text-base leading-none"
+                aria-label="Dismiss"
+                title="Dismiss"
+              >
+                ✕
+              </button>
+            </div>
+          )}
+          {toast && (
+            <div
+              role="status"
+              className={`pointer-events-auto flex items-center gap-2 rounded-full pl-3 pr-4 py-2 text-sm font-display font-semibold shadow-lg border ${
+                toast.ok
+                  ? 'bg-ink-800 border-ink-700 text-ink-100'
+                  : 'bg-code-1/15 border-code-1/50 text-code-1'
               }`}
-              aria-hidden="true"
             >
-              {toast.ok ? '✓' : '!'}
-            </span>
-            {toast.text}
-          </div>
+              <span
+                className={`inline-flex items-center justify-center w-5 h-5 rounded-full text-xs ${
+                  toast.ok ? 'bg-code-5 text-white' : 'bg-code-1 text-white'
+                }`}
+                aria-hidden="true"
+              >
+                {toast.ok ? '✓' : '!'}
+              </span>
+              {toast.text}
+            </div>
+          )}
         </div>
       )}
     </div>
