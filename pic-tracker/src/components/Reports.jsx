@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { getPics, getEvents, getEvent } from '../lib/store'
 import { computeAllStats } from '../lib/stats'
-import { formatElapsed } from '../lib/helpers'
+import { formatElapsed, currentCodeFor, getAssignedKpe } from '../lib/helpers'
+import { completenessFor, isIncomplete } from '../lib/completeness'
 import { exportXlsx } from '../lib/xlsxExport'
 import {
   StatBigNumber,
@@ -11,7 +12,7 @@ import {
 } from './StatBlocks'
 import TimeSeriesChart from './TimeSeriesChart'
 
-export default function Reports({ refreshKey }) {
+export default function Reports({ refreshKey, onPicClick }) {
   const [pics, setPics] = useState([])
   const [events, setEvents] = useState([])
   const [eventCfg, setEventCfg] = useState({})
@@ -220,7 +221,92 @@ export default function Reports({ refreshKey }) {
           </div>
         </>
       )}
+
+      {pics.length > 0 && <AuditSection pics={pics} events={events} onPicClick={onPicClick} />}
     </div>
+  )
+}
+
+// ---- Audit: every PIC in a table, missing required fields highlighted ----
+function AuditSection({ pics, events, onPicClick }) {
+  const rows = useMemo(() => {
+    return [...pics]
+      .map((p) => ({ pic: p, mf: completenessFor(p).missingFields, incomplete: isIncomplete(p) }))
+      .sort((a, b) => {
+        if (a.incomplete !== b.incomplete) return a.incomplete ? -1 : 1
+        return (a.pic.number || 0) - (b.pic.number || 0)
+      })
+  }, [pics])
+
+  const incompleteCount = rows.filter((r) => r.incomplete).length
+
+  const miss = <span className="italic text-code-3">missing</span>
+  const inCare = <span className="text-ink-600">— in care —</span>
+
+  const cell = (content, highlight) => (
+    <td className={`px-3 py-2 align-top ${highlight ? 'bg-code-3/15' : ''}`}>{content}</td>
+  )
+
+  return (
+    <section className="mt-8">
+      <div className="flex items-baseline gap-3 mb-3">
+        <h3 className="text-lg font-display font-semibold">Audit</h3>
+        <span className="text-sm text-ink-500">
+          {incompleteCount === 0
+            ? 'all records complete'
+            : `${incompleteCount} of ${rows.length} incomplete · missing fields highlighted`}
+        </span>
+      </div>
+      <div className="panel overflow-x-auto">
+        <table className="w-full text-sm border-collapse">
+          <thead>
+            <tr className="text-left text-[10px] uppercase tracking-widest text-ink-500 border-b border-ink-800">
+              <th className="px-3 py-2 font-semibold">#</th>
+              <th className="px-3 py-2 font-semibold">Code</th>
+              <th className="px-3 py-2 font-semibold">Name / desc</th>
+              <th className="px-3 py-2 font-semibold">KPE</th>
+              <th className="px-3 py-2 font-semibold">Substances</th>
+              <th className="px-3 py-2 font-semibold">Presentations</th>
+              <th className="px-3 py-2 font-semibold">Outcome</th>
+              <th className="px-3 py-2 font-semibold">TL sign-off</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map(({ pic, mf }) => {
+              const code = currentCodeFor(pic.id, events)
+              const kpe = getAssignedKpe(pic)
+              const discharged = pic.status === 'discharged'
+              const subs = [
+                ...(pic.substances || []).filter((s) => s !== 'Other'),
+                ...(pic.substances?.includes('Other') && pic.substanceOther ? [pic.substanceOther] : []),
+              ]
+              const pres = [
+                ...(pic.presentations || []).filter((s) => s !== 'Other'),
+                ...(pic.presentations?.includes('Other') && pic.presentationOther ? [pic.presentationOther] : []),
+              ]
+              const subPresMissing = mf.has('substancesOrPresentations')
+              return (
+                <tr
+                  key={pic.id}
+                  onClick={() => onPicClick?.(pic.id)}
+                  className="border-b border-ink-800/60 last:border-0 cursor-pointer hover:bg-ink-800/40 whitespace-nowrap"
+                >
+                  {cell(<span className="tabular-nums font-display font-semibold">#{pic.number}</span>)}
+                  {cell(code ?? '—')}
+                  {cell(mf.has('identifier') ? miss : pic.name?.trim() || pic.description?.trim() || '—', mf.has('identifier'))}
+                  {cell(mf.has('assignedKpe') ? miss : kpe || '—', mf.has('assignedKpe'))}
+                  {cell(subPresMissing ? miss : subs.join(', ') || '—', subPresMissing)}
+                  {cell(subPresMissing ? miss : pres.join(', ') || '—', subPresMissing)}
+                  {cell(discharged ? (mf.has('outcome') ? miss : pic.outcome || '—') : inCare, discharged && mf.has('outcome'))}
+                  {cell(discharged ? (mf.has('tlSignoff') ? miss : pic.tlSignoff || '—') : inCare, discharged && mf.has('tlSignoff'))}
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+      <p className="text-xs text-ink-500 mt-2">Tap a row to open the record and fill the gaps.</p>
+    </section>
   )
 }
 
