@@ -23,6 +23,14 @@ export default function App() {
   const [openIntent, setOpenIntent] = useState(null)
   const [joined, setJoined] = useState(!SUPABASE_CONFIGURED || hasJoined())
   const [refreshing, setRefreshing] = useState(false)
+  const [toast, setToast] = useState(null) // { text, ok } | null
+
+  // Auto-dismiss the refresh confirmation.
+  useEffect(() => {
+    if (!toast) return
+    const t = setTimeout(() => setToast(null), 2200)
+    return () => clearTimeout(t)
+  }, [toast])
 
   const sessionRole = SUPABASE_CONFIGURED ? getSession().role : 'writer'
   const isViewer = sessionRole === 'viewer'
@@ -68,6 +76,7 @@ export default function App() {
     if (refreshing) return
     if (!SUPABASE_CONFIGURED) {
       refresh()
+      setToast({ text: 'Refreshed', ok: true })
       return
     }
     setRefreshing(true)
@@ -80,7 +89,16 @@ export default function App() {
         setJoined(false)
         return
       }
-      refresh()
+      if (result.ok) {
+        refresh()
+        setToast({ text: 'Refreshed — up to date', ok: true })
+      } else {
+        // Network/other error — data was NOT updated. Surface it rather than
+        // failing silently.
+        setToast({ text: "Couldn't refresh — check connection", ok: false })
+      }
+    } catch {
+      setToast({ text: "Couldn't refresh — check connection", ok: false })
     } finally {
       setRefreshing(false)
     }
@@ -183,6 +201,29 @@ export default function App() {
         }}
         onMutated={refresh}
       />
+
+      {toast && (
+        <div className="fixed inset-x-0 bottom-6 z-50 flex justify-center px-4 pointer-events-none">
+          <div
+            role="status"
+            className={`pointer-events-auto flex items-center gap-2 rounded-full pl-3 pr-4 py-2 text-sm font-display font-semibold shadow-lg border ${
+              toast.ok
+                ? 'bg-ink-800 border-ink-700 text-ink-100'
+                : 'bg-code-1/15 border-code-1/50 text-code-1'
+            }`}
+          >
+            <span
+              className={`inline-flex items-center justify-center w-5 h-5 rounded-full text-xs ${
+                toast.ok ? 'bg-code-5 text-white' : 'bg-code-1 text-white'
+              }`}
+              aria-hidden="true"
+            >
+              {toast.ok ? '✓' : '!'}
+            </span>
+            {toast.text}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
