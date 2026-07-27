@@ -28,8 +28,8 @@ export default {
           5: '#22c55e', // green — lowest severity
         },
         shift: {
-          1: '#14b8a6',
-          2: '#a855f7',
+          1: 'rgb(var(--shift-1) / <alpha-value>)',
+          2: 'rgb(var(--shift-2) / <alpha-value>)',
         },
       },
     },
