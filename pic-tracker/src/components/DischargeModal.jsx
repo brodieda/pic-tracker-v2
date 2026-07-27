@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { dischargePic, getAssignedKpe, nowIso, formatClock } from '../lib/helpers'
+import { dischargePic, getAssignedKpe, nowIso, formatClock, unassignedKpes } from '../lib/helpers'
+import { getPics } from '../lib/store'
 import { OUTCOMES, REFERRED_TO, REFERRED_TO_COLORS } from '../constants/options'
 import ChipGroup from './ChipGroup'
 import ShieldIcon from './ShieldIcon'
@@ -233,6 +234,7 @@ export default function DischargeModal({ open, pic, eventCfg, onClose, onDischar
                 currentKpe={lastKpe}
                 shift1Team={eventCfg?.shift1Team || []}
                 shift2Team={eventCfg?.shift2Team || []}
+                unassigned={unassignedKpes(getPics(), eventCfg)}
                 onSelect={setLastKpe}
                 onDone={() => setEditingLastKpe(false)}
               />

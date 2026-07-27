@@ -22,6 +22,7 @@ import {
   minutesSinceLastActivity,
   latestEventFor,
   setEjectionFlag,
+  unassignedKpes,
 } from '../lib/helpers'
 import { completenessFor } from '../lib/completeness'
 import {
@@ -63,9 +64,11 @@ export default function PicDetailPanel({ picId, onClose, onMutated, openIntent }
   const [editingTime, setEditingTime] = useState(false)
   const [dischargeOpen, setDischargeOpen] = useState(false)
   const [tick, setTick] = useState(0)
+  const [allPics, setAllPics] = useState([])
 
   const reload = () => {
     const all = getPics()
+    setAllPics(all)
     setPic(all.find((p) => p.id === picId) || null)
     setEvents(getEvents())
     setEventCfg(getEvent())
@@ -495,6 +498,7 @@ export default function PicDetailPanel({ picId, onClose, onMutated, openIntent }
               currentKpe={assignedKpe}
               shift1Team={eventCfg.shift1Team || []}
               shift2Team={eventCfg.shift2Team || []}
+              unassigned={unassignedKpes(allPics, eventCfg)}
               onSelect={onKpeChange}
               onDone={() => setEditingKpe(false)}
             />
@@ -734,6 +738,7 @@ export default function PicDetailPanel({ picId, onClose, onMutated, openIntent }
                     currentKpe={pic.lastKpe}
                     shift1Team={eventCfg.shift1Team || []}
                     shift2Team={eventCfg.shift2Team || []}
+                    unassigned={unassignedKpes(allPics, eventCfg)}
                     onSelect={(v) => updatePicAndReload({ lastKpe: v })}
                     onDone={done}
                   />

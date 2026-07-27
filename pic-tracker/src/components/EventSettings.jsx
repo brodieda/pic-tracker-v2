@@ -3,15 +3,18 @@ import { getEvent, saveEvent, getPics } from '../lib/store'
 import { getAssignedKpe } from '../lib/helpers'
 import RosterField from './RosterField'
 import { getStoredTheme, setTheme as applyAndStoreTheme, getStoredSize, setSize as applyAndStoreSize, resolveTheme } from '../lib/theme'
-import { updateCurrentEvent, updateCurrentEventTls } from '../lib/supabaseStore'
+import { updateCurrentEvent, updateCurrentEventTls, updateCurrentEventColors } from '../lib/supabaseStore'
 import { SUPABASE_CONFIGURED } from '../lib/supabaseClient'
 import { isWriter, updateCachedEventName } from '../lib/eventSession'
+import { TEAM_PALETTE, applyTeamColors } from '../lib/teamColors'
 
 export default function EventSettings({ onSaved }) {
   const [name, setName] = useState('')
   const [shift1, setShift1] = useState([])
   const [shift2, setShift2] = useState([])
   const [tls, setTls] = useState([])
+  const [shift1Color, setShift1Color] = useState(null)
+  const [shift2Color, setShift2Color] = useState(null)
   const [interval, setInterval] = useState(15)
   const [capacity, setCapacity] = useState('')
   const [savedAt, setSavedAt] = useState(null)
@@ -24,6 +27,8 @@ export default function EventSettings({ onSaved }) {
     setShift1(e.shift1Team || [])
     setShift2(e.shift2Team || [])
     setTls(e.tls || [])
+    setShift1Color(e.shift1Color || null)
+    setShift2Color(e.shift2Color || null)
     setInterval(e.code3CheckIntervalMinutes || 15)
     setCapacity(e.capacity == null ? '' : String(e.capacity))
     setPics(getPics() || [])
@@ -57,6 +62,16 @@ export default function EventSettings({ onSaved }) {
 
   const markDirty = () => setDirty(true)
 
+  // Pick a team colour: update state, live-preview immediately, mark dirty.
+  const pickColor = (team, hex) => {
+    const next1 = team === 1 ? hex : shift1Color
+    const next2 = team === 2 ? hex : shift2Color
+    if (team === 1) setShift1Color(hex)
+    else setShift2Color(hex)
+    applyTeamColors({ shift1Color: next1, shift2Color: next2 })
+    markDirty()
+  }
+
   // Toggle a name's Team Lead status.
   const toggleTl = (nameToToggle) => {
     setTls((prev) =>
@@ -81,18 +96,22 @@ export default function EventSettings({ onSaved }) {
       shift1Team: shift1,
       shift2Team: shift2,
       tls: cleanTls,
+      shift1Color: shift1Color || null,
+      shift2Color: shift2Color || null,
       code3CheckIntervalMinutes: Number(interval) || 15,
       capacity: capNumber && capNumber > 0 ? capNumber : null,
     }
     saveEvent(eventData)
     setTls(cleanTls)
+    applyTeamColors(eventData)
     setSavedAt(new Date())
     setDirty(false)
-    // Mirror to Supabase (writer-only, no-op otherwise). TLs mirror separately
-    // so a missing `tls` column can't block the rest of the settings.
+    // Mirror to Supabase (writer-only, no-op otherwise). TLs and colours mirror
+    // separately so a missing column can't block the rest of the settings.
     if (SUPABASE_CONFIGURED && isWriter()) {
       updateCurrentEvent(eventData).catch((e) => console.error('event mirror failed', e))
       updateCurrentEventTls(cleanTls).catch((e) => console.error('tls mirror failed', e))
+      updateCurrentEventColors(shift1Color, shift2Color).catch((e) => console.error('colour mirror failed', e))
       updateCachedEventName(eventData.name)
     }
     onSaved?.()
@@ -248,6 +267,51 @@ export default function EventSettings({ onSaved }) {
           </div>
         </section>
       )}
+
+      <section className="panel p-6 space-y-4">
+        <div>
+          <h3 className="font-display font-semibold text-lg">Team colours</h3>
+          <p className="text-xs text-ink-500 mt-1">
+            Recolours the KPE chips, roster and pickers everywhere. Synced to all devices.
+          </p>
+        </div>
+        {(() => {
+          const eff1 = shift1Color || '#14b8a6'
+          const eff2 = shift2Color || '#a855f7'
+          const teams = [
+            { team: 1, eff: eff1, other: eff2 },
+            { team: 2, eff: eff2, other: eff1 },
+          ]
+          return teams.map(({ team, eff, other }) => (
+            <div key={team}>
+              <div className="flex items-center gap-2 mb-2">
+                <span className="w-3.5 h-3.5 rounded-full" style={{ background: eff }} />
+                <span className="text-sm font-semibold">Team {team}</span>
+              </div>
+              <div className="flex flex-wrap gap-2.5">
+                {TEAM_PALETTE.map(({ hex, name: cname }) => {
+                  const selected = eff.toLowerCase() === hex.toLowerCase()
+                  const usedByOther = other.toLowerCase() === hex.toLowerCase()
+                  return (
+                    <button
+                      key={hex}
+                      type="button"
+                      disabled={usedByOther}
+                      onClick={() => pickColor(team, hex)}
+                      title={usedByOther ? `${cname} — used by the other team` : cname}
+                      aria-label={cname}
+                      className={`w-9 h-9 rounded-lg transition ${
+                        selected ? 'ring-2 ring-white ring-offset-2 ring-offset-ink-900' : ''
+                      } ${usedByOther ? 'opacity-25 cursor-not-allowed' : 'hover:scale-105'}`}
+                      style={{ background: hex }}
+                    />
+                  )
+                })}
+              </div>
+            </div>
+          ))
+        })()}
+      </section>
 
       <DisplaySection />
 

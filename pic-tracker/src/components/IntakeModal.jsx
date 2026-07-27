@@ -9,7 +9,7 @@ import {
   picIdFromNumber,
   nextEventId,
 } from '../lib/store'
-import { nowIso, formatClock } from '../lib/helpers'
+import { nowIso, formatClock, unassignedKpes } from '../lib/helpers'
 import { mirrorAdmit } from '../lib/dualWrite'
 import {
   REFERRED_BY,
@@ -83,9 +83,9 @@ export default function IntakeModal({ open, onClose, onCreated }) {
     }
   }, [open])
 
-  const allKpes = useMemo(
-    () => Array.from(new Set([...(eventCfg.shift1Team || []), ...(eventCfg.shift2Team || [])])),
-    [eventCfg],
+  const unassigned = useMemo(
+    () => (open ? unassignedKpes(getPics(), eventCfg) : []),
+    [open, eventCfg],
   )
 
   // Capacity check
@@ -351,6 +351,8 @@ export default function IntakeModal({ open, onClose, onCreated }) {
               currentKpe={form.intakeKpe}
               shift1Team={eventCfg.shift1Team || []}
               shift2Team={eventCfg.shift2Team || []}
+              unassigned={unassigned}
+              compact
               onSelect={(v) => update({ intakeKpe: v || '' })}
               emptyHint="No KPEs configured yet — add rosters in Settings."
             />
