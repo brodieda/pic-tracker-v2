@@ -19,6 +19,7 @@ import {
   getActivityForCurrentEvent,
 } from './supabaseStore'
 import { saveEvent, savePics, saveEvents, KEYS } from './store'
+import { applyTeamColors } from './teamColors'
 
 // Build a stable local id from a PIC number.
 function localIdFor(number) {
@@ -84,6 +85,8 @@ function eventToLocal(e) {
     shift1Team: e.shift1Team || [],
     shift2Team: e.shift2Team || [],
     tls: e.tls || [],
+    shift1Color: e.shift1Color || null,
+    shift2Color: e.shift2Color || null,
     code3CheckIntervalMinutes: e.code3CheckIntervalMinutes || 15,
     capacity: e.capacity,
   }
@@ -133,7 +136,11 @@ export async function initialSync() {
       return { ok: false, reason: 'session_invalid' }
     }
 
-    if (event) saveEvent(eventToLocal(event))
+    if (event) {
+      const localEvent = eventToLocal(event)
+      saveEvent(localEvent)
+      applyTeamColors(localEvent)
+    }
 
     const picUuidToNumber = new Map()
     for (const p of pics) picUuidToNumber.set(p.id, p.number)

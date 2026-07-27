@@ -252,6 +252,24 @@ export function getAssignedKpe(pic) {
   return pic.currentKpe || pic.intakeKpe || null
 }
 
+// KPE names used on PICs this event that aren't on either team roster.
+// De-duped, preserves first-seen order. Same rule as the Settings "Unassigned" box.
+export function unassignedKpes(pics, eventCfg) {
+  const rostered = new Set([...(eventCfg?.shift1Team || []), ...(eventCfg?.shift2Team || [])])
+  const seen = new Set()
+  const out = []
+  for (const p of pics || []) {
+    for (const nm of [getAssignedKpe(p), p.intakeKpe]) {
+      const clean = (nm || '').trim()
+      if (clean && !rostered.has(clean) && !seen.has(clean)) {
+        seen.add(clean)
+        out.push(clean)
+      }
+    }
+  }
+  return out
+}
+
 // Normalise referredBy to an array. Older records used a single string.
 export function normalizeReferredBy(pic) {
   if (!pic) return []

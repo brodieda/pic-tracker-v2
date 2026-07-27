@@ -13,6 +13,8 @@ const DEFAULT_EVENT = {
   shift1Team: [],
   shift2Team: [],
   tls: [], // names (across both teams) flagged as Team Leads
+  shift1Color: null, // hex, null = default (teal)
+  shift2Color: null, // hex, null = default (purple)
   code3CheckIntervalMinutes: 15,
   capacity: null, // null = unlimited
 }

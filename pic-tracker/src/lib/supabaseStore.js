@@ -24,6 +24,8 @@ function eventFromDb(row) {
     shift1Team: row.shift1_team || [],
     shift2Team: row.shift2_team || [],
     tls: row.tls || [],
+    shift1Color: row.shift1_color || null,
+    shift2Color: row.shift2_color || null,
     code3CheckIntervalMinutes: row.code3_check_interval_minutes,
     capacity: row.capacity,
     isActive: row.is_active,
@@ -301,6 +303,24 @@ export async function updateCurrentEventTls(tls) {
   if (error) {
     // Most likely the `tls` column doesn't exist yet — don't treat as fatal.
     console.warn('[supabaseStore] TL mirror skipped (is the tls column added?):', error.message)
+    return { ok: false }
+  }
+  return { ok: true }
+}
+
+// Mirror the team colours separately (defensive), same rationale as the TL
+// mirror above — a missing shift1_color / shift2_color column can't block the
+// rest of the settings save.
+export async function updateCurrentEventColors(shift1Color, shift2Color) {
+  if (!supabase) return null
+  const s = getSession()
+  if (!s.eventId || s.role !== 'writer') return null
+  const { error } = await supabase
+    .from('events')
+    .update({ shift1_color: shift1Color || null, shift2_color: shift2Color || null })
+    .eq('id', s.eventId)
+  if (error) {
+    console.warn('[supabaseStore] colour mirror skipped (are the shift colour columns added?):', error.message)
     return { ok: false }
   }
   return { ok: true }
