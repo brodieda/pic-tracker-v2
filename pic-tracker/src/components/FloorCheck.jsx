@@ -26,6 +26,9 @@ const GROUPS = [
   { tier: 2, label: 'OK', tone: 'text-ink-500', prefix: '' },
 ]
 
+const abbrevGender = (g) =>
+  g === 'Feminine' ? 'F' : g === 'Masculine' ? 'M' : g === 'Non-binary' ? 'NB' : g || ''
+
 function CodeSquare({ code }) {
   const cfg = CODES.find((c) => c.code === code)
   if (!cfg) {
@@ -135,13 +138,17 @@ export default function FloorCheck({ refreshKey, onPicClick }) {
                       <CodeSquare code={code} />
 
                       <div className="flex-1 min-w-0">
-                        <div className="font-display font-semibold text-ink-100 truncate">
-                          <span className="tabular-nums text-ink-400">#{pic.number}</span>{' '}
-                          {pic.name?.trim() || pic.description?.trim() || (
-                            <span className="text-ink-500 italic font-medium">no name</span>
-                          )}
-                          {pic.name?.trim() && pic.description?.trim() && (
-                            <span className="font-normal text-ink-500"> · {pic.description}</span>
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <span className="font-display font-semibold text-ink-100 truncate">
+                            <span className="tabular-nums text-ink-400">#{pic.number}</span>{' '}
+                            {pic.name?.trim() || pic.description?.trim() || (
+                              <span className="text-ink-500 italic font-medium">no name</span>
+                            )}
+                          </span>
+                          {(pic.gender || pic.ageRange) && (
+                            <span className="shrink-0 text-[10px] font-medium text-ink-400 bg-ink-800 border border-ink-700 rounded px-1.5 py-0.5 whitespace-nowrap leading-none">
+                              {[pic.gender ? abbrevGender(pic.gender) : null, pic.ageRange || null].filter(Boolean).join(' · ')}
+                            </span>
                           )}
                         </div>
                         <div className="flex items-center gap-1.5 text-xs text-ink-500 truncate">
@@ -152,6 +159,9 @@ export default function FloorCheck({ refreshKey, onPicClick }) {
                             </span>
                           ) : (
                             <span className="italic text-ink-600">no KPE</span>
+                          )}
+                          {pic.name?.trim() && pic.description?.trim() && (
+                            <span className="truncate">· {pic.description}</span>
                           )}
                           {mh && <span className="text-code-2 font-bold shrink-0" title="Has been Code 2">⚑</span>}
                           {pic.ejectionFlag && (
@@ -167,15 +177,19 @@ export default function FloorCheck({ refreshKey, onPicClick }) {
                           e.stopPropagation()
                           markChecked(pic)
                         }}
-                        className={`shrink-0 rounded-lg px-3 py-2 text-sm font-display font-bold transition ${
+                        title="Mark checked"
+                        aria-label="Mark checked"
+                        className={`shrink-0 w-9 h-9 rounded-full border-2 flex items-center justify-center transition ${
                           tier === 0
-                            ? 'bg-code-1 text-white hover:opacity-90'
+                            ? 'border-code-1 text-code-1 hover:bg-code-1 hover:text-white'
                             : tier === 1
-                            ? 'bg-code-3 text-ink-950 hover:opacity-90'
-                            : 'bg-ink-800 border border-ink-700 text-ink-200 hover:border-ink-500'
+                            ? 'border-code-3 text-code-3 hover:bg-code-3 hover:text-ink-950'
+                            : 'border-ink-600 text-ink-500 hover:border-ink-400 hover:text-ink-200'
                         }`}
                       >
-                        Check
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M20 6 9 17l-5-5" />
+                        </svg>
                       </button>
                     </div>
                   )

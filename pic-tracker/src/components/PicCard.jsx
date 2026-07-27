@@ -133,6 +133,7 @@ export default function PicCard({ pic, events, eventCfg, allPics, onClick, onMar
   if (pic.gender) demogParts.push(abbrevGender(pic.gender))
   if (pic.ageRange) demogParts.push(pic.ageRange)
   const demog = demogParts.join(' ')
+  const gaLabel = [pic.gender ? abbrevGender(pic.gender) : null, pic.ageRange || null].filter(Boolean).join(' · ')
 
   const showDescriptionInline = !!(pic.description && pic.name)
   const hasSubs = subsDisplay.length > 0
@@ -147,8 +148,8 @@ export default function PicCard({ pic, events, eventCfg, allPics, onClick, onMar
         <CodePill code={code} />
 
         <div className="flex-1 min-w-0">
-          {/* Line 1: #num · name · description · gender/age (+ MH/SEC) */}
-          <div className="flex items-baseline gap-x-2 gap-y-0.5 flex-wrap">
+          {/* Line 1: #num · name · gender/age (+ MH/SEC) */}
+          <div className="flex items-center gap-2 min-w-0">
             <span className="font-display font-black text-lg tabular-nums text-ink-100 shrink-0 leading-none">
               #{picNum}
             </span>
@@ -161,17 +162,17 @@ export default function PicCard({ pic, events, eventCfg, allPics, onClick, onMar
               </span>
             )}
             <h3
-              className={`font-display font-bold text-base leading-tight truncate max-w-full ${
+              className={`font-display font-bold text-base leading-tight truncate ${
                 !pic.name ? 'text-ink-400 italic font-medium' : 'text-ink-100'
               }`}
             >
               {displayName}
             </h3>
-            {showDescriptionInline && (
-              <span className="text-xs text-ink-400 italic truncate min-w-0">· {pic.description}</span>
+            {gaLabel && (
+              <span className="shrink-0 text-[10px] font-medium text-ink-400 bg-ink-800 border border-ink-700 rounded px-1.5 py-0.5 whitespace-nowrap leading-none">
+                {gaLabel}
+              </span>
             )}
-            {pic.gender && <span className="tag shrink-0">{abbrevGender(pic.gender)}</span>}
-            {pic.ageRange && <span className="tag shrink-0">{pic.ageRange}</span>}
             {everCode2 && !isDischarged && (
               <span className="text-code-2 shrink-0 leading-none" title="Has been Code 2 (mental health) this episode">
                 ⚑
@@ -186,6 +187,11 @@ export default function PicCard({ pic, events, eventCfg, allPics, onClick, onMar
               </span>
             )}
           </div>
+
+          {/* Line 2: description */}
+          {showDescriptionInline && (
+            <div className="text-xs text-ink-400 italic truncate mt-0.5">{pic.description}</div>
+          )}
 
           {/* Line 2: KPE · Ref by */}
           <div className="flex items-center gap-2 mt-1 text-xs flex-wrap">
