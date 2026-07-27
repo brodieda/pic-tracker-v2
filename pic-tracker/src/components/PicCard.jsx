@@ -142,12 +142,13 @@ export default function PicCard({ pic, events, eventCfg, allPics, onClick, onMar
   const workload = !isDischarged ? workloadFor(assignedKpe, allPics) : 0
 
   return (
-    <div className={`bg-ink-900 border rounded-xl transition group overflow-hidden ${borderClass} ${isDischarged ? 'opacity-75' : ''}`}>
-      <button onClick={onClick} className="w-full text-left px-3.5 py-2.5">
-        {/* Row 1: PIC# + name + description + gender/age | MH + code + time + (mark checked) */}
-        <div className="flex items-start gap-2.5">
-          <div className="flex-1 min-w-0 flex items-baseline gap-2 flex-wrap">
-            <span className="font-display font-black text-xl tabular-nums text-ink-100 shrink-0 leading-none">
+    <div className={`bg-ink-900 border rounded-xl transition ${borderClass} ${isDischarged ? 'opacity-75' : ''}`}>
+      <button onClick={onClick} className="w-full text-left px-3 py-2.5 flex items-center gap-3">
+        <CodePill code={code} />
+
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span className="font-display font-black text-lg tabular-nums text-ink-100 shrink-0 leading-none">
               #{picNum}
             </span>
             {!complete && (
@@ -159,179 +160,42 @@ export default function PicCard({ pic, events, eventCfg, allPics, onClick, onMar
               </span>
             )}
             <h3
-              className={`font-display font-bold text-base leading-tight truncate max-w-full ${
+              className={`font-display font-bold text-base leading-tight truncate ${
                 !pic.name ? 'text-ink-400 italic font-medium' : 'text-ink-100'
               }`}
             >
               {displayName}
             </h3>
-            {showDescriptionInline && (
-              <span className="text-xs text-ink-400 italic truncate min-w-0">
-                · {pic.description}
-              </span>
-            )}
-            {pic.gender && (
-              <span className="tag shrink-0">{abbrevGender(pic.gender)}</span>
-            )}
-            {pic.ageRange && (
-              <span className="tag shrink-0">{pic.ageRange}</span>
-            )}
-          </div>
-
-          {/* Right cluster: INTAKE (if remotely admitted) + SEC + MH (if ever) + code pill + time stack with optional mark-checked button */}
-          <div className="flex items-start gap-2 shrink-0">
-            {pic.source === 'intake_only' && (
-              <span
-                className={`inline-flex items-center gap-1 text-[10px] font-display font-bold uppercase tracking-widest px-1.5 h-7 rounded-md shrink-0 border ${
-                  isDischarged
-                    ? 'bg-amber-500/10 border-amber-500/30 text-amber-500/60'
-                    : 'bg-amber-500/20 border-amber-500/60 text-amber-400'
-                }`}
-                title="Admitted remotely via intake-only code"
-              >
-                INTAKE
-              </span>
-            )}
             {everCode2 && !isDischarged && (
-              <span
-                className="inline-flex items-center gap-1 bg-code-2/15 border border-code-2/50 text-code-2 text-[10px] font-display font-bold uppercase tracking-widest px-1.5 h-7 rounded-md shrink-0"
-                title="Has been Code 2 (mental health) at some point this episode"
-              >
-                ⚑ MH
+              <span className="text-code-2 shrink-0 leading-none" title="Has been Code 2 (mental health) this episode">
+                ⚑
               </span>
             )}
             {pic.ejectionFlag && (
               <span
-                className={`inline-flex items-center gap-1 text-[10px] font-display font-bold uppercase tracking-widest px-1.5 h-7 rounded-md shrink-0 border ${
-                  !isDischarged
-                    ? 'secflag-on'
-                    : pic.securityNotified === true
-                    ? 'bg-code-5/15 border-code-5/50 text-code-5'
-                    : pic.securityNotified === false
-                    ? 'bg-code-1/15 border-code-1/50 text-code-1'
-                    : 'bg-ink-800 border-ink-700 text-ink-400'
-                }`}
-                title={
-                  !isDischarged
-                    ? 'Security Flag — RSA/Security to be notified before discharge'
-                    : pic.securityNotified === true
-                    ? 'Security Flag — Security notified at discharge'
-                    : pic.securityNotified === false
-                    ? 'Security Flag — Security NOT notified at discharge'
-                    : 'Security Flag — notification status not recorded'
-                }
+                className="secflag-on inline-flex items-center rounded px-1 py-0.5 shrink-0"
+                title="Security Flag — RSA/Security to be notified before discharge"
               >
-                <ShieldIcon className="w-3 h-3" /> SEC
+                <ShieldIcon className="w-3 h-3" />
               </span>
             )}
-            <CodePill code={code} />
-            <div className="flex flex-col items-end gap-1.5 shrink-0">
-              <span className={`text-sm font-display font-semibold tabular-nums whitespace-nowrap leading-none pt-1.5 ${timeColor}`}>
-                {isDischarged ? (
-                  <>
-                    <span className="text-ink-500">in</span> {formatClock(pic.enteredCare)}
-                    <span className="text-ink-600 mx-1">→</span>
-                    <span className="text-ink-500">out</span> {formatClock(pic.leftCare)}
-                  </>
-                ) : (
-                  <>
-                    {formatClock(pic.enteredCare)}
-                    <span className={timeColor === 'text-ink-400' ? 'text-ink-500' : 'opacity-80'}>
-                      {' '}· {formatElapsed(elapsed)}
-                    </span>
-                  </>
-                )}
-              </span>
-              {showCheckButton && onMarkChecked && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    onMarkChecked(pic)
-                  }}
-                  className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-widest border transition shadow ${
-                    monitorState === 'overdue'
-                      ? 'bg-code-1 border-code-1 text-white hover:opacity-90'
-                      : 'bg-code-3 border-code-3 text-ink-950 hover:opacity-90'
-                  }`}
-                >
-                  Mark checked
-                </button>
-              )}
-            </div>
+          </div>
+
+          <div className="flex items-center gap-1.5 mt-1 text-xs min-w-0">
+            {assignedKpe ? (
+              <>
+                <span className={`w-2 h-2 rounded-full shrink-0 ${shiftClass}`} />
+                <span className="text-ink-300 truncate">{assignedKpe}</span>
+              </>
+            ) : (
+              <span className="text-ink-600 italic">Unassigned</span>
+            )}
           </div>
         </div>
 
-        {/* Row 2: KPE + Ref by (in-care)  OR  Outcome + Medical + Ref to (discharged) */}
-        {(assignedKpe != null || hasRefBy ||
-          (isDischarged && (outcomeDisplay || referredToDisplay.length > 0 || pic.medicalInvolved === true))) && (
-          <div className="mt-1.5 flex items-baseline gap-2 flex-wrap text-xs leading-snug">
-            <KpePill
-              assignedKpe={assignedKpe}
-              shiftClass={shiftClass}
-              workload={workload}
-              onTap={() => onTapKpe?.(pic)}
-            />
-
-            {/* In-care: ref-by only (subs and pres available in detail panel) */}
-            {!isDischarged && hasRefBy && (
-              <>
-                <span className="text-ink-700">·</span>
-                <span className="inline-flex items-center gap-1 flex-wrap">
-                  <span className="text-[10px] tracking-[0.18em] uppercase text-ink-500 mr-1">
-                    Ref by
-                  </span>
-                  {referredByDisplay.map((v, i) => (
-                    <span key={i} className={referralTagClass(v) || 'tag'}>{v}</span>
-                  ))}
-                </span>
-              </>
-            )}
-
-            {/* Discharged: outcome + medical + ref-to */}
-            {isDischarged && outcomeDisplay && (
-              <>
-                <span className="text-ink-700">·</span>
-                <span className="inline-flex items-center gap-1">
-                  <span className="text-[10px] tracking-[0.18em] uppercase text-ink-500 mr-1">
-                    Out
-                  </span>
-                  <span className="tag">{outcomeDisplay}</span>
-                </span>
-              </>
-            )}
-            {isDischarged && pic.medicalInvolved === true && (
-              <>
-                <span className="text-ink-700">·</span>
-                <span className="text-[10px] bg-code-1/20 border border-code-1/40 text-code-1 rounded px-1.5 py-0.5 font-bold uppercase tracking-widest shrink-0">
-                  Medical
-                </span>
-              </>
-            )}
-            {isDischarged && referredToDisplay.length > 0 && (
-              <>
-                <span className="text-ink-700">·</span>
-                <span className="inline-flex items-center gap-1 flex-wrap">
-                  <span className="text-[10px] tracking-[0.18em] uppercase text-ink-500 mr-1">
-                    Ref to
-                  </span>
-                  {referredToDisplay.map((v, i) => (
-                    <span key={i} className={referralTagClass(v) || 'tag'}>{v}</span>
-                  ))}
-                </span>
-              </>
-            )}
-          </div>
-        )}
-
-        {/* Per-card missing-info prompt */}
-        {!complete && missing.length > 0 && (
-          <div className="mt-1.5 text-xs text-code-3 leading-snug">
-            <span className="text-[10px] tracking-[0.18em] uppercase text-code-3/80 mr-1.5">
-              Missing
-            </span>
-            {missing.join(', ')}
-          </div>
-        )}
+        <span className={`text-sm font-display font-semibold tabular-nums whitespace-nowrap shrink-0 ${timeColor}`}>
+          {formatElapsed(elapsed)}
+        </span>
       </button>
     </div>
   )

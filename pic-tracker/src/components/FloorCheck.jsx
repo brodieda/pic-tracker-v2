@@ -140,6 +140,9 @@ export default function FloorCheck({ refreshKey, onPicClick }) {
                           {pic.name?.trim() || pic.description?.trim() || (
                             <span className="text-ink-500 italic font-medium">no name</span>
                           )}
+                          {pic.name?.trim() && pic.description?.trim() && (
+                            <span className="font-normal text-ink-500"> · {pic.description}</span>
+                          )}
                         </div>
                         <div className="flex items-center gap-1.5 text-xs text-ink-500 truncate">
                           {kpe ? (
