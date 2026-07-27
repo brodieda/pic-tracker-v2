@@ -18,6 +18,11 @@
 :root {
   --base-font-size: 19px;
 
+  /* Team colours (customisable in Settings). "R G B" triplets consumed by
+     Tailwind's shift-1 / shift-2 colours. Defaults: teal / purple. */
+  --shift-1: 20 184 166;
+  --shift-2: 168 85 247;
+
   /* Dark theme defaults — RGB triplets so Tailwind /N opacity modifiers work */
   --ink-950: 10 12 16;       /* #0a0c10 */
   --ink-900: 17 20 26;       /* #11141a */
