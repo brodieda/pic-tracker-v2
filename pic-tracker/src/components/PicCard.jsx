@@ -143,11 +143,12 @@ export default function PicCard({ pic, events, eventCfg, allPics, onClick, onMar
 
   return (
     <div className={`bg-ink-900 border rounded-xl transition ${borderClass} ${isDischarged ? 'opacity-75' : ''}`}>
-      <button onClick={onClick} className="w-full text-left px-3 py-2.5 flex items-center gap-3">
+      <button onClick={onClick} className="w-full text-left px-3 py-2.5 flex items-start gap-3">
         <CodePill code={code} />
 
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5 min-w-0">
+          {/* Line 1: #num · name · description · gender/age (+ MH/SEC) */}
+          <div className="flex items-baseline gap-x-2 gap-y-0.5 flex-wrap">
             <span className="font-display font-black text-lg tabular-nums text-ink-100 shrink-0 leading-none">
               #{picNum}
             </span>
@@ -160,12 +161,17 @@ export default function PicCard({ pic, events, eventCfg, allPics, onClick, onMar
               </span>
             )}
             <h3
-              className={`font-display font-bold text-base leading-tight truncate ${
+              className={`font-display font-bold text-base leading-tight truncate max-w-full ${
                 !pic.name ? 'text-ink-400 italic font-medium' : 'text-ink-100'
               }`}
             >
               {displayName}
             </h3>
+            {showDescriptionInline && (
+              <span className="text-xs text-ink-400 italic truncate min-w-0">· {pic.description}</span>
+            )}
+            {pic.gender && <span className="tag shrink-0">{abbrevGender(pic.gender)}</span>}
+            {pic.ageRange && <span className="tag shrink-0">{pic.ageRange}</span>}
             {everCode2 && !isDischarged && (
               <span className="text-code-2 shrink-0 leading-none" title="Has been Code 2 (mental health) this episode">
                 ⚑
@@ -181,14 +187,28 @@ export default function PicCard({ pic, events, eventCfg, allPics, onClick, onMar
             )}
           </div>
 
-          <div className="flex items-center gap-1.5 mt-1 text-xs min-w-0">
+          {/* Line 2: KPE · Ref by */}
+          <div className="flex items-center gap-2 mt-1 text-xs flex-wrap">
             {assignedKpe ? (
-              <>
+              <span className="inline-flex items-center gap-1.5">
                 <span className={`w-2 h-2 rounded-full shrink-0 ${shiftClass}`} />
-                <span className="text-ink-300 truncate">{assignedKpe}</span>
-              </>
+                <span className="text-ink-300">{assignedKpe}</span>
+              </span>
             ) : (
               <span className="text-ink-600 italic">Unassigned</span>
+            )}
+            {hasRefBy && (
+              <>
+                <span className="text-ink-700">·</span>
+                <span className="inline-flex items-center gap-1 flex-wrap">
+                  <span className="text-[10px] tracking-[0.18em] uppercase text-ink-500 mr-0.5">Ref by</span>
+                  {referredByDisplay.map((v, i) => (
+                    <span key={i} className={referralTagClass(v) || 'tag'}>
+                      {v}
+                    </span>
+                  ))}
+                </span>
+              </>
             )}
           </div>
         </div>

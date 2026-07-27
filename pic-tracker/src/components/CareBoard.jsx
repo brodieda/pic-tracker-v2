@@ -301,23 +301,8 @@ function DischargedRow({ pic, eventCfg, allPics, onClick }) {
         )}
       </div>
 
-      {/* Middle: KPE + medical icon */}
+      {/* Middle: medical + security icons (KPE hidden on discharged rows) */}
       <div className="flex items-center gap-2 shrink-0">
-        {assignedKpe && (
-          <span
-            className={`inline-flex items-center gap-1.5 ${shiftClass} text-white text-[11px] font-semibold px-2 py-0.5 rounded-full`}
-          >
-            {assignedKpe}
-            {workload > 0 && (
-              <span className="flex items-center gap-0.5">
-                {Array.from({ length: Math.min(workload, 3) }).map((_, i) => (
-                  <span key={i} className="w-1 h-1 rounded-full bg-white/85" />
-                ))}
-                {workload > 3 && <span className="text-[10px] font-bold leading-none ml-0.5">+</span>}
-              </span>
-            )}
-          </span>
-        )}
         {pic.medicalInvolved === true && (
           <span
             className="text-code-1 text-base leading-none"
@@ -349,13 +334,13 @@ function DischargedRow({ pic, eventCfg, allPics, onClick }) {
       </div>
 
       {/* Right: outcome + duration */}
-      <div className="flex items-center gap-3 shrink-0">
+      <div className="flex items-center gap-2 shrink-0">
         {outcomeDisplay ? (
           <span className="tag">{outcomeDisplay}</span>
         ) : (
           <span className="text-xs text-ink-600 italic">no outcome</span>
         )}
-        <span className="font-display tabular-nums text-ink-400 text-xs w-16 text-right">
+        <span className="font-display tabular-nums text-ink-400 text-xs whitespace-nowrap">
           {formatElapsed(duration)}
         </span>
       </div>
