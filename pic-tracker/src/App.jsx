@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { createPortal } from 'react-dom'
 import EventSettings from './components/EventSettings'
 import CareBoard from './components/CareBoard'
 import FloorCheck from './components/FloorCheck'
@@ -25,6 +26,7 @@ export default function App() {
   const [openIntent, setOpenIntent] = useState(null)
   const [joined, setJoined] = useState(!SUPABASE_CONFIGURED || hasJoined())
   const [refreshing, setRefreshing] = useState(false)
+  const [drawerOpen, setDrawerOpen] = useState(false)
   const [toast, setToast] = useState(null) // { text, ok } | null
   const [lastSyncAt, setLastSyncAt] = useState(null)
   const [online, setOnline] = useState(typeof navigator === 'undefined' ? true : navigator.onLine)
@@ -183,28 +185,45 @@ export default function App() {
   return (
     <div className="min-h-full">
       <header className="sticky top-0 z-30 bg-ink-950/85 backdrop-blur border-b border-ink-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-2 sm:py-0 sm:h-14 flex flex-wrap sm:flex-nowrap items-center gap-x-4 gap-y-2">
-          <div className="flex items-baseline gap-2 mr-1 sm:mr-3 order-1">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-14 flex items-center gap-3 sm:gap-4">
+          {/* Hamburger — mobile only */}
+          <button
+            className="sm:hidden inline-flex items-center justify-center w-9 h-9 rounded-md bg-ink-800 border border-ink-700 text-ink-200 shrink-0"
+            onClick={() => setDrawerOpen(true)}
+            aria-label="Menu"
+          >
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <path d="M3 6h18M3 12h18M3 18h18" />
+            </svg>
+          </button>
+
+          <div className="flex items-baseline gap-2 mr-1 sm:mr-3">
             <span className="font-display font-bold text-lg tracking-tight">PIC</span>
             <span className="font-display font-bold text-lg tracking-tight text-ink-400">tracker</span>
           </div>
-          <nav className="order-last sm:order-2 w-full sm:w-auto flex gap-1 overflow-x-auto">
+
+          {/* Nav — desktop only (mobile lives in the drawer) */}
+          <nav className="hidden sm:flex gap-1">
             <NavButton active={view === 'board'} onClick={() => setView('board')}>Board</NavButton>
             <NavButton active={view === 'floor'} onClick={() => setView('floor')}>Floor</NavButton>
             <NavButton active={view === 'dashboard'} onClick={() => setView('dashboard')}>Dashboard</NavButton>
             <NavButton active={view === 'reports'} onClick={() => setView('reports')}>Reports</NavButton>
             <NavButton active={view === 'settings'} onClick={() => setView('settings')}>Settings</NavButton>
           </nav>
-          <div className="order-2 sm:order-3 ml-auto flex items-center gap-2">
-            {isViewer && (
-              <span className="text-[10px] font-display font-bold uppercase tracking-widest px-2 py-1 rounded bg-shift-2/15 text-shift-2 border border-shift-2/40">
-                Read only
-              </span>
-            )}
-            {SUPABASE_CONFIGURED && (
-              <CodesBadge onLeave={() => setJoined(false)} />
-            )}
-            {SUPABASE_CONFIGURED && <ActorNameBadge />}
+
+          <div className="ml-auto flex items-center gap-2">
+            {/* Desktop-only session chips */}
+            <div className="hidden sm:flex items-center gap-2">
+              {isViewer && (
+                <span className="text-[10px] font-display font-bold uppercase tracking-widest px-2 py-1 rounded bg-shift-2/15 text-shift-2 border border-shift-2/40">
+                  Read only
+                </span>
+              )}
+              {SUPABASE_CONFIGURED && <CodesBadge onLeave={() => setJoined(false)} />}
+              {SUPABASE_CONFIGURED && <ActorNameBadge />}
+            </div>
+
+            {/* Connection dot — always visible */}
             {SUPABASE_CONFIGURED && (
               <span
                 className="inline-flex items-center gap-1.5 pl-1"
@@ -230,6 +249,8 @@ export default function App() {
                 </span>
               </span>
             )}
+
+            {/* Refresh — always visible */}
             {SUPABASE_CONFIGURED && (
               <button
                 onClick={forceRefresh}
@@ -238,27 +259,86 @@ export default function App() {
                 aria-label="Refresh data"
                 className="inline-flex items-center justify-center w-9 h-9 rounded-md bg-ink-800 border border-ink-700 hover:border-ink-500 text-ink-300 hover:text-ink-100 transition disabled:opacity-50"
               >
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`}
-                >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`}>
                   <path d="M21 12a9 9 0 1 1-2.64-6.36" />
                   <path d="M21 3v6h-6" />
                 </svg>
               </button>
             )}
-            <ThemeToggle />
-            <span className="text-xs text-ink-500 font-display tracking-wider hidden sm:inline">
-              v0.6
-            </span>
+
+            {/* Desktop-only theme + version */}
+            <div className="hidden sm:flex items-center gap-2">
+              <ThemeToggle />
+              <span className="text-xs text-ink-500 font-display tracking-wider">v0.6</span>
+            </div>
           </div>
         </div>
       </header>
+
+      {/* Mobile drawer — everything that used to crowd the top */}
+      {drawerOpen &&
+        createPortal(
+          <div className="sm:hidden fixed inset-0 z-50">
+            <div className="absolute inset-0 bg-ink-950/60" onClick={() => setDrawerOpen(false)} />
+            <div className="absolute inset-y-0 left-0 w-72 max-w-[82%] bg-ink-900 border-r border-ink-800 shadow-2xl flex flex-col p-4 gap-5 overflow-y-auto">
+              <div className="flex items-center justify-between">
+                <div className="flex items-baseline gap-2">
+                  <span className="font-display font-bold text-lg tracking-tight">PIC</span>
+                  <span className="font-display font-bold text-lg tracking-tight text-ink-400">tracker</span>
+                </div>
+                <button
+                  onClick={() => setDrawerOpen(false)}
+                  className="w-8 h-8 inline-flex items-center justify-center rounded-md text-ink-400 hover:text-ink-100 hover:bg-ink-800"
+                  aria-label="Close menu"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {SUPABASE_CONFIGURED && (
+                <div className="space-y-2">
+                  <div className="text-[10px] font-display tracking-[0.22em] uppercase text-ink-500">Session</div>
+                  <CodesBadge onLeave={() => { setDrawerOpen(false); setJoined(false) }} />
+                  <ActorNameBadge />
+                  {isViewer && (
+                    <span className="inline-block text-[10px] font-display font-bold uppercase tracking-widest px-2 py-1 rounded bg-shift-2/15 text-shift-2 border border-shift-2/40">
+                      Read only
+                    </span>
+                  )}
+                </div>
+              )}
+
+              <div>
+                <div className="text-[10px] font-display tracking-[0.22em] uppercase text-ink-500 mb-1.5">Go to</div>
+                <div className="space-y-1">
+                  {[
+                    ['board', 'Board'],
+                    ['floor', 'Floor'],
+                    ['dashboard', 'Dashboard'],
+                    ['reports', 'Reports'],
+                    ['settings', 'Settings'],
+                  ].map(([v, label]) => (
+                    <button
+                      key={v}
+                      onClick={() => { setView(v); setDrawerOpen(false) }}
+                      className={`w-full text-left px-3 py-2.5 rounded-lg font-display font-semibold transition ${
+                        view === v ? 'bg-ink-100 text-ink-950' : 'text-ink-200 hover:bg-ink-800'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="mt-auto flex items-center gap-3 pt-3 border-t border-ink-800 text-ink-400">
+                <ThemeToggle />
+                <span className="text-xs font-display tracking-wider">v0.6</span>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
 
       {view === 'board' && (
         <CareBoard
