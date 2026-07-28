@@ -23,7 +23,6 @@ import {
   latestEventFor,
   setEjectionFlag,
   unassignedKpes,
-  setFriendsOkFlag,
   addFriend,
   setFriendInside,
   removeFriend,
@@ -71,6 +70,7 @@ export default function PicDetailPanel({ picId, onClose, onMutated, openIntent, 
   const [tick, setTick] = useState(0)
   const [allPics, setAllPics] = useState([])
   const [friendDraft, setFriendDraft] = useState('')
+  const [addingFriend, setAddingFriend] = useState(false)
 
   const reload = () => {
     const all = getPics()
@@ -205,15 +205,11 @@ export default function PicDetailPanel({ picId, onClose, onMutated, openIntent, 
 
   // ---------- Friends ----------
 
-  const onToggleFriendsOk = () => {
-    setFriendsOkFlag(pic.id, !pic.friendsOk, assignedKpe)
-    afterMutation()
-  }
-
   const onAddFriend = () => {
     if (!friendDraft.trim()) return
     addFriend(pic.id, friendDraft.trim(), assignedKpe)
     setFriendDraft('')
+    setAddingFriend(false)
     afterMutation()
   }
 
@@ -676,38 +672,29 @@ export default function PicDetailPanel({ picId, onClose, onMutated, openIntent, 
           )}
         />
 
-        {/* Friends / visitors */}
+        {/* Friends / visitors — always available, no consent gate; staff still verify with the PIC before disclosing to anyone at the desk */}
         <div className="panel p-4 space-y-3 border border-ink-700">
           <div className="flex items-center justify-between gap-3">
             <div className="text-[10px] font-display tracking-[0.22em] uppercase text-ink-400">
-              Friends / visitors
+              Friends {(pic.friends || []).length > 0 && `(${(pic.friends || []).length})`}
             </div>
-            <button
-              onClick={onToggleFriendsOk}
-              role="switch"
-              aria-checked={!!pic.friendsOk}
-              className={`relative inline-flex items-center h-6 w-11 rounded-full transition shrink-0 ${
-                pic.friendsOk ? 'bg-code-5' : 'bg-ink-700'
-              }`}
-              title="If a friend asks for them at the desk, can we say they're here?"
-            >
-              <span
-                className={`inline-block w-4 h-4 bg-white rounded-full shadow transform transition ${
-                  pic.friendsOk ? 'translate-x-6' : 'translate-x-1'
-                }`}
-              />
-            </button>
+            {!addingFriend && (
+              <button
+                onClick={() => setAddingFriend(true)}
+                className="text-[11px] font-display font-semibold uppercase tracking-wide text-ink-400 hover:text-ink-100 shrink-0"
+              >
+                + Friend
+              </button>
+            )}
           </div>
-          <p className="text-xs text-ink-500 -mt-1">
-            Okay with friends/visitors? Off by default — this PIC is private until switched on.
-          </p>
 
-          {pic.friendsOk && (
-            <div className="space-y-2 pt-1 border-t border-ink-800">
-              {(pic.friends || []).length === 0 && (
-                <p className="text-xs text-ink-500 italic">No friends logged yet.</p>
-              )}
-              {(pic.friends || []).map((f) => (
+          {(pic.friends || []).length === 0 && !addingFriend && (
+            <p className="text-xs text-ink-500 italic">No friends logged yet.</p>
+          )}
+
+          {(pic.friends || []).length > 0 && (
+            <div className="space-y-2">
+              {pic.friends.map((f) => (
                 <div
                   key={f.id}
                   className="flex items-center gap-2 text-sm bg-ink-950 border border-ink-800 rounded-lg px-2.5 py-1.5"
@@ -738,20 +725,37 @@ export default function PicDetailPanel({ picId, onClose, onMutated, openIntent, 
                   </button>
                 </div>
               ))}
-              <div className="flex items-center gap-2 pt-1">
-                <input
-                  className="input flex-1 text-sm"
-                  placeholder="Friend's name"
-                  value={friendDraft}
-                  onChange={(e) => setFriendDraft(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') onAddFriend()
-                  }}
-                />
-                <button onClick={onAddFriend} className="btn-ghost text-sm px-3 py-1.5">
-                  + Add
-                </button>
-              </div>
+            </div>
+          )}
+
+          {addingFriend && (
+            <div className="flex items-center gap-2 pt-1">
+              <input
+                className="input flex-1 text-sm"
+                placeholder="Friend's name"
+                autoFocus
+                value={friendDraft}
+                onChange={(e) => setFriendDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') onAddFriend()
+                  if (e.key === 'Escape') {
+                    setAddingFriend(false)
+                    setFriendDraft('')
+                  }
+                }}
+              />
+              <button onClick={onAddFriend} className="btn-ghost text-sm px-3 py-1.5">
+                Add
+              </button>
+              <button
+                onClick={() => {
+                  setAddingFriend(false)
+                  setFriendDraft('')
+                }}
+                className="text-ink-500 hover:text-ink-200 text-sm px-1"
+              >
+                ✕
+              </button>
             </div>
           )}
 

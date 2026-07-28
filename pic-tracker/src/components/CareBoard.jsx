@@ -159,9 +159,11 @@ export default function CareBoard({ refreshKey, onAddPic, onPicClick, onPicTapKp
   const nearCapacity =
     capacity != null && !atCapacity && spacesRemaining <= CAPACITY_WARNING_THRESHOLD
 
-  let capacityTone = 'border-ink-700 text-ink-300 bg-ink-900'
-  if (atCapacity) capacityTone = 'border-code-1 text-code-1 bg-code-1/10'
-  else if (nearCapacity) capacityTone = 'border-code-3 text-code-3 bg-code-3/10'
+  const picsBarPct = capacity > 0 ? Math.min(100, (inCareCount / capacity) * 100) : 0
+  const friendsBarPct =
+    capacity > 0 ? Math.min(100 - picsBarPct, (friendsCount / capacity) * 100) : 0
+  const barColor = atCapacity ? 'bg-code-1' : nearCapacity ? 'bg-code-3' : 'bg-code-5'
+  const capacityTextTone = atCapacity ? 'text-code-1' : nearCapacity ? 'text-code-3' : 'text-ink-200'
 
   return (
     <div className="px-4 sm:px-6 py-6 max-w-7xl mx-auto">
@@ -172,7 +174,7 @@ export default function CareBoard({ refreshKey, onAddPic, onPicClick, onPicTapKp
             {eventCfg.name || 'Untitled event'}
           </h2>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           <div className="inline-flex bg-ink-800 rounded-lg p-0.5 shrink-0">
             {['cards', 'table'].map((v) => (
               <button
@@ -190,19 +192,39 @@ export default function CareBoard({ refreshKey, onAddPic, onPicClick, onPicTapKp
             ))}
           </div>
           {capacity != null && (
-            <div
-              className={`px-3 py-2 rounded-lg border font-display tabular-nums text-sm font-semibold ${capacityTone}`}
-              title={countFriends ? `${inCareCount} PICs · ${friendsCount} friends · ${spacesRemaining} free` : undefined}
-            >
-              <span className="text-lg">{occupied}</span>
-              <span className="opacity-60"> / {capacity}</span>
-              <span className="ml-2 text-[10px] uppercase tracking-widest opacity-70">
-                {atCapacity ? 'full' : `${spacesRemaining} ${spacesRemaining === 1 ? 'space' : 'spaces'} free`}
-              </span>
-              {countFriends && (
-                <span className="ml-2 text-[10px] normal-case tracking-normal opacity-60">
-                  ({inCareCount} PICs · {friendsCount} friends)
+            <div className="flex flex-col gap-1 w-48 shrink-0">
+              <div className="flex items-baseline justify-between">
+                <span className={`font-display font-bold text-sm tabular-nums ${capacityTextTone}`}>
+                  {occupied}
+                  <span className="opacity-50 font-medium"> / {capacity}</span>
                 </span>
+                <span className="text-[10px] uppercase tracking-widest text-ink-500">
+                  {atCapacity ? 'full' : `${spacesRemaining} ${spacesRemaining === 1 ? 'space' : 'spaces'} free`}
+                </span>
+              </div>
+              <div className="relative h-2.5 rounded-full bg-ink-800 overflow-hidden">
+                <div
+                  className={`absolute inset-y-0 left-0 ${barColor} transition-all`}
+                  style={{ width: `${picsBarPct}%` }}
+                />
+                {countFriends && friendsCount > 0 && (
+                  <div
+                    className="absolute inset-y-0 bg-violet-500/80 transition-all"
+                    style={{ left: `${picsBarPct}%`, width: `${friendsBarPct}%` }}
+                  />
+                )}
+              </div>
+              {countFriends && (
+                <div className="flex items-center gap-2 text-[10px] text-ink-500">
+                  <span className="inline-flex items-center gap-1">
+                    <span className={`w-1.5 h-1.5 rounded-full ${barColor}`} /> {inCareCount} PICs
+                  </span>
+                  {friendsCount > 0 && (
+                    <span className="inline-flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-violet-500" /> {friendsCount} friends
+                    </span>
+                  )}
+                </div>
               )}
             </div>
           )}

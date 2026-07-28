@@ -186,19 +186,13 @@ export default function PicCard({ pic, events, eventCfg, allPics, onClick, onMar
                 <ShieldIcon className="w-3 h-3" />
               </span>
             )}
-            {pic.friendsOk && (
+            {(pic.friends || []).length > 0 && (
               <span
                 className="inline-flex items-center gap-0.5 rounded px-1 py-0.5 shrink-0 text-[10px] font-display font-bold bg-ink-800 text-ink-300 border border-ink-700 leading-none"
-                title={`Okay to disclose to friends/visitors${
-                  (pic.friends || []).length
-                    ? ` — ${(pic.friends || []).filter((f) => f.inside).length} inside`
-                    : ''
-                }`}
+                title={`${pic.friends.length} friend${pic.friends.length === 1 ? '' : 's'} logged — ${pic.friends.filter((f) => f.inside).length} inside`}
               >
                 <span>👥</span>
-                {(pic.friends || []).filter((f) => f.inside).length > 0 && (
-                  <span>{(pic.friends || []).filter((f) => f.inside).length}</span>
-                )}
+                <span>{pic.friends.filter((f) => f.inside).length}</span>
               </span>
             )}
           </div>
