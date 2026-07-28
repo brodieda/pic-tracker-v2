@@ -186,15 +186,6 @@ export default function PicCard({ pic, events, eventCfg, allPics, onClick, onMar
                 <ShieldIcon className="w-3 h-3" />
               </span>
             )}
-            {(pic.friends || []).length > 0 && (
-              <span
-                className="inline-flex items-center gap-0.5 rounded px-1 py-0.5 shrink-0 text-[10px] font-display font-bold bg-ink-800 text-ink-300 border border-ink-700 leading-none"
-                title={`${pic.friends.length} friend${pic.friends.length === 1 ? '' : 's'} logged — ${pic.friends.filter((f) => f.inside).length} inside`}
-              >
-                <span>👥</span>
-                <span>{pic.friends.filter((f) => f.inside).length}</span>
-              </span>
-            )}
           </div>
 
           {/* Line 2: description */}
@@ -228,9 +219,20 @@ export default function PicCard({ pic, events, eventCfg, allPics, onClick, onMar
           </div>
         </div>
 
-        <span className={`text-sm font-display font-semibold tabular-nums whitespace-nowrap shrink-0 ${timeColor}`}>
-          {formatElapsed(elapsed)}
-        </span>
+        <div className="flex flex-col items-end gap-1 shrink-0">
+          <span className={`text-sm font-display font-semibold tabular-nums whitespace-nowrap ${timeColor}`}>
+            {formatElapsed(elapsed)}
+          </span>
+          {(pic.friends || []).length > 0 && (
+            <span
+              className="inline-flex items-center gap-0.5 rounded px-1 py-0.5 text-[10px] font-display font-bold bg-ink-800 text-ink-300 border border-ink-700 leading-none"
+              title={`${pic.friends.length} friend${pic.friends.length === 1 ? '' : 's'} logged — ${pic.friends.filter((f) => f.inside).length} inside`}
+            >
+              <span>👥</span>
+              <span>{pic.friends.filter((f) => f.inside).length}</span>
+            </span>
+          )}
+        </div>
       </button>
     </div>
   )

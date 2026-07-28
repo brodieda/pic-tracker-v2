@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react'
 import TableBoard from './TableBoard'
 import { getBoardView, setBoardView } from '../lib/tableColumns'
-import { getPics, getEvents, getEvent } from '../lib/store'
+import { getPics, getEvents, getEvent, saveEvent } from '../lib/store'
+import { updateCurrentEvent } from '../lib/supabaseStore'
+import { SUPABASE_CONFIGURED } from '../lib/supabaseClient'
+import { isWriter } from '../lib/eventSession'
 import PicCard from './PicCard'
 import ShieldIcon from './ShieldIcon'
 import {
@@ -165,6 +168,16 @@ export default function CareBoard({ refreshKey, onAddPic, onPicClick, onPicTapKp
   const barColor = atCapacity ? 'bg-code-1' : nearCapacity ? 'bg-code-3' : 'bg-code-5'
   const capacityTextTone = atCapacity ? 'text-code-1' : nearCapacity ? 'text-code-3' : 'text-ink-200'
 
+  const canEditSettings = !!onAddPic // onAddPic is only passed for writers, not viewers
+  const onToggleCountFriends = () => {
+    const patch = { ...eventCfg, countFriendsInCapacity: !countFriends }
+    saveEvent(patch)
+    setEventCfg(patch)
+    if (SUPABASE_CONFIGURED && isWriter()) {
+      updateCurrentEvent(patch).catch((e) => console.error('event mirror failed', e))
+    }
+  }
+
   return (
     <div className="px-4 sm:px-6 py-6 max-w-7xl mx-auto">
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-6">
@@ -225,6 +238,28 @@ export default function CareBoard({ refreshKey, onAddPic, onPicClick, onPicTapKp
                     </span>
                   )}
                 </div>
+              )}
+              {canEditSettings && (
+                <button
+                  onClick={onToggleCountFriends}
+                  className={`text-left text-[10px] font-display uppercase tracking-widest inline-flex items-center gap-1 ${
+                    countFriends ? 'text-violet-400 hover:text-violet-300' : 'text-ink-600 hover:text-ink-300'
+                  }`}
+                  title="Toggle whether friends/visitors currently inside count toward capacity"
+                >
+                  <span
+                    className={`relative inline-flex items-center h-3.5 w-6 rounded-full transition shrink-0 ${
+                      countFriends ? 'bg-violet-500' : 'bg-ink-700'
+                    }`}
+                  >
+                    <span
+                      className={`inline-block w-2.5 h-2.5 bg-white rounded-full shadow transform transition ${
+                        countFriends ? 'translate-x-3' : 'translate-x-0.5'
+                      }`}
+                    />
+                  </span>
+                  count friends
+                </button>
               )}
             </div>
           )}
