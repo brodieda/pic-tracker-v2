@@ -74,7 +74,6 @@ function picFromDb(row) {
     tlSignoff: row.tl_signoff,
     ejectionFlag: row.ejection_flag,
     securityNotified: row.security_notified,
-    friendsOk: row.friends_ok ?? false,
     friends: row.friends || [],
     groupId: row.group_id || null,
     source: row.source || 'writer',
@@ -109,7 +108,6 @@ function picToDb(p, eventId) {
   if ('tlSignoff' in p) out.tl_signoff = p.tlSignoff
   if ('ejectionFlag' in p) out.ejection_flag = !!p.ejectionFlag
   if ('securityNotified' in p) out.security_notified = p.securityNotified
-  if ('friendsOk' in p) out.friends_ok = !!p.friendsOk
   if ('friends' in p) out.friends = p.friends || []
   if ('groupId' in p) out.group_id = p.groupId || null
   if ('source' in p) out.source = p.source

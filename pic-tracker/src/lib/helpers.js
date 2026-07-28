@@ -471,39 +471,12 @@ export function minutesSinceLastActivity(picId, events, now = Date.now()) {
 
 // ---------- Friends / groups ----------
 //
-// friendsOk: boolean flag on a PIC — "okay to tell a friend/visitor at the
-// desk that this person is here?" Defaults to false (private) for every PIC;
-// there is no separate "not asked yet" state. Mirrors setEjectionFlag exactly.
-//
-// friends: array of { id, name, inside, addedAt } on the PIC, only meaningful
-// once friendsOk is true (the UI gates the add control behind the flag, but
-// these functions don't enforce it themselves).
+// friends: array of { id, name, inside, addedAt } on the PIC. No gating flag —
+// staff always verify with the PIC directly before confirming presence to
+// anyone asking at the desk, so a separate consent toggle didn't add value.
 //
 // groupId: shared identifier linking a PIC to a friend who was converted into
 // their own PIC record (the "supporter who ends up needing care too" case).
-
-// Toggle whether friends/visitors may be told this PIC is here.
-export function setFriendsOkFlag(picId, value, byKpe) {
-  const { pics, idx } = findPicIndex(picId)
-  if (idx < 0) return null
-  const newValue = !!value
-  if (pics[idx].friendsOk === newValue) return pics[idx]
-  pics[idx] = { ...pics[idx], friendsOk: newValue }
-  savePics(pics)
-  const evt = {
-    id: nextEventId(),
-    picId,
-    timestamp: nowIso(),
-    type: 'flag_change',
-    code: null,
-    kpe: byKpe || pics[idx].assignedKpe || null,
-    note: null,
-    meta: { flag: 'friendsOk', value: newValue },
-  }
-  addEvent(evt)
-  mirrorPicUpdateWithActivity(pics[idx].number, { friendsOk: newValue }, evt)
-  return pics[idx]
-}
 
 // Add an approved friend to a PIC's friends list. Starts as "inside".
 export function addFriend(picId, name, byKpe) {

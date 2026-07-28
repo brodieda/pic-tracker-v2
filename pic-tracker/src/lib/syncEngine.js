@@ -55,7 +55,6 @@ function picToLocal(p) {
     tlSignoff: p.tlSignoff,
     ejectionFlag: !!p.ejectionFlag,
     securityNotified: p.securityNotified,
-    friendsOk: !!p.friendsOk,
     friends: p.friends || [],
     groupId: p.groupId || null,
     source: p.source || 'writer',
