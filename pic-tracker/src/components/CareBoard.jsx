@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react'
+import TableBoard from './TableBoard'
+import { getBoardView, setBoardView } from '../lib/tableColumns'
 import { getPics, getEvents, getEvent } from '../lib/store'
 import PicCard from './PicCard'
 import ShieldIcon from './ShieldIcon'
@@ -21,6 +23,7 @@ export default function CareBoard({ refreshKey, onAddPic, onPicClick, onPicTapKp
   const [events, setEvents] = useState([])
   const [eventCfg, setEventCfg] = useState({})
   const [tick, setTick] = useState(0)
+  const [view, setView] = useState(() => getBoardView())
   const [sortDir, setSortDir] = useState(() => {
     try {
       return localStorage.getItem(SORT_KEY) || 'desc'
@@ -110,6 +113,22 @@ export default function CareBoard({ refreshKey, onAddPic, onPicClick, onPicTapKp
           </h2>
         </div>
         <div className="flex items-center gap-3">
+          <div className="inline-flex bg-ink-800 rounded-lg p-0.5 shrink-0">
+            {['cards', 'table'].map((v) => (
+              <button
+                key={v}
+                onClick={() => {
+                  setView(v)
+                  setBoardView(v)
+                }}
+                className={`text-xs font-display font-bold px-3 py-1.5 rounded-md capitalize transition ${
+                  view === v ? 'bg-ink-100 text-ink-950' : 'text-ink-400 hover:text-ink-200'
+                }`}
+              >
+                {v}
+              </button>
+            ))}
+          </div>
           {capacity != null && (
             <div
               className={`px-3 py-2 rounded-lg border font-display tabular-nums text-sm font-semibold ${capacityTone}`}
@@ -129,6 +148,9 @@ export default function CareBoard({ refreshKey, onAddPic, onPicClick, onPicTapKp
         </div>
       </div>
 
+      {view === 'table' ? (
+        <TableBoard pics={pics} events={events} eventCfg={eventCfg} onPicClick={onPicClick} />
+      ) : (
       <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-5" data-tick={tick}>
         <section className="space-y-3">
           <header className="flex items-center gap-3 px-1">
@@ -241,6 +263,7 @@ export default function CareBoard({ refreshKey, onAddPic, onPicClick, onPicTapKp
           )}
         </section>
       </div>
+      )}
     </div>
   )
 }
