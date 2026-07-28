@@ -70,6 +70,7 @@ export default function PicDetailPanel({ picId, onClose, onMutated, openIntent, 
   const [dischargeOpen, setDischargeOpen] = useState(false)
   const [tick, setTick] = useState(0)
   const [allPics, setAllPics] = useState([])
+  const [friendDraft, setFriendDraft] = useState('')
 
   const reload = () => {
     const all = getPics()
@@ -203,7 +204,6 @@ export default function PicDetailPanel({ picId, onClose, onMutated, openIntent, 
   }
 
   // ---------- Friends ----------
-  const [friendDraft, setFriendDraft] = useState('')
 
   const onToggleFriendsOk = () => {
     setFriendsOkFlag(pic.id, !pic.friendsOk, assignedKpe)
