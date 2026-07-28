@@ -13,7 +13,7 @@ import CodesBadge from './components/CodesBadge'
 import ActorNameBadge from './components/ActorNameBadge'
 import IntakeOnlyScreen from './components/IntakeOnlyScreen'
 import { getEvent, getPics, getEvents } from './lib/store'
-import { code3MonitorStateFor, currentCodeFor } from './lib/helpers'
+import { code3MonitorStateFor, currentCodeFor, linkConvertedFriend } from './lib/helpers'
 import { hasJoined, getSession, clearSession } from './lib/eventSession'
 import { SUPABASE_CONFIGURED } from './lib/supabaseClient'
 import { startBackgroundSync, stopBackgroundSync, backgroundSync } from './lib/syncEngine'
@@ -32,6 +32,7 @@ export default function App() {
   const [online, setOnline] = useState(typeof navigator === 'undefined' ? true : navigator.onLine)
   const [now, setNow] = useState(Date.now())
   const [overdueDismissedAt, setOverdueDismissedAt] = useState(0)
+  const [convertContext, setConvertContext] = useState(null) // { originalPicId, friendId, name } | null
 
   // Auto-dismiss the refresh confirmation.
   useEffect(() => {
@@ -377,8 +378,20 @@ export default function App() {
 
       <IntakeModal
         open={intakeOpen && !isViewer}
-        onClose={() => setIntakeOpen(false)}
-        onCreated={() => refresh()}
+        onClose={() => {
+          setIntakeOpen(false)
+          setConvertContext(null)
+        }}
+        initialValues={
+          convertContext ? { name: convertContext.name, referredBy: ['Friend'] } : undefined
+        }
+        onCreated={(newPic) => {
+          if (convertContext) {
+            linkConvertedFriend(convertContext.originalPicId, convertContext.friendId, newPic.id)
+            setConvertContext(null)
+          }
+          refresh()
+        }}
       />
 
       <PicDetailPanel
@@ -390,6 +403,14 @@ export default function App() {
           setOpenIntent(null)
         }}
         onMutated={refresh}
+        onConvertFriend={
+          isViewer
+            ? undefined
+            : (pic, friend) => {
+                setConvertContext({ originalPicId: pic.id, friendId: friend.id, name: friend.name })
+                setIntakeOpen(true)
+              }
+        }
       />
 
       {(showAlertBar || toast) && (
