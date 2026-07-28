@@ -149,7 +149,7 @@ export default function CareBoard({ refreshKey, onAddPic, onPicClick, onPicTapKp
       </div>
 
       {view === 'table' ? (
-        <TableBoard pics={pics} events={events} eventCfg={eventCfg} onPicClick={onPicClick} />
+        <TableBoard pics={pics} events={events} eventCfg={eventCfg} onPicClick={onPicClick} onEdited={reload} />
       ) : (
       <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-5" data-tick={tick}>
         <section className="space-y-3">
