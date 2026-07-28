@@ -468,3 +468,162 @@ export function minutesSinceLastActivity(picId, events, now = Date.now()) {
   if (!last) return null
   return Math.floor((now - new Date(normalizeIso(last)).getTime()) / 60_000)
 }
+
+// ---------- Friends / groups ----------
+//
+// friendsOk: boolean flag on a PIC — "okay to tell a friend/visitor at the
+// desk that this person is here?" Defaults to false (private) for every PIC;
+// there is no separate "not asked yet" state. Mirrors setEjectionFlag exactly.
+//
+// friends: array of { id, name, inside, addedAt } on the PIC, only meaningful
+// once friendsOk is true (the UI gates the add control behind the flag, but
+// these functions don't enforce it themselves).
+//
+// groupId: shared identifier linking a PIC to a friend who was converted into
+// their own PIC record (the "supporter who ends up needing care too" case).
+
+// Toggle whether friends/visitors may be told this PIC is here.
+export function setFriendsOkFlag(picId, value, byKpe) {
+  const { pics, idx } = findPicIndex(picId)
+  if (idx < 0) return null
+  const newValue = !!value
+  if (pics[idx].friendsOk === newValue) return pics[idx]
+  pics[idx] = { ...pics[idx], friendsOk: newValue }
+  savePics(pics)
+  const evt = {
+    id: nextEventId(),
+    picId,
+    timestamp: nowIso(),
+    type: 'flag_change',
+    code: null,
+    kpe: byKpe || pics[idx].assignedKpe || null,
+    note: null,
+    meta: { flag: 'friendsOk', value: newValue },
+  }
+  addEvent(evt)
+  mirrorPicUpdateWithActivity(pics[idx].number, { friendsOk: newValue }, evt)
+  return pics[idx]
+}
+
+// Add an approved friend to a PIC's friends list. Starts as "inside".
+export function addFriend(picId, name, byKpe) {
+  const clean = (name || '').trim()
+  if (!clean) return null
+  const { pics, idx } = findPicIndex(picId)
+  if (idx < 0) return null
+  const friend = { id: crypto.randomUUID(), name: clean, inside: true, addedAt: nowIso() }
+  const friends = [...(pics[idx].friends || []), friend]
+  pics[idx] = { ...pics[idx], friends }
+  savePics(pics)
+  const evt = {
+    id: nextEventId(),
+    picId,
+    timestamp: nowIso(),
+    type: 'friend_added',
+    code: null,
+    kpe: byKpe || pics[idx].assignedKpe || null,
+    note: null,
+    meta: { friendId: friend.id, name: clean },
+  }
+  addEvent(evt)
+  mirrorPicUpdateWithActivity(pics[idx].number, { friends }, evt)
+  return pics[idx]
+}
+
+// Toggle a friend's inside / not-inside state.
+export function setFriendInside(picId, friendId, inside, byKpe) {
+  const { pics, idx } = findPicIndex(picId)
+  if (idx < 0) return null
+  const friends = (pics[idx].friends || []).map((f) =>
+    f.id === friendId ? { ...f, inside: !!inside } : f,
+  )
+  pics[idx] = { ...pics[idx], friends }
+  savePics(pics)
+  const friend = friends.find((f) => f.id === friendId)
+  const evt = {
+    id: nextEventId(),
+    picId,
+    timestamp: nowIso(),
+    type: 'friend_inside_change',
+    code: null,
+    kpe: byKpe || pics[idx].assignedKpe || null,
+    note: null,
+    meta: { friendId, name: friend?.name, inside: !!inside },
+  }
+  addEvent(evt)
+  mirrorPicUpdateWithActivity(pics[idx].number, { friends }, evt)
+  return pics[idx]
+}
+
+// Remove a friend entry entirely (left for good, or added in error).
+export function removeFriend(picId, friendId, byKpe) {
+  const { pics, idx } = findPicIndex(picId)
+  if (idx < 0) return null
+  const removed = (pics[idx].friends || []).find((f) => f.id === friendId)
+  const friends = (pics[idx].friends || []).filter((f) => f.id !== friendId)
+  pics[idx] = { ...pics[idx], friends }
+  savePics(pics)
+  const evt = {
+    id: nextEventId(),
+    picId,
+    timestamp: nowIso(),
+    type: 'friend_removed',
+    code: null,
+    kpe: byKpe || pics[idx].assignedKpe || null,
+    note: null,
+    meta: { friendId, name: removed?.name },
+  }
+  addEvent(evt)
+  mirrorPicUpdateWithActivity(pics[idx].number, { friends }, evt)
+  return pics[idx]
+}
+
+// Link a converted friend's new PIC record back to the original PIC as a group.
+// Generates a groupId on the original PIC if it doesn't have one yet, applies
+// it to the new PIC too, and removes the now-converted friend from the
+// original PIC's friends list. Call this right after the new PIC is created.
+export function linkConvertedFriend(originalPicId, friendId, newPicId, byKpe) {
+  const { pics, idx } = findPicIndex(originalPicId)
+  if (idx < 0) return null
+  const groupId = pics[idx].groupId || crypto.randomUUID()
+  const removed = (pics[idx].friends || []).find((f) => f.id === friendId)
+  const friends = (pics[idx].friends || []).filter((f) => f.id !== friendId)
+  pics[idx] = { ...pics[idx], groupId, friends }
+  savePics(pics)
+  mirrorPicUpdate(pics[idx].number, { groupId, friends })
+
+  const newIdx = pics.findIndex((p) => p.id === newPicId)
+  if (newIdx >= 0) {
+    pics[newIdx] = { ...pics[newIdx], groupId }
+    savePics(pics)
+    mirrorPicUpdate(pics[newIdx].number, { groupId })
+  }
+
+  const evt = {
+    id: nextEventId(),
+    picId: originalPicId,
+    timestamp: nowIso(),
+    type: 'friend_converted',
+    code: null,
+    kpe: byKpe || null,
+    note: null,
+    meta: { friendId, name: removed?.name, newPicId, groupId },
+  }
+  addEvent(evt)
+  mirrorActivity(pics[idx].number, evt)
+  return groupId
+}
+
+// Other PICs sharing this PIC's groupId (the linked friend-turned-PIC(s)).
+export function groupMembersFor(pic, allPics) {
+  if (!pic?.groupId) return []
+  return (allPics || []).filter((p) => p.groupId === pic.groupId && p.id !== pic.id)
+}
+
+// Count of friends currently "inside" across all in-care PICs. Used for the
+// capacity breakdown when the event is configured to count friends toward it.
+export function friendsInsideCount(pics) {
+  return (pics || [])
+    .filter((p) => p.status === 'in_care')
+    .reduce((sum, p) => sum + (p.friends || []).filter((f) => f.inside).length, 0)
+}

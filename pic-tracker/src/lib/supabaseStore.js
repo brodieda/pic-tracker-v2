@@ -28,6 +28,7 @@ function eventFromDb(row) {
     shift2Color: row.shift2_color || null,
     code3CheckIntervalMinutes: row.code3_check_interval_minutes,
     capacity: row.capacity,
+    countFriendsInCapacity: row.count_friends_in_capacity ?? false,
     isActive: row.is_active,
   }
 }
@@ -39,6 +40,7 @@ function eventToDb(e) {
   if ('shift2Team' in e) out.shift2_team = e.shift2Team
   if ('code3CheckIntervalMinutes' in e) out.code3_check_interval_minutes = e.code3CheckIntervalMinutes
   if ('capacity' in e) out.capacity = e.capacity
+  if ('countFriendsInCapacity' in e) out.count_friends_in_capacity = !!e.countFriendsInCapacity
   if ('isActive' in e) out.is_active = e.isActive
   return out
 }
@@ -72,6 +74,9 @@ function picFromDb(row) {
     tlSignoff: row.tl_signoff,
     ejectionFlag: row.ejection_flag,
     securityNotified: row.security_notified,
+    friendsOk: row.friends_ok ?? false,
+    friends: row.friends || [],
+    groupId: row.group_id || null,
     source: row.source || 'writer',
     status: row.status,
   }
@@ -104,6 +109,9 @@ function picToDb(p, eventId) {
   if ('tlSignoff' in p) out.tl_signoff = p.tlSignoff
   if ('ejectionFlag' in p) out.ejection_flag = !!p.ejectionFlag
   if ('securityNotified' in p) out.security_notified = p.securityNotified
+  if ('friendsOk' in p) out.friends_ok = !!p.friendsOk
+  if ('friends' in p) out.friends = p.friends || []
+  if ('groupId' in p) out.group_id = p.groupId || null
   if ('source' in p) out.source = p.source
   if ('status' in p) out.status = p.status
   return out

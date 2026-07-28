@@ -55,6 +55,9 @@ function picToLocal(p) {
     tlSignoff: p.tlSignoff,
     ejectionFlag: !!p.ejectionFlag,
     securityNotified: p.securityNotified,
+    friendsOk: !!p.friendsOk,
+    friends: p.friends || [],
+    groupId: p.groupId || null,
     source: p.source || 'writer',
     status: p.status,
   }
@@ -89,6 +92,7 @@ function eventToLocal(e) {
     shift2Color: e.shift2Color || null,
     code3CheckIntervalMinutes: e.code3CheckIntervalMinutes || 15,
     capacity: e.capacity,
+    countFriendsInCapacity: !!e.countFriendsInCapacity,
   }
 }
 
