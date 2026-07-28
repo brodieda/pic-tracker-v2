@@ -62,7 +62,7 @@ function FieldRow({ label, hint, children }) {
   )
 }
 
-export default function IntakeModal({ open, onClose, onCreated }) {
+export default function IntakeModal({ open, onClose, onCreated, initialValues }) {
   const [form, setForm] = useState(initialForm)
   const [showOptional, setShowOptional] = useState(false)
   const [error, setError] = useState(null)
@@ -73,8 +73,8 @@ export default function IntakeModal({ open, onClose, onCreated }) {
 
   useEffect(() => {
     if (open) {
-      setForm({ ...initialForm, enteredCare: nowIso() })
-      setShowOptional(false)
+      setForm({ ...initialForm, ...(initialValues || {}), enteredCare: nowIso() })
+      setShowOptional(!!initialValues)
       setError(null)
       setEventCfg(getEvent())
       setPicNumber(peekNextPicNumber())

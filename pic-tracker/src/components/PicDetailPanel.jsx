@@ -23,6 +23,11 @@ import {
   latestEventFor,
   setEjectionFlag,
   unassignedKpes,
+  setFriendsOkFlag,
+  addFriend,
+  setFriendInside,
+  removeFriend,
+  groupMembersFor,
 } from '../lib/helpers'
 import { completenessFor } from '../lib/completeness'
 import {
@@ -51,7 +56,7 @@ import KpeChipPicker from './KpeChipPicker'
 import TimeDateEditor from './TimeDateEditor'
 import DischargeModal from './DischargeModal'
 
-export default function PicDetailPanel({ picId, onClose, onMutated, openIntent }) {
+export default function PicDetailPanel({ picId, onClose, onMutated, openIntent, onConvertFriend }) {
   const [pic, setPic] = useState(null)
   const [events, setEvents] = useState([])
   const [eventCfg, setEventCfg] = useState({})
@@ -196,6 +201,38 @@ export default function PicDetailPanel({ picId, onClose, onMutated, openIntent }
     setEjectionFlag(pic.id, !pic.ejectionFlag, assignedKpe)
     afterMutation()
   }
+
+  // ---------- Friends ----------
+  const [friendDraft, setFriendDraft] = useState('')
+
+  const onToggleFriendsOk = () => {
+    setFriendsOkFlag(pic.id, !pic.friendsOk, assignedKpe)
+    afterMutation()
+  }
+
+  const onAddFriend = () => {
+    if (!friendDraft.trim()) return
+    addFriend(pic.id, friendDraft.trim(), assignedKpe)
+    setFriendDraft('')
+    afterMutation()
+  }
+
+  const onToggleFriendInside = (friendId, currentlyInside) => {
+    setFriendInside(pic.id, friendId, !currentlyInside, assignedKpe)
+    afterMutation()
+  }
+
+  const onRemoveFriend = (friendId, name) => {
+    if (!confirm(`Remove ${name || 'this friend'} from the list?`)) return
+    removeFriend(pic.id, friendId, assignedKpe)
+    afterMutation()
+  }
+
+  const onConvertFriendClick = (friendId, name) => {
+    onConvertFriend?.(pic, { id: friendId, name })
+  }
+
+  const groupMembers = groupMembersFor(pic, allPics)
 
   return (
     <PanelShell onClose={onClose}>
@@ -638,6 +675,92 @@ export default function PicDetailPanel({ picId, onClose, onMutated, openIntent }
             />
           )}
         />
+
+        {/* Friends / visitors */}
+        <div className="panel p-4 space-y-3 border border-ink-700">
+          <div className="flex items-center justify-between gap-3">
+            <div className="text-[10px] font-display tracking-[0.22em] uppercase text-ink-400">
+              Friends / visitors
+            </div>
+            <button
+              onClick={onToggleFriendsOk}
+              role="switch"
+              aria-checked={!!pic.friendsOk}
+              className={`relative inline-flex items-center h-6 w-11 rounded-full transition shrink-0 ${
+                pic.friendsOk ? 'bg-code-5' : 'bg-ink-700'
+              }`}
+              title="If a friend asks for them at the desk, can we say they're here?"
+            >
+              <span
+                className={`inline-block w-4 h-4 bg-white rounded-full shadow transform transition ${
+                  pic.friendsOk ? 'translate-x-6' : 'translate-x-1'
+                }`}
+              />
+            </button>
+          </div>
+          <p className="text-xs text-ink-500 -mt-1">
+            Okay with friends/visitors? Off by default — this PIC is private until switched on.
+          </p>
+
+          {pic.friendsOk && (
+            <div className="space-y-2 pt-1 border-t border-ink-800">
+              {(pic.friends || []).length === 0 && (
+                <p className="text-xs text-ink-500 italic">No friends logged yet.</p>
+              )}
+              {(pic.friends || []).map((f) => (
+                <div
+                  key={f.id}
+                  className="flex items-center gap-2 text-sm bg-ink-950 border border-ink-800 rounded-lg px-2.5 py-1.5"
+                >
+                  <button
+                    onClick={() => onToggleFriendInside(f.id, f.inside)}
+                    className={`text-[10px] font-display font-bold uppercase tracking-wide px-2 py-0.5 rounded-full shrink-0 ${
+                      f.inside ? 'bg-code-5/20 text-code-5' : 'bg-ink-800 text-ink-400'
+                    }`}
+                    title="Tap to toggle inside / not inside"
+                  >
+                    {f.inside ? 'Inside' : 'Not inside'}
+                  </button>
+                  <span className="flex-1 truncate text-ink-200">{f.name}</span>
+                  <button
+                    onClick={() => onConvertFriendClick(f.id, f.name)}
+                    className="text-[11px] text-ink-400 hover:text-ink-100 shrink-0"
+                    title="Convert this friend into their own PIC (e.g. they now need care too)"
+                  >
+                    Convert to PIC
+                  </button>
+                  <button
+                    onClick={() => onRemoveFriend(f.id, f.name)}
+                    className="text-ink-500 hover:text-code-1 shrink-0 text-xs"
+                    title="Remove"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+              <div className="flex items-center gap-2 pt-1">
+                <input
+                  className="input flex-1 text-sm"
+                  placeholder="Friend's name"
+                  value={friendDraft}
+                  onChange={(e) => setFriendDraft(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') onAddFriend()
+                  }}
+                />
+                <button onClick={onAddFriend} className="btn-ghost text-sm px-3 py-1.5">
+                  + Add
+                </button>
+              </div>
+            </div>
+          )}
+
+          {groupMembers.length > 0 && (
+            <div className="pt-1 border-t border-ink-800 text-xs text-ink-400">
+              Linked group: {groupMembers.map((m) => `#${m.number}${m.name ? ` (${m.name})` : ''}`).join(', ')}
+            </div>
+          )}
+        </div>
 
         {/* Discharge fields — only shown when discharged. All editable. */}
         {isDischarged && (

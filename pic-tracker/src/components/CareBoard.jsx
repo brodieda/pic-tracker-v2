@@ -11,12 +11,32 @@ import {
   formatElapsed,
   shiftFor,
   workloadFor,
+  currentCodeFor,
+  code3MonitorStateFor,
+  unassignedKpes,
+  friendsInsideCount,
 } from '../lib/helpers'
 import { isIncomplete } from '../lib/completeness'
 
 const CAPACITY_WARNING_THRESHOLD = 3
 const SORT_KEY = 'pic_in_care_sort_dir'
 const FILTER_KEY = 'pic_in_care_filter_incomplete'
+
+// --- Filter bar ---
+
+function FilterChip({ active, onClick, children, title }) {
+  return (
+    <button
+      onClick={onClick}
+      title={title}
+      className={`text-[11px] font-display font-semibold uppercase tracking-wide px-2.5 py-1.5 rounded-md transition whitespace-nowrap ${
+        active ? 'bg-ink-100 text-ink-950' : 'text-ink-400 hover:text-ink-100 hover:bg-ink-800'
+      }`}
+    >
+      {children}
+    </button>
+  )
+}
 
 export default function CareBoard({ refreshKey, onAddPic, onPicClick, onPicTapKpe }) {
   const [pics, setPics] = useState([])
@@ -38,6 +58,11 @@ export default function CareBoard({ refreshKey, onAddPic, onPicClick, onPicTapKp
       return false
     }
   })
+  const [search, setSearch] = useState('')
+  const [filterAcuity, setFilterAcuity] = useState(false)
+  const [filterOverdue, setFilterOverdue] = useState(false)
+  const [filterUnassigned, setFilterUnassigned] = useState(false)
+  const [filterKpe, setFilterKpe] = useState('')
 
   const reload = () => {
     setPics(getPics())
@@ -86,16 +111,51 @@ export default function CareBoard({ refreshKey, onAddPic, onPicClick, onPicTapKp
     })
 
   const incompleteCount = inCareAll.filter(isIncomplete).length
-  const inCare = filterIncomplete ? inCareAll.filter(isIncomplete) : inCareAll
+
+  // Search: matches PIC # or name/description, applies to both columns.
+  const searchNorm = search.trim().toLowerCase().replace(/^#/, '')
+  const matchesSearch = (p) => {
+    if (!searchNorm) return true
+    const num = String(p.number ?? '')
+    const name = (p.name || '').toLowerCase()
+    const desc = (p.description || '').toLowerCase()
+    return num.includes(searchNorm) || name.includes(searchNorm) || desc.includes(searchNorm)
+  }
+
+  // One-tap filter chips — only meaningful for in-care PICs, AND'd together.
+  const matchesChips = (p) => {
+    if (filterIncomplete && !isIncomplete(p)) return false
+    if (filterAcuity) {
+      const code = currentCodeFor(p.id, events)
+      if (!(code === 1 || code === 2)) return false
+    }
+    if (filterOverdue && code3MonitorStateFor(p.id, events, eventCfg) !== 'overdue') return false
+    if (filterUnassigned && getAssignedKpe(p)) return false
+    if (filterKpe && getAssignedKpe(p) !== filterKpe) return false
+    return true
+  }
+
+  const anyChipActive = filterIncomplete || filterAcuity || filterOverdue || filterUnassigned || !!filterKpe
+  const anyFilterActive = anyChipActive || !!searchNorm
+
+  const inCare = inCareAll.filter((p) => matchesSearch(p) && matchesChips(p))
 
   const discharged = pics
     .filter((p) => p.status === 'discharged')
     .sort((a, b) => new Date(b.leftCare || 0) - new Date(a.leftCare || 0))
+    .filter(matchesSearch)
+
+  const kpeOptions = Array.from(
+    new Set([...(eventCfg.shift1Team || []), ...(eventCfg.shift2Team || []), ...unassignedKpes(pics, eventCfg)]),
+  )
 
   const capacity = eventCfg.capacity
   const inCareCount = inCareAll.length
-  const spacesRemaining = capacity != null ? Math.max(0, capacity - inCareCount) : null
-  const atCapacity = capacity != null && inCareCount >= capacity
+  const countFriends = !!eventCfg.countFriendsInCapacity
+  const friendsCount = countFriends ? friendsInsideCount(pics) : 0
+  const occupied = inCareCount + friendsCount
+  const spacesRemaining = capacity != null ? Math.max(0, capacity - occupied) : null
+  const atCapacity = capacity != null && occupied >= capacity
   const nearCapacity =
     capacity != null && !atCapacity && spacesRemaining <= CAPACITY_WARNING_THRESHOLD
 
@@ -132,12 +192,18 @@ export default function CareBoard({ refreshKey, onAddPic, onPicClick, onPicTapKp
           {capacity != null && (
             <div
               className={`px-3 py-2 rounded-lg border font-display tabular-nums text-sm font-semibold ${capacityTone}`}
+              title={countFriends ? `${inCareCount} PICs · ${friendsCount} friends · ${spacesRemaining} free` : undefined}
             >
-              <span className="text-lg">{inCareCount}</span>
+              <span className="text-lg">{occupied}</span>
               <span className="opacity-60"> / {capacity}</span>
               <span className="ml-2 text-[10px] uppercase tracking-widest opacity-70">
                 {atCapacity ? 'full' : `${spacesRemaining} ${spacesRemaining === 1 ? 'space' : 'spaces'} free`}
               </span>
+              {countFriends && (
+                <span className="ml-2 text-[10px] normal-case tracking-normal opacity-60">
+                  ({inCareCount} PICs · {friendsCount} friends)
+                </span>
+              )}
             </div>
           )}
           {onAddPic && (
@@ -148,8 +214,76 @@ export default function CareBoard({ refreshKey, onAddPic, onPicClick, onPicTapKp
         </div>
       </div>
 
+      <div className="panel px-3 py-2 mb-5 flex flex-wrap items-center gap-2">
+        <div className="flex items-center gap-1.5 flex-1 min-w-[160px]">
+          <span className="text-ink-500 text-sm">⌕</span>
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search # or name…"
+            className="bg-transparent outline-none text-sm flex-1 text-ink-100 placeholder:text-ink-600 min-w-0"
+          />
+          {search && (
+            <button
+              onClick={() => setSearch('')}
+              className="text-ink-500 hover:text-ink-200 text-xs px-1"
+              title="Clear search"
+            >
+              ✕
+            </button>
+          )}
+        </div>
+        <FilterChip
+          active={filterAcuity}
+          onClick={() => setFilterAcuity((v) => !v)}
+          title="Current code 1 or 2"
+        >
+          High acuity
+        </FilterChip>
+        <FilterChip
+          active={filterOverdue}
+          onClick={() => setFilterOverdue((v) => !v)}
+          title="Code 3 checks past due"
+        >
+          Overdue
+        </FilterChip>
+        <FilterChip
+          active={filterIncomplete}
+          onClick={toggleFilter}
+          title={incompleteCount > 0 ? `${incompleteCount} incomplete record${incompleteCount === 1 ? '' : 's'}` : 'No incomplete records'}
+        >
+          Incomplete{incompleteCount > 0 ? ` (${incompleteCount})` : ''}
+        </FilterChip>
+        <FilterChip
+          active={filterUnassigned}
+          onClick={() => setFilterUnassigned((v) => !v)}
+          title="No KPE assigned"
+        >
+          Unassigned
+        </FilterChip>
+        <select
+          value={filterKpe}
+          onChange={(e) => setFilterKpe(e.target.value)}
+          className={`text-[11px] font-display font-semibold uppercase tracking-wide px-2.5 py-1.5 rounded-md bg-transparent border transition ${
+            filterKpe ? 'border-ink-100 text-ink-100' : 'border-ink-800 text-ink-400 hover:text-ink-100'
+          }`}
+        >
+          <option value="">KPE: all</option>
+          {kpeOptions.map((k) => (
+            <option key={k} value={k}>
+              {k}
+            </option>
+          ))}
+        </select>
+        {anyFilterActive && (
+          <span className="text-[10px] text-ink-500 font-display tabular-nums ml-auto whitespace-nowrap">
+            {inCare.length + discharged.length} match{inCare.length + discharged.length === 1 ? '' : 'es'}
+          </span>
+        )}
+      </div>
+
       {view === 'table' ? (
-        <TableBoard pics={pics} events={events} eventCfg={eventCfg} onPicClick={onPicClick} onEdited={reload} />
+        <TableBoard pics={[...inCare, ...discharged]} events={events} eventCfg={eventCfg} onPicClick={onPicClick} onEdited={reload} />
       ) : (
       <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-5" data-tick={tick}>
         <section className="space-y-3">
@@ -159,33 +293,11 @@ export default function CareBoard({ refreshKey, onAddPic, onPicClick, onPicTapKp
               In care
             </h3>
             <span className="text-xs text-ink-500 font-display tabular-nums">
-              {filterIncomplete ? `${inCare.length} / ${inCareAll.length}` : inCareAll.length}
+              {anyFilterActive ? `${inCare.length} / ${inCareAll.length}` : inCareAll.length}
             </span>
             <button
-              onClick={toggleFilter}
-              disabled={incompleteCount === 0 && !filterIncomplete}
-              className={`ml-auto text-[10px] font-display uppercase tracking-widest inline-flex items-center gap-1.5 px-2 py-1 rounded-md transition ${
-                filterIncomplete
-                  ? 'bg-code-3 text-ink-950 hover:opacity-90'
-                  : incompleteCount > 0
-                    ? 'text-code-3 hover:bg-ink-800'
-                    : 'text-ink-600 cursor-not-allowed'
-              }`}
-              title={
-                filterIncomplete
-                  ? 'Showing only incomplete — click to show all'
-                  : incompleteCount > 0
-                    ? `Show only ${incompleteCount} incomplete record${incompleteCount === 1 ? '' : 's'}`
-                    : 'No incomplete records'
-              }
-            >
-              <span>!</span>
-              <span>incomplete</span>
-              {incompleteCount > 0 && <span className="font-bold">{incompleteCount}</span>}
-            </button>
-            <button
               onClick={toggleSort}
-              className="text-[10px] font-display uppercase tracking-widest text-ink-400 hover:text-ink-100 inline-flex items-center gap-1 px-2 py-1 rounded-md hover:bg-ink-800 transition"
+              className="ml-auto text-[10px] font-display uppercase tracking-widest text-ink-400 hover:text-ink-100 inline-flex items-center gap-1 px-2 py-1 rounded-md hover:bg-ink-800 transition"
               title={sortDir === 'desc' ? 'Newest first — click to flip' : 'Oldest first — click to flip'}
             >
               <span>#</span>
@@ -195,13 +307,23 @@ export default function CareBoard({ refreshKey, onAddPic, onPicClick, onPicTapKp
 
           {inCare.length === 0 ? (
             <div className="panel p-10 text-center">
-              {filterIncomplete && inCareAll.length > 0 ? (
+              {anyFilterActive && inCareAll.length > 0 ? (
                 <>
                   <p className="text-ink-500 font-display tracking-wide">
-                    All in-care records are complete.
+                    No in-care PICs match the current search/filters.
                   </p>
-                  <button onClick={toggleFilter} className="btn-ghost mt-4">
-                    Show all {inCareAll.length}
+                  <button
+                    onClick={() => {
+                      setSearch('')
+                      setFilterAcuity(false)
+                      setFilterOverdue(false)
+                      setFilterUnassigned(false)
+                      setFilterKpe('')
+                      if (filterIncomplete) toggleFilter()
+                    }}
+                    className="btn-ghost mt-4"
+                  >
+                    Clear search &amp; filters — show all {inCareAll.length}
                   </button>
                 </>
               ) : (

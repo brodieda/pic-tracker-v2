@@ -17,6 +17,7 @@ export default function EventSettings({ onSaved }) {
   const [shift2Color, setShift2Color] = useState(null)
   const [interval, setInterval] = useState(15)
   const [capacity, setCapacity] = useState('')
+  const [countFriendsInCapacity, setCountFriendsInCapacity] = useState(false)
   const [savedAt, setSavedAt] = useState(null)
   const [dirty, setDirty] = useState(false)
   const [pics, setPics] = useState([])
@@ -31,6 +32,7 @@ export default function EventSettings({ onSaved }) {
     setShift2Color(e.shift2Color || null)
     setInterval(e.code3CheckIntervalMinutes || 15)
     setCapacity(e.capacity == null ? '' : String(e.capacity))
+    setCountFriendsInCapacity(!!e.countFriendsInCapacity)
     setPics(getPics() || [])
   }, [])
 
@@ -100,6 +102,7 @@ export default function EventSettings({ onSaved }) {
       shift2Color: shift2Color || null,
       code3CheckIntervalMinutes: Number(interval) || 15,
       capacity: capNumber && capNumber > 0 ? capNumber : null,
+      countFriendsInCapacity,
     }
     saveEvent(eventData)
     setTls(cleanTls)
@@ -159,6 +162,21 @@ export default function EventSettings({ onSaved }) {
             />
             <p className="text-xs text-ink-500 mt-2">
               Max PICs in care at once. Adjust anytime during an event.
+            </p>
+            <label className="flex items-center gap-2 mt-3 text-sm text-ink-300 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={countFriendsInCapacity}
+                onChange={(e) => {
+                  setCountFriendsInCapacity(e.target.checked)
+                  markDirty()
+                }}
+                className="w-4 h-4"
+              />
+              Count friends/visitors toward capacity
+            </label>
+            <p className="text-xs text-ink-500 mt-1">
+              Off by default. When on, the board's capacity count adds friends currently marked "inside" to the PIC count.
             </p>
           </div>
 
