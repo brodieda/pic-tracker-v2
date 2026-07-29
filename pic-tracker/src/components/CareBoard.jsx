@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import TableBoard from './TableBoard'
 import { getBoardView, setBoardView } from '../lib/tableColumns'
 import { getPics, getEvents, getEvent, saveEvent } from '../lib/store'
@@ -27,17 +27,20 @@ const FILTER_KEY = 'pic_in_care_filter_incomplete'
 
 // --- Filter bar ---
 
-function FilterChip({ active, onClick, children, title }) {
+function FilterMenuRow({ checked, onChange, label, hint }) {
   return (
-    <button
-      onClick={onClick}
-      title={title}
-      className={`text-[11px] font-display font-semibold uppercase tracking-wide px-2.5 py-1.5 rounded-md transition whitespace-nowrap ${
-        active ? 'bg-ink-100 text-ink-950' : 'text-ink-400 hover:text-ink-100 hover:bg-ink-800'
-      }`}
-    >
-      {children}
-    </button>
+    <label className="flex items-center justify-between gap-3 px-2 py-1.5 rounded-md hover:bg-ink-800 cursor-pointer">
+      <div>
+        <div className="text-sm font-semibold text-ink-200">{label}</div>
+        {hint && <div className="text-[10px] text-ink-500">{hint}</div>}
+      </div>
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={onChange}
+        className="w-4 h-4 accent-violet-500 shrink-0"
+      />
+    </label>
   )
 }
 
@@ -66,6 +69,17 @@ export default function CareBoard({ refreshKey, onAddPic, onPicClick, onPicTapKp
   const [filterOverdue, setFilterOverdue] = useState(false)
   const [filterUnassigned, setFilterUnassigned] = useState(false)
   const [filterKpe, setFilterKpe] = useState('')
+  const [filterMenuOpen, setFilterMenuOpen] = useState(false)
+  const filterMenuRef = useRef(null)
+
+  useEffect(() => {
+    if (!filterMenuOpen) return
+    const onDocClick = (e) => {
+      if (filterMenuRef.current && !filterMenuRef.current.contains(e.target)) setFilterMenuOpen(false)
+    }
+    document.addEventListener('mousedown', onDocClick)
+    return () => document.removeEventListener('mousedown', onDocClick)
+  }, [filterMenuOpen])
 
   const reload = () => {
     setPics(getPics())
@@ -140,6 +154,9 @@ export default function CareBoard({ refreshKey, onAddPic, onPicClick, onPicTapKp
 
   const anyChipActive = filterIncomplete || filterAcuity || filterOverdue || filterUnassigned || !!filterKpe
   const anyFilterActive = anyChipActive || !!searchNorm
+  const activeChipCount = [filterAcuity, filterOverdue, filterIncomplete, filterUnassigned, !!filterKpe].filter(
+    Boolean,
+  ).length
 
   const inCare = inCareAll.filter((p) => matchesSearch(p) && matchesChips(p))
 
@@ -187,8 +204,8 @@ export default function CareBoard({ refreshKey, onAddPic, onPicClick, onPicTapKp
             {eventCfg.name || 'Untitled event'}
           </h2>
         </div>
-        <div className="flex items-center gap-3 flex-wrap">
-          <div className="inline-flex bg-ink-800 rounded-lg p-0.5 shrink-0">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="hidden sm:inline-flex bg-ink-800 rounded-lg p-0.5 shrink-0 order-1">
             {['cards', 'table'].map((v) => (
               <button
                 key={v}
@@ -204,8 +221,116 @@ export default function CareBoard({ refreshKey, onAddPic, onPicClick, onPicTapKp
               </button>
             ))}
           </div>
+
+          {/* Search + filters — own row on desktop, shares the top row with + New PIC on mobile */}
+          <div className="panel px-3 py-2 flex flex-wrap items-center gap-2 order-1 sm:order-4 sm:basis-full flex-1 min-w-[160px]">
+            <div className="flex items-center gap-1.5 flex-1 min-w-[120px]">
+              <span className="text-ink-500 text-sm">⌕</span>
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search # or name…"
+                className="bg-transparent outline-none text-sm flex-1 text-ink-100 placeholder:text-ink-600 min-w-0"
+              />
+              {search && (
+                <button
+                  onClick={() => setSearch('')}
+                  className="text-ink-500 hover:text-ink-200 text-xs px-1"
+                  title="Clear search"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+
+            <div className="relative shrink-0" ref={filterMenuRef}>
+              <button
+                onClick={() => setFilterMenuOpen((v) => !v)}
+                className={`inline-flex items-center gap-1.5 text-[11px] font-display font-semibold uppercase tracking-wide px-2.5 py-1.5 rounded-md transition whitespace-nowrap ${
+                  activeChipCount > 0 || filterMenuOpen
+                    ? 'bg-ink-100 text-ink-950'
+                    : 'text-ink-400 hover:text-ink-100 hover:bg-ink-800'
+                }`}
+              >
+                Filters
+                {activeChipCount > 0 && (
+                  <span className="bg-violet-500 text-white rounded-full min-w-[16px] h-4 px-1 flex items-center justify-center text-[9px] font-bold">
+                    {activeChipCount}
+                  </span>
+                )}
+                <span className="text-[9px]">▾</span>
+              </button>
+
+              {filterMenuOpen && (
+                <div className="absolute right-0 mt-2 w-64 bg-ink-900 border border-ink-700 rounded-lg shadow-2xl p-2 z-20">
+                  <FilterMenuRow
+                    checked={filterAcuity}
+                    onChange={() => setFilterAcuity((v) => !v)}
+                    label="High acuity"
+                    hint="Current code 1 or 2"
+                  />
+                  <FilterMenuRow
+                    checked={filterOverdue}
+                    onChange={() => setFilterOverdue((v) => !v)}
+                    label="Overdue"
+                    hint="Code 3 checks past due"
+                  />
+                  <FilterMenuRow
+                    checked={filterIncomplete}
+                    onChange={toggleFilter}
+                    label={`Incomplete${incompleteCount > 0 ? ` (${incompleteCount})` : ''}`}
+                    hint="Missing required fields"
+                  />
+                  <FilterMenuRow
+                    checked={filterUnassigned}
+                    onChange={() => setFilterUnassigned((v) => !v)}
+                    label="Unassigned"
+                    hint="No KPE assigned"
+                  />
+                  <div className="border-t border-ink-800 mt-1 pt-2 px-2">
+                    <label className="text-[10px] font-display uppercase tracking-widest text-ink-500 block mb-1">
+                      KPE
+                    </label>
+                    <select
+                      value={filterKpe}
+                      onChange={(e) => setFilterKpe(e.target.value)}
+                      className="w-full text-sm bg-ink-950 border border-ink-700 rounded-md px-2 py-1.5 text-ink-100"
+                    >
+                      <option value="">All</option>
+                      {kpeOptions.map((k) => (
+                        <option key={k} value={k}>
+                          {k}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  {activeChipCount > 0 && (
+                    <button
+                      onClick={() => {
+                        setFilterAcuity(false)
+                        setFilterOverdue(false)
+                        if (filterIncomplete) toggleFilter()
+                        setFilterUnassigned(false)
+                        setFilterKpe('')
+                      }}
+                      className="w-full text-center text-[11px] text-ink-500 hover:text-ink-200 pt-2 mt-1 border-t border-ink-800"
+                    >
+                      Clear all filters
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {anyFilterActive && (
+              <span className="text-[10px] text-ink-500 font-display tabular-nums whitespace-nowrap">
+                {inCare.length + discharged.length} match{inCare.length + discharged.length === 1 ? '' : 'es'}
+              </span>
+            )}
+          </div>
+
           {capacity != null && (
-            <div className="flex flex-col gap-1 w-48 shrink-0">
+            <div className="flex flex-col gap-1 w-48 shrink-0 order-3 sm:order-2">
               <div className="flex items-baseline justify-between">
                 <span className={`font-display font-bold text-sm tabular-nums ${capacityTextTone}`}>
                   {occupied}
@@ -264,79 +389,11 @@ export default function CareBoard({ refreshKey, onAddPic, onPicClick, onPicTapKp
             </div>
           )}
           {onAddPic && (
-            <button onClick={onAddPic} className="btn-primary text-base px-5 py-3">
+            <button onClick={onAddPic} className="btn-primary text-base px-5 py-3 order-2 sm:order-3 shrink-0">
               + New PIC
             </button>
           )}
         </div>
-      </div>
-
-      <div className="panel px-3 py-2 mb-5 flex flex-wrap items-center gap-2">
-        <div className="flex items-center gap-1.5 flex-1 min-w-[160px]">
-          <span className="text-ink-500 text-sm">⌕</span>
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search # or name…"
-            className="bg-transparent outline-none text-sm flex-1 text-ink-100 placeholder:text-ink-600 min-w-0"
-          />
-          {search && (
-            <button
-              onClick={() => setSearch('')}
-              className="text-ink-500 hover:text-ink-200 text-xs px-1"
-              title="Clear search"
-            >
-              ✕
-            </button>
-          )}
-        </div>
-        <FilterChip
-          active={filterAcuity}
-          onClick={() => setFilterAcuity((v) => !v)}
-          title="Current code 1 or 2"
-        >
-          High acuity
-        </FilterChip>
-        <FilterChip
-          active={filterOverdue}
-          onClick={() => setFilterOverdue((v) => !v)}
-          title="Code 3 checks past due"
-        >
-          Overdue
-        </FilterChip>
-        <FilterChip
-          active={filterIncomplete}
-          onClick={toggleFilter}
-          title={incompleteCount > 0 ? `${incompleteCount} incomplete record${incompleteCount === 1 ? '' : 's'}` : 'No incomplete records'}
-        >
-          Incomplete{incompleteCount > 0 ? ` (${incompleteCount})` : ''}
-        </FilterChip>
-        <FilterChip
-          active={filterUnassigned}
-          onClick={() => setFilterUnassigned((v) => !v)}
-          title="No KPE assigned"
-        >
-          Unassigned
-        </FilterChip>
-        <select
-          value={filterKpe}
-          onChange={(e) => setFilterKpe(e.target.value)}
-          className={`text-[11px] font-display font-semibold uppercase tracking-wide px-2.5 py-1.5 rounded-md bg-transparent border transition ${
-            filterKpe ? 'border-ink-100 text-ink-100' : 'border-ink-800 text-ink-400 hover:text-ink-100'
-          }`}
-        >
-          <option value="">KPE: all</option>
-          {kpeOptions.map((k) => (
-            <option key={k} value={k}>
-              {k}
-            </option>
-          ))}
-        </select>
-        {anyFilterActive && (
-          <span className="text-[10px] text-ink-500 font-display tabular-nums ml-auto whitespace-nowrap">
-            {inCare.length + discharged.length} match{inCare.length + discharged.length === 1 ? '' : 'es'}
-          </span>
-        )}
       </div>
 
       {view === 'table' ? (
