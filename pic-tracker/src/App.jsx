@@ -13,6 +13,7 @@ import CodesBadge from './components/CodesBadge'
 import ActorNameBadge from './components/ActorNameBadge'
 import IntakeOnlyScreen from './components/IntakeOnlyScreen'
 import GlobalSearch from './components/GlobalSearch'
+import SessionMenu from './components/SessionMenu'
 import { getEvent, getPics, getEvents } from './lib/store'
 import { code3MonitorStateFor, currentCodeFor, linkConvertedFriend } from './lib/helpers'
 import { hasJoined, getSession, clearSession } from './lib/eventSession'
@@ -214,16 +215,12 @@ export default function App() {
           </nav>
 
           <div className="ml-auto flex items-center gap-2">
-            {/* Desktop-only session chips */}
-            <div className="hidden sm:flex items-center gap-2">
-              {isViewer && (
-                <span className="text-[10px] font-display font-bold uppercase tracking-widest px-2 py-1 rounded bg-shift-2/15 text-shift-2 border border-shift-2/40">
-                  Read only
-                </span>
-              )}
-              {SUPABASE_CONFIGURED && <CodesBadge onLeave={() => setJoined(false)} />}
-              {SUPABASE_CONFIGURED && <ActorNameBadge />}
-            </div>
+            {/* Read-only badge stays always-visible — important safety info, not worth a click to see */}
+            {isViewer && (
+              <span className="hidden sm:inline text-[10px] font-display font-bold uppercase tracking-widest px-2 py-1 rounded bg-shift-2/15 text-shift-2 border border-shift-2/40">
+                Read only
+              </span>
+            )}
 
             {/* Search — always visible */}
             <GlobalSearch onOpenPic={(id) => setActivePicId(id)} />
@@ -259,10 +256,9 @@ export default function App() {
               </button>
             )}
 
-            {/* Desktop-only theme + version */}
-            <div className="hidden sm:flex items-center gap-2">
-              <ThemeToggle />
-              <span className="text-xs text-ink-500 font-display tracking-wider">v0.6</span>
+            {/* Desktop-only: Writer/Actor/Theme/Version collapsed behind one avatar menu */}
+            <div className="hidden sm:block">
+              <SessionMenu onLeave={() => setJoined(false)} showSession={SUPABASE_CONFIGURED} />
             </div>
           </div>
         </div>
