@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import EventSettings from './components/EventSettings'
 import CareBoard from './components/CareBoard'
@@ -11,9 +11,11 @@ import ThemeToggle from './components/ThemeToggle'
 import LandingScreen from './components/LandingScreen'
 import IntakeOnlyScreen from './components/IntakeOnlyScreen'
 import GlobalSearch from './components/GlobalSearch'
+import ActivityBell from './components/ActivityBell'
 import SessionMenu, { SessionMenuContent } from './components/SessionMenu'
 import { getEvent, getPics, getEvents } from './lib/store'
-import { code3MonitorStateFor, currentCodeFor, linkConvertedFriend } from './lib/helpers'
+import { linkConvertedFriend } from './lib/helpers'
+import { getActorName } from './lib/actorName'
 import { hasJoined, getSession, clearSession } from './lib/eventSession'
 import { SUPABASE_CONFIGURED } from './lib/supabaseClient'
 import { startBackgroundSync, stopBackgroundSync, backgroundSync } from './lib/syncEngine'
@@ -31,8 +33,9 @@ export default function App() {
   const [lastSyncAt, setLastSyncAt] = useState(null)
   const [online, setOnline] = useState(typeof navigator === 'undefined' ? true : navigator.onLine)
   const [now, setNow] = useState(Date.now())
-  const [overdueDismissedAt, setOverdueDismissedAt] = useState(0)
   const [convertContext, setConvertContext] = useState(null) // { originalPicId, friendId, name } | null
+  const [admitToast, setAdmitToast] = useState(null) // { picId, picNumber, name, actorName } | null
+  const seenAdmitIdsRef = useRef(null)
 
   // Auto-dismiss the refresh confirmation.
   useEffect(() => {
@@ -144,35 +147,37 @@ export default function App() {
     return `${Math.floor(s / 60)}m ago`
   })()
 
-  // --- Attention alerts (overdue welfare checks + high-acuity in care) ---
-  const alerts = useMemo(() => {
-    const pics = getPics()
-    const events = getEvents()
-    const cfg = getEvent()
-    let overdue = 0
-    let acuity = 0
-    for (const p of pics) {
-      if (p.status !== 'in_care') continue
-      if (code3MonitorStateFor(p.id, events, cfg, Date.now()) === 'overdue') overdue++
-      const c = currentCodeFor(p.id, events)
-      if (c === 1 || c === 2) acuity++
-    }
-    return { overdue, acuity, total: overdue + acuity }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [refreshKey, now])
-
-  // Reset the dismissal once everything's clear, so new alerts re-show.
+  // --- Cross-device admit toast ---
+  // Fires only for admit events created by a different actor than this
+  // device — your own admits never toast, you were just there. Seeds the
+  // "already seen" set on mount so historical admits don't toast on load.
   useEffect(() => {
-    if (alerts.total === 0 && overdueDismissedAt !== 0) setOverdueDismissedAt(0)
-  }, [alerts.total, overdueDismissedAt])
+    if (!joined) return
+    const events = getEvents()
+    const myName = getActorName()
+    if (seenAdmitIdsRef.current === null) {
+      seenAdmitIdsRef.current = new Set(events.filter((e) => e.type === 'admit').map((e) => e.id))
+      return
+    }
+    const admits = events.filter((e) => e.type === 'admit')
+    const fresh = admits.filter((e) => !seenAdmitIdsRef.current.has(e.id))
+    if (fresh.length === 0) return
+    fresh.forEach((e) => seenAdmitIdsRef.current.add(e.id))
+    const fromOthers = fresh.filter((e) => e.actorName && e.actorName !== myName)
+    if (fromOthers.length === 0) return
+    const latest = fromOthers.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))[0]
+    const pics = getPics()
+    const pic = pics.find((p) => p.id === latest.picId)
+    if (!pic) return
+    setAdmitToast({ picId: pic.id, picNumber: pic.number, name: pic.name, actorName: latest.actorName })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refreshKey, joined])
 
-  const showAlertBar = alerts.total > 0 && alerts.total > overdueDismissedAt
-  const alertText = (() => {
-    const parts = []
-    if (alerts.overdue > 0) parts.push(`${alerts.overdue} check${alerts.overdue > 1 ? 's' : ''} overdue`)
-    if (alerts.acuity > 0) parts.push(`${alerts.acuity} high-acuity (code 1–2)`)
-    return parts.join(' · ')
-  })()
+  useEffect(() => {
+    if (!admitToast) return
+    const t = setTimeout(() => setAdmitToast(null), 6000)
+    return () => clearTimeout(t)
+  }, [admitToast])
 
   if (SUPABASE_CONFIGURED && !joined) {
     return <LandingScreen onJoined={() => setJoined(true)} />
@@ -222,6 +227,9 @@ export default function App() {
 
             {/* Search — always visible */}
             <GlobalSearch onOpenPic={(id) => setActivePicId(id)} />
+
+            {/* Activity — overdue welfare checks + full event feed */}
+            <ActivityBell refreshKey={refreshKey} onOpenPic={(id) => setActivePicId(id)} />
 
             {/* Live + refresh merged into one icon; dot badges it, hover shows status, click force-refreshes */}
             {SUPABASE_CONFIGURED && (
@@ -400,50 +408,58 @@ export default function App() {
         }
       />
 
-      {(showAlertBar || toast) && (
-        <div className="fixed inset-x-0 bottom-6 z-50 flex flex-col items-center gap-2 px-4 pointer-events-none">
-          {showAlertBar && (
-            <div className="pointer-events-auto flex items-center gap-3 rounded-full pl-4 pr-2 py-2 text-sm font-display font-semibold shadow-lg bg-code-1/15 border border-code-1/50 text-code-1">
-              <span>⚠ {alertText}</span>
-              <button
-                onClick={() => {
-                  setView('floor')
-                  setOverdueDismissedAt(alerts.total)
-                }}
-                className="rounded-full bg-code-1 text-white px-3 py-1 text-xs font-bold hover:opacity-90"
-              >
-                View
-              </button>
-              <button
-                onClick={() => setOverdueDismissedAt(alerts.total)}
-                className="px-2 text-code-1/70 hover:text-code-1 text-base leading-none"
-                aria-label="Dismiss"
-                title="Dismiss"
-              >
-                ✕
-              </button>
-            </div>
-          )}
-          {toast && (
-            <div
-              role="status"
-              className={`pointer-events-auto flex items-center gap-2 rounded-full pl-3 pr-4 py-2 text-sm font-display font-semibold shadow-lg border ${
-                toast.ok
-                  ? 'bg-ink-800 border-ink-700 text-ink-100'
-                  : 'bg-code-1/15 border-code-1/50 text-code-1'
-              }`}
-            >
-              <span
-                className={`inline-flex items-center justify-center w-5 h-5 rounded-full text-xs ${
-                  toast.ok ? 'bg-code-5 text-white' : 'bg-code-1 text-white'
-                }`}
-                aria-hidden="true"
-              >
-                {toast.ok ? '✓' : '!'}
+      {admitToast && (
+        <div className="fixed inset-x-0 top-4 z-50 flex justify-center px-4 pointer-events-none">
+          <div className="pointer-events-auto flex items-center gap-3 rounded-xl pl-3 pr-2.5 py-2.5 text-sm shadow-2xl bg-ink-900 border border-ink-700 max-w-sm">
+            <span className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-code-4/20 text-code-4 shrink-0">
+              +
+            </span>
+            <span className="flex-1 min-w-0">
+              <span className="block font-display font-bold text-ink-100 truncate">
+                #{admitToast.picNumber} {admitToast.name || ''} admitted
               </span>
-              {toast.text}
-            </div>
-          )}
+              <span className="block text-[11px] text-ink-500 truncate">by {admitToast.actorName}</span>
+            </span>
+            <button
+              onClick={() => {
+                setActivePicId(admitToast.picId)
+                setAdmitToast(null)
+              }}
+              className="bg-ink-100 text-ink-950 rounded-md px-2.5 py-1.5 text-xs font-display font-bold shrink-0"
+            >
+              View
+            </button>
+            <button
+              onClick={() => setAdmitToast(null)}
+              className="text-ink-500 hover:text-ink-200 text-sm px-1 shrink-0"
+              aria-label="Dismiss"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
+
+      {toast && (
+        <div className="fixed inset-x-0 bottom-6 z-50 flex flex-col items-center gap-2 px-4 pointer-events-none">
+          <div
+            role="status"
+            className={`pointer-events-auto flex items-center gap-2 rounded-full pl-3 pr-4 py-2 text-sm font-display font-semibold shadow-lg border ${
+              toast.ok
+                ? 'bg-ink-800 border-ink-700 text-ink-100'
+                : 'bg-code-1/15 border-code-1/50 text-code-1'
+            }`}
+          >
+            <span
+              className={`inline-flex items-center justify-center w-5 h-5 rounded-full text-xs ${
+                toast.ok ? 'bg-code-5 text-white' : 'bg-code-1 text-white'
+              }`}
+              aria-hidden="true"
+            >
+              {toast.ok ? '✓' : '!'}
+            </span>
+            {toast.text}
+          </div>
         </div>
       )}
     </div>
