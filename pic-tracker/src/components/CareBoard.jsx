@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import TableBoard from './TableBoard'
 import { getBoardView, setBoardView } from '../lib/tableColumns'
 import { getPics, getEvents, getEvent, saveEvent } from '../lib/store'
@@ -14,35 +14,11 @@ import {
   formatElapsed,
   shiftFor,
   workloadFor,
-  currentCodeFor,
-  code3MonitorStateFor,
-  unassignedKpes,
   friendsInsideCount,
 } from '../lib/helpers'
-import { isIncomplete } from '../lib/completeness'
 
 const CAPACITY_WARNING_THRESHOLD = 3
 const SORT_KEY = 'pic_in_care_sort_dir'
-const FILTER_KEY = 'pic_in_care_filter_incomplete'
-
-// --- Filter bar ---
-
-function FilterMenuRow({ checked, onChange, label, hint }) {
-  return (
-    <label className="flex items-center justify-between gap-3 px-2 py-1.5 rounded-md hover:bg-ink-800 cursor-pointer">
-      <div>
-        <div className="text-sm font-semibold text-ink-200">{label}</div>
-        {hint && <div className="text-[10px] text-ink-500">{hint}</div>}
-      </div>
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={onChange}
-        className="w-4 h-4 accent-violet-500 shrink-0"
-      />
-    </label>
-  )
-}
 
 export default function CareBoard({ refreshKey, onAddPic, onPicClick, onPicTapKpe }) {
   const [pics, setPics] = useState([])
@@ -57,29 +33,6 @@ export default function CareBoard({ refreshKey, onAddPic, onPicClick, onPicTapKp
       return 'desc'
     }
   })
-  const [filterIncomplete, setFilterIncomplete] = useState(() => {
-    try {
-      return localStorage.getItem(FILTER_KEY) === '1'
-    } catch {
-      return false
-    }
-  })
-  const [search, setSearch] = useState('')
-  const [filterAcuity, setFilterAcuity] = useState(false)
-  const [filterOverdue, setFilterOverdue] = useState(false)
-  const [filterUnassigned, setFilterUnassigned] = useState(false)
-  const [filterKpe, setFilterKpe] = useState('')
-  const [filterMenuOpen, setFilterMenuOpen] = useState(false)
-  const filterMenuRef = useRef(null)
-
-  useEffect(() => {
-    if (!filterMenuOpen) return
-    const onDocClick = (e) => {
-      if (filterMenuRef.current && !filterMenuRef.current.contains(e.target)) setFilterMenuOpen(false)
-    }
-    document.addEventListener('mousedown', onDocClick)
-    return () => document.removeEventListener('mousedown', onDocClick)
-  }, [filterMenuOpen])
 
   const reload = () => {
     setPics(getPics())
@@ -104,21 +57,13 @@ export default function CareBoard({ refreshKey, onAddPic, onPicClick, onPicTapKp
     } catch {}
   }
 
-  const toggleFilter = () => {
-    const next = !filterIncomplete
-    setFilterIncomplete(next)
-    try {
-      localStorage.setItem(FILTER_KEY, next ? '1' : '0')
-    } catch {}
-  }
-
   const onMarkChecked = (pic) => {
     addCheckEvent(pic.id, getAssignedKpe(pic), null)
     reload()
   }
 
   // Sort in-care purely by PIC number — no code-priority sort. Visual indicators handle priority.
-  const inCareAll = pics
+  const inCare = pics
     .filter((p) => p.status === 'in_care')
     .slice()
     .sort((a, b) => {
@@ -127,50 +72,12 @@ export default function CareBoard({ refreshKey, onAddPic, onPicClick, onPicTapKp
       return sortDir === 'desc' ? bn - an : an - bn
     })
 
-  const incompleteCount = inCareAll.filter(isIncomplete).length
-
-  // Search: matches PIC # or name/description, applies to both columns.
-  const searchNorm = search.trim().toLowerCase().replace(/^#/, '')
-  const matchesSearch = (p) => {
-    if (!searchNorm) return true
-    const num = String(p.number ?? '')
-    const name = (p.name || '').toLowerCase()
-    const desc = (p.description || '').toLowerCase()
-    return num.includes(searchNorm) || name.includes(searchNorm) || desc.includes(searchNorm)
-  }
-
-  // One-tap filter chips — only meaningful for in-care PICs, AND'd together.
-  const matchesChips = (p) => {
-    if (filterIncomplete && !isIncomplete(p)) return false
-    if (filterAcuity) {
-      const code = currentCodeFor(p.id, events)
-      if (!(code === 1 || code === 2)) return false
-    }
-    if (filterOverdue && code3MonitorStateFor(p.id, events, eventCfg) !== 'overdue') return false
-    if (filterUnassigned && getAssignedKpe(p)) return false
-    if (filterKpe && getAssignedKpe(p) !== filterKpe) return false
-    return true
-  }
-
-  const anyChipActive = filterIncomplete || filterAcuity || filterOverdue || filterUnassigned || !!filterKpe
-  const anyFilterActive = anyChipActive || !!searchNorm
-  const activeChipCount = [filterAcuity, filterOverdue, filterIncomplete, filterUnassigned, !!filterKpe].filter(
-    Boolean,
-  ).length
-
-  const inCare = inCareAll.filter((p) => matchesSearch(p) && matchesChips(p))
-
   const discharged = pics
     .filter((p) => p.status === 'discharged')
     .sort((a, b) => new Date(b.leftCare || 0) - new Date(a.leftCare || 0))
-    .filter(matchesSearch)
-
-  const kpeOptions = Array.from(
-    new Set([...(eventCfg.shift1Team || []), ...(eventCfg.shift2Team || []), ...unassignedKpes(pics, eventCfg)]),
-  )
 
   const capacity = eventCfg.capacity
-  const inCareCount = inCareAll.length
+  const inCareCount = inCare.length
   const countFriends = !!eventCfg.countFriendsInCapacity
   const friendsCount = countFriends ? friendsInsideCount(pics) : 0
   const occupied = inCareCount + friendsCount
@@ -197,7 +104,10 @@ export default function CareBoard({ refreshKey, onAddPic, onPicClick, onPicTapKp
 
   return (
     <div className="px-4 sm:px-6 py-6 max-w-7xl mx-auto">
-      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-6">
+      {/* Title + controls merged into one header block sharing a bottom border,
+          now that search has moved into the nav bar and there's less competing
+          for room in this strip. */}
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 pb-5 mb-6 border-b border-ink-800">
         <div>
           <p className="text-xs font-display tracking-[0.3em] uppercase text-ink-500">/ care board</p>
           <h2 className="text-3xl font-display font-bold">
@@ -205,7 +115,7 @@ export default function CareBoard({ refreshKey, onAddPic, onPicClick, onPicTapKp
           </h2>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <div className="hidden sm:inline-flex bg-ink-800 rounded-lg p-0.5 shrink-0 order-1">
+          <div className="inline-flex bg-ink-800 rounded-lg p-0.5 shrink-0">
             {['cards', 'table'].map((v) => (
               <button
                 key={v}
@@ -222,115 +132,8 @@ export default function CareBoard({ refreshKey, onAddPic, onPicClick, onPicTapKp
             ))}
           </div>
 
-          {/* Search + filters — own row on desktop, shares the top row with + New PIC on mobile */}
-          <div className="panel px-3 py-2 flex flex-wrap items-center gap-2 order-1 sm:order-4 sm:basis-full flex-1 min-w-[160px]">
-            <div className="flex items-center gap-1.5 flex-1 min-w-[120px]">
-              <span className="text-ink-500 text-sm">⌕</span>
-              <input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search # or name…"
-                className="bg-transparent outline-none text-sm flex-1 text-ink-100 placeholder:text-ink-600 min-w-0"
-              />
-              {search && (
-                <button
-                  onClick={() => setSearch('')}
-                  className="text-ink-500 hover:text-ink-200 text-xs px-1"
-                  title="Clear search"
-                >
-                  ✕
-                </button>
-              )}
-            </div>
-
-            <div className="relative shrink-0" ref={filterMenuRef}>
-              <button
-                onClick={() => setFilterMenuOpen((v) => !v)}
-                className={`inline-flex items-center gap-1.5 text-[11px] font-display font-semibold uppercase tracking-wide px-2.5 py-1.5 rounded-md transition whitespace-nowrap ${
-                  activeChipCount > 0 || filterMenuOpen
-                    ? 'bg-ink-100 text-ink-950'
-                    : 'text-ink-400 hover:text-ink-100 hover:bg-ink-800'
-                }`}
-              >
-                Filters
-                {activeChipCount > 0 && (
-                  <span className="bg-violet-500 text-white rounded-full min-w-[16px] h-4 px-1 flex items-center justify-center text-[9px] font-bold">
-                    {activeChipCount}
-                  </span>
-                )}
-                <span className="text-[9px]">▾</span>
-              </button>
-
-              {filterMenuOpen && (
-                <div className="absolute right-0 mt-2 w-64 bg-ink-900 border border-ink-700 rounded-lg shadow-2xl p-2 z-20">
-                  <FilterMenuRow
-                    checked={filterAcuity}
-                    onChange={() => setFilterAcuity((v) => !v)}
-                    label="High acuity"
-                    hint="Current code 1 or 2"
-                  />
-                  <FilterMenuRow
-                    checked={filterOverdue}
-                    onChange={() => setFilterOverdue((v) => !v)}
-                    label="Overdue"
-                    hint="Code 3 checks past due"
-                  />
-                  <FilterMenuRow
-                    checked={filterIncomplete}
-                    onChange={toggleFilter}
-                    label={`Incomplete${incompleteCount > 0 ? ` (${incompleteCount})` : ''}`}
-                    hint="Missing required fields"
-                  />
-                  <FilterMenuRow
-                    checked={filterUnassigned}
-                    onChange={() => setFilterUnassigned((v) => !v)}
-                    label="Unassigned"
-                    hint="No KPE assigned"
-                  />
-                  <div className="border-t border-ink-800 mt-1 pt-2 px-2">
-                    <label className="text-[10px] font-display uppercase tracking-widest text-ink-500 block mb-1">
-                      KPE
-                    </label>
-                    <select
-                      value={filterKpe}
-                      onChange={(e) => setFilterKpe(e.target.value)}
-                      className="w-full text-sm bg-ink-950 border border-ink-700 rounded-md px-2 py-1.5 text-ink-100"
-                    >
-                      <option value="">All</option>
-                      {kpeOptions.map((k) => (
-                        <option key={k} value={k}>
-                          {k}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  {activeChipCount > 0 && (
-                    <button
-                      onClick={() => {
-                        setFilterAcuity(false)
-                        setFilterOverdue(false)
-                        if (filterIncomplete) toggleFilter()
-                        setFilterUnassigned(false)
-                        setFilterKpe('')
-                      }}
-                      className="w-full text-center text-[11px] text-ink-500 hover:text-ink-200 pt-2 mt-1 border-t border-ink-800"
-                    >
-                      Clear all filters
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {anyFilterActive && (
-              <span className="text-[10px] text-ink-500 font-display tabular-nums whitespace-nowrap">
-                {inCare.length + discharged.length} match{inCare.length + discharged.length === 1 ? '' : 'es'}
-              </span>
-            )}
-          </div>
-
           {capacity != null && (
-            <div className="flex flex-col gap-1 w-48 shrink-0 order-3 sm:order-2">
+            <div className="flex flex-col gap-1 w-48 shrink-0">
               <div className="flex items-baseline justify-between">
                 <span className={`font-display font-bold text-sm tabular-nums ${capacityTextTone}`}>
                   {occupied}
@@ -389,7 +192,7 @@ export default function CareBoard({ refreshKey, onAddPic, onPicClick, onPicTapKp
             </div>
           )}
           {onAddPic && (
-            <button onClick={onAddPic} className="btn-primary text-base px-5 py-3 order-2 sm:order-3 shrink-0">
+            <button onClick={onAddPic} className="btn-primary text-base px-5 py-3 shrink-0">
               + New PIC
             </button>
           )}
@@ -406,9 +209,7 @@ export default function CareBoard({ refreshKey, onAddPic, onPicClick, onPicTapKp
             <h3 className="font-display font-bold uppercase tracking-[0.18em] text-sm text-ink-300">
               In care
             </h3>
-            <span className="text-xs text-ink-500 font-display tabular-nums">
-              {anyFilterActive ? `${inCare.length} / ${inCareAll.length}` : inCareAll.length}
-            </span>
+            <span className="text-xs text-ink-500 font-display tabular-nums">{inCare.length}</span>
             <button
               onClick={toggleSort}
               className="ml-auto text-[10px] font-display uppercase tracking-widest text-ink-400 hover:text-ink-100 inline-flex items-center gap-1 px-2 py-1 rounded-md hover:bg-ink-800 transition"
@@ -421,34 +222,11 @@ export default function CareBoard({ refreshKey, onAddPic, onPicClick, onPicTapKp
 
           {inCare.length === 0 ? (
             <div className="panel p-10 text-center">
-              {anyFilterActive && inCareAll.length > 0 ? (
-                <>
-                  <p className="text-ink-500 font-display tracking-wide">
-                    No in-care PICs match the current search/filters.
-                  </p>
-                  <button
-                    onClick={() => {
-                      setSearch('')
-                      setFilterAcuity(false)
-                      setFilterOverdue(false)
-                      setFilterUnassigned(false)
-                      setFilterKpe('')
-                      if (filterIncomplete) toggleFilter()
-                    }}
-                    className="btn-ghost mt-4"
-                  >
-                    Clear search &amp; filters — show all {inCareAll.length}
-                  </button>
-                </>
-              ) : (
-                <>
-                  <p className="text-ink-500 font-display tracking-wide">No PICs currently in care.</p>
-                  {onAddPic && (
-                    <button onClick={onAddPic} className="btn-ghost mt-4">
-                      + Admit first PIC
-                    </button>
-                  )}
-                </>
+              <p className="text-ink-500 font-display tracking-wide">No PICs currently in care.</p>
+              {onAddPic && (
+                <button onClick={onAddPic} className="btn-ghost mt-4">
+                  + Admit first PIC
+                </button>
               )}
             </div>
           ) : (
@@ -560,8 +338,9 @@ function DischargedRow({ pic, eventCfg, allPics, onClick }) {
         )}
       </div>
 
-      {/* Middle: medical + security icons (KPE hidden on discharged rows) */}
-      <div className="flex items-center gap-2 shrink-0">
+      {/* Fixed-width icon slot — always reserves the same space whether or not
+          an icon is present, so the outcome tag never drifts left/right. */}
+      <div className="flex items-center gap-1 shrink-0 w-9">
         {pic.medicalInvolved === true && (
           <span
             className="text-code-1 text-base leading-none"
@@ -592,17 +371,17 @@ function DischargedRow({ pic, eventCfg, allPics, onClick }) {
         )}
       </div>
 
-      {/* Right: outcome + duration */}
-      <div className="flex items-center gap-2 shrink-0">
+      {/* Right: outcome (flexible but fixed-position) + duration (fixed-width, right-aligned) */}
+      <div className="flex items-center gap-2 shrink-0 w-32 justify-start">
         {outcomeDisplay ? (
-          <span className="tag">{outcomeDisplay}</span>
+          <span className="tag truncate">{outcomeDisplay}</span>
         ) : (
           <span className="text-xs text-ink-600 italic">no outcome</span>
         )}
-        <span className="font-display tabular-nums text-ink-400 text-xs whitespace-nowrap">
-          {formatElapsed(duration)}
-        </span>
       </div>
+      <span className="font-display tabular-nums text-ink-400 text-xs whitespace-nowrap shrink-0 w-14 text-right">
+        {formatElapsed(duration)}
+      </span>
     </button>
   )
 }
