@@ -9,7 +9,7 @@ import {
   picIdFromNumber,
   nextEventId,
 } from '../lib/store'
-import { nowIso, formatClock, unassignedKpes } from '../lib/helpers'
+import { nowIso, formatClock, unassignedKpes, addFriend } from '../lib/helpers'
 import { mirrorAdmit } from '../lib/dualWrite'
 import {
   REFERRED_BY,
@@ -19,13 +19,11 @@ import {
   PRESENTATIONS,
   PRESENTATION_COLORS,
   GENDERS,
-  GENDER_COLORS,
   AGE_RANGES,
-  AGE_COLORS,
   CODES,
 } from '../constants/options'
 import ChipGroup from './ChipGroup'
-import KpeChipPicker from './KpeChipPicker'
+import KpeDropdownPicker from './KpeDropdownPicker'
 import ShieldIcon from './ShieldIcon'
 import Code1Warning from './Code1Warning'
 
@@ -45,6 +43,7 @@ const initialForm = {
   description: '',
   intakeNote: '',
   ejectionFlag: false,
+  friends: [],
 }
 
 // Inline row layout: label left, content right. Wraps cleanly on narrow screens.
@@ -70,6 +69,8 @@ export default function IntakeModal({ open, onClose, onCreated, initialValues })
   const [picNumber, setPicNumber] = useState(null)
   const [code1Pending, setCode1Pending] = useState(false) // showing the Code 1 warning
   const [overCapacityAck, setOverCapacityAck] = useState(false)
+  const [addingFriend, setAddingFriend] = useState(false)
+  const [friendDraft, setFriendDraft] = useState('')
 
   useEffect(() => {
     if (open) {
@@ -80,6 +81,8 @@ export default function IntakeModal({ open, onClose, onCreated, initialValues })
       setPicNumber(peekNextPicNumber())
       setCode1Pending(false)
       setOverCapacityAck(false)
+      setAddingFriend(false)
+      setFriendDraft('')
     }
   }, [open])
 
@@ -97,6 +100,16 @@ export default function IntakeModal({ open, onClose, onCreated, initialValues })
   const atCapacity = capacity != null && inCareCount >= capacity
 
   const update = (patch) => setForm((f) => ({ ...f, ...patch }))
+
+  const onAddFriendDraft = () => {
+    const name = friendDraft.trim()
+    if (!name) return
+    update({ friends: [...form.friends, name] })
+    setFriendDraft('')
+  }
+  const onRemoveFriendDraft = (name) => {
+    update({ friends: form.friends.filter((n) => n !== name) })
+  }
 
   const onSelectCode = (code) => {
     if (code === 1 && form.code !== 1) {
@@ -180,6 +193,9 @@ export default function IntakeModal({ open, onClose, onCreated, initialValues })
     // Mirror to Supabase (fire and forget — no-op if not configured / not a writer)
     mirrorAdmit(pic, admitEvent)
 
+    // Any friends staged during intake get logged against the new PIC now that it exists.
+    form.friends.forEach((name) => addFriend(picId, name, form.intakeKpe.trim() || null))
+
     onCreated?.(pic)
     onClose?.()
   }
@@ -246,21 +262,96 @@ export default function IntakeModal({ open, onClose, onCreated, initialValues })
                 </button>
               </div>
             </div>
-            <input
-              className="input mt-2"
-              placeholder="Description"
-              value={form.description}
-              onChange={(e) => update({ description: e.target.value })}
-            />
+            <div className="flex gap-2 mt-2">
+              <input
+                className="input flex-1"
+                placeholder="Description"
+                value={form.description}
+                onChange={(e) => update({ description: e.target.value })}
+              />
+              <select
+                className="input w-auto"
+                value={form.ageRange || ''}
+                onChange={(e) => update({ ageRange: e.target.value || null })}
+              >
+                <option value="">Age</option>
+                {AGE_RANGES.map((a) => (
+                  <option key={a} value={a}>
+                    {a}
+                  </option>
+                ))}
+              </select>
+              <select
+                className="input w-auto"
+                value={form.gender || ''}
+                onChange={(e) => update({ gender: e.target.value || null })}
+              >
+                <option value="">Gender</option>
+                {GENDERS.map((g) => (
+                  <option key={g} value={g}>
+                    {g}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex items-center gap-2 mt-3">
+              {!addingFriend && (
+                <button
+                  type="button"
+                  onClick={() => setAddingFriend(true)}
+                  className="btn-ghost text-sm"
+                >
+                  + Friends
+                </button>
+              )}
+              {addingFriend && (
+                <div className="flex items-center gap-2 flex-1">
+                  <input
+                    className="input flex-1 text-sm"
+                    placeholder="Friend's name"
+                    autoFocus
+                    value={friendDraft}
+                    onChange={(e) => setFriendDraft(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') onAddFriendDraft()
+                      if (e.key === 'Escape') {
+                        setAddingFriend(false)
+                        setFriendDraft('')
+                      }
+                    }}
+                  />
+                  <button type="button" onClick={onAddFriendDraft} className="btn-ghost text-sm shrink-0">
+                    Add
+                  </button>
+                </div>
+              )}
+            </div>
+            {form.friends.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                {form.friends.map((name) => (
+                  <span
+                    key={name}
+                    className="inline-flex items-center gap-1.5 bg-ink-900 border border-ink-700 rounded-full pl-3 pr-1.5 py-1 text-sm font-semibold text-ink-200"
+                  >
+                    {name}
+                    <button
+                      type="button"
+                      onClick={() => onRemoveFriendDraft(name)}
+                      className="text-ink-500 hover:text-code-1 w-4 h-4 flex items-center justify-center"
+                    >
+                      ✕
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
           </FieldRow>
 
           <div className="divider" />
 
           {/* Severity code — Code 1 visually deprioritised */}
-          <FieldRow
-            label="Severity code *"
-            hint="1 = emergency, 5 = lowest"
-          >
+          <FieldRow label="Severity code *">
             <div className="space-y-2">
               <div className="flex items-stretch gap-3">
                 {/* Left column: Code 1, Code 2, Security — small stacked pills */}
@@ -281,7 +372,7 @@ export default function IntakeModal({ open, onClose, onCreated, initialValues })
                         type="button"
                         onClick={() => onSelectCode(c.code)}
                         aria-pressed={active}
-                        className={`inline-flex items-center gap-1.5 w-full px-2.5 py-1.5 rounded-lg border text-xs font-display font-semibold transition ${
+                        className={`inline-flex items-center gap-1.5 w-full h-9 px-2.5 rounded-lg border text-xs font-display font-semibold transition ${
                           active ? toneOn : toneOff
                         }`}
                         title={`Code ${c.code} — ${c.desc}`}
@@ -295,7 +386,7 @@ export default function IntakeModal({ open, onClose, onCreated, initialValues })
                     type="button"
                     onClick={() => update({ ejectionFlag: !form.ejectionFlag })}
                     aria-pressed={form.ejectionFlag}
-                    className={`inline-flex items-center gap-1.5 w-full px-2.5 py-1.5 rounded-lg border text-xs font-display font-semibold transition ${
+                    className={`inline-flex items-center gap-1.5 w-full h-9 px-2.5 rounded-lg border text-xs font-display font-semibold transition ${
                       form.ejectionFlag
                         ? 'secflag-on'
                         : 'bg-ink-900 border-ink-700 text-ink-400 hover:border-ink-500'
@@ -347,12 +438,11 @@ export default function IntakeModal({ open, onClose, onCreated, initialValues })
           <div className="divider" />
 
           <FieldRow label="Assigned KPE" hint="Optional - can assign later">
-            <KpeChipPicker
-              currentKpe={form.intakeKpe}
+            <KpeDropdownPicker
+              value={form.intakeKpe}
               shift1Team={eventCfg.shift1Team || []}
               shift2Team={eventCfg.shift2Team || []}
               unassigned={unassigned}
-              compact
               onSelect={(v) => update({ intakeKpe: v || '' })}
               emptyHint="No KPEs configured yet — add rosters in Settings."
             />
@@ -404,27 +494,11 @@ export default function IntakeModal({ open, onClose, onCreated, initialValues })
               className="flex items-center gap-2 text-sm font-display font-semibold tracking-wide text-ink-300 hover:text-ink-100"
             >
               <span className={`inline-block transition ${showOptional ? 'rotate-90' : ''}`}>›</span>
-              Optional details (gender, age, intake note)
+              Intake note
             </button>
 
             {showOptional && (
               <div className="mt-5 space-y-5">
-                <FieldRow label="Gender">
-                  <ChipGroup
-                    options={GENDERS}
-                    value={form.gender}
-                    onChange={(v) => update({ gender: v })}
-                    colorMap={GENDER_COLORS}
-                  />
-                </FieldRow>
-                <FieldRow label="Age range">
-                  <ChipGroup
-                    options={AGE_RANGES}
-                    value={form.ageRange}
-                    onChange={(v) => update({ ageRange: v })}
-                    colorMap={AGE_COLORS}
-                  />
-                </FieldRow>
                 <FieldRow label="Intake note">
                   <textarea
                     className="input min-h-[5rem]"
