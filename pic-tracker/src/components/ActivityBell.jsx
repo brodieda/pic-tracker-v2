@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { getPics, getEvents, getEvent } from '../lib/store'
 import { code3MonitorStateFor, minutesSinceLastActivity, getAssignedKpe, addCheckEvent, formatElapsed } from '../lib/helpers'
 import { getActivityLastSeen, setActivityLastSeenNow } from '../lib/activityRead'
@@ -45,6 +46,7 @@ export default function ActivityBell({ refreshKey, onOpenPic }) {
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
   const [now, setNow] = useState(Date.now())
   const ref = useRef(null)
+  const panelRef = useRef(null)
 
   const load = () => {
     setPics(getPics())
@@ -64,7 +66,9 @@ export default function ActivityBell({ refreshKey, onOpenPic }) {
   useEffect(() => {
     if (!open) return
     const onDocClick = (e) => {
-      if (ref.current && !ref.current.contains(e.target)) setOpen(false)
+      if (ref.current && ref.current.contains(e.target)) return
+      if (panelRef.current && panelRef.current.contains(e.target)) return
+      setOpen(false)
     }
     document.addEventListener('mousedown', onDocClick)
     return () => document.removeEventListener('mousedown', onDocClick)
@@ -124,9 +128,13 @@ export default function ActivityBell({ refreshKey, onOpenPic }) {
         )}
       </button>
 
-      {open && (
-        <div className="fixed inset-0 z-40 sm:absolute sm:inset-auto sm:right-0 sm:top-full sm:mt-2 sm:w-96">
-          <div className="w-full h-full sm:h-auto sm:max-h-[32rem] bg-ink-900 sm:rounded-2xl shadow-2xl sm:ring-1 sm:ring-ink-700 overflow-hidden flex flex-col">
+      {open &&
+        createPortal(
+          <div
+            ref={panelRef}
+            className="fixed inset-0 z-50 sm:inset-auto sm:top-14 sm:right-4 md:right-6 sm:w-96"
+          >
+            <div className="w-full h-full sm:h-auto sm:max-h-[32rem] bg-ink-900 sm:rounded-2xl shadow-2xl sm:ring-1 sm:ring-ink-700 overflow-hidden flex flex-col">
             <div className="flex items-center justify-between px-4 py-3 border-b border-ink-800 shrink-0">
               <div className="flex items-center gap-2">
                 <button onClick={() => setOpen(false)} className="sm:hidden text-ink-400 text-lg leading-none px-1">
@@ -204,8 +212,9 @@ export default function ActivityBell({ refreshKey, onOpenPic }) {
               )}
             </div>
           </div>
-        </div>
-      )}
+          </div>,
+          document.body,
+        )}
     </div>
   )
 }
