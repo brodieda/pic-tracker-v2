@@ -282,18 +282,6 @@ export default function App() {
                 </button>
               </div>
 
-              {SUPABASE_CONFIGURED && (
-                <div className="space-y-2">
-                  <div className="text-[10px] font-display tracking-[0.22em] uppercase text-ink-500">Session</div>
-                  {isViewer && (
-                    <span className="inline-block text-[10px] font-display font-bold uppercase tracking-widest px-2 py-1 rounded bg-shift-2/15 text-shift-2 border border-shift-2/40">
-                      Read only
-                    </span>
-                  )}
-                  <SessionMenuContent onLeave={() => { setDrawerOpen(false); setJoined(false) }} />
-                </div>
-              )}
-
               <div>
                 <div className="text-[10px] font-display tracking-[0.22em] uppercase text-ink-500 mb-1.5">Go to</div>
                 <div className="space-y-1">
@@ -316,6 +304,18 @@ export default function App() {
                   ))}
                 </div>
               </div>
+
+              {SUPABASE_CONFIGURED && (
+                <div className="space-y-2">
+                  <div className="text-[10px] font-display tracking-[0.22em] uppercase text-ink-500">Session</div>
+                  {isViewer && (
+                    <span className="inline-block text-[10px] font-display font-bold uppercase tracking-widest px-2 py-1 rounded bg-shift-2/15 text-shift-2 border border-shift-2/40">
+                      Read only
+                    </span>
+                  )}
+                  <SessionMenuContent onLeave={() => { setDrawerOpen(false); setJoined(false) }} />
+                </div>
+              )}
 
               {!SUPABASE_CONFIGURED && (
                 <div className="mt-auto flex items-center gap-3 pt-3 border-t border-ink-800 text-ink-400">
