@@ -318,8 +318,8 @@ function DischargedRow({ pic, eventCfg, allPics, onClick }) {
       onClick={onClick}
       className="w-full text-left px-3.5 py-2 flex items-center gap-3 text-sm hover:bg-ink-800/40 transition"
     >
-      {/* Left: PIC# + identifier + demo */}
-      <div className="flex items-baseline gap-2 flex-1 min-w-0">
+      {/* Left: PIC# + identifier + demo + medical/security icons */}
+      <div className="flex items-center gap-2 flex-1 min-w-0">
         <span className="font-display font-bold tabular-nums text-ink-200 shrink-0">
           #{picNum}
         </span>
@@ -333,37 +333,36 @@ function DischargedRow({ pic, eventCfg, allPics, onClick }) {
         {demog && (
           <span className="text-xs text-ink-500 shrink-0">· {demog}</span>
         )}
-      </div>
-
-      {/* Fixed-width icon slot — always reserves the same space whether or not
-          an icon is present, so the time column stays aligned across rows. */}
-      <div className="flex items-center gap-1 shrink-0 w-9">
-        {pic.medicalInvolved === true && (
-          <span
-            className="text-code-1 text-base leading-none"
-            title="Medical involved"
-          >
-            ⚕
-          </span>
-        )}
-        {pic.ejectionFlag && (
-          <span
-            className={`leading-none ${
-              pic.securityNotified === true
-                ? 'text-code-5'
-                : pic.securityNotified === false
-                ? 'text-code-1'
-                : 'text-ink-300'
-            }`}
-            title={
-              pic.securityNotified === true
-                ? 'Security Flag — Security notified at discharge'
-                : pic.securityNotified === false
-                ? 'Security Flag — Security NOT notified at discharge'
-                : 'Security Flag — notification status not recorded'
-            }
-          >
-            <ShieldIcon className="w-3.5 h-3.5" />
+        {(pic.medicalInvolved === true || pic.ejectionFlag) && (
+          <span className="flex items-center gap-1 shrink-0">
+            {pic.medicalInvolved === true && (
+              <span
+                className="text-code-1 text-base leading-none"
+                title="Medical involved"
+              >
+                ⚕
+              </span>
+            )}
+            {pic.ejectionFlag && (
+              <span
+                className={`leading-none ${
+                  pic.securityNotified === true
+                    ? 'text-code-5'
+                    : pic.securityNotified === false
+                    ? 'text-code-1'
+                    : 'text-ink-300'
+                }`}
+                title={
+                  pic.securityNotified === true
+                    ? 'Security Flag — Security notified at discharge'
+                    : pic.securityNotified === false
+                    ? 'Security Flag — Security NOT notified at discharge'
+                    : 'Security Flag — notification status not recorded'
+                }
+              >
+                <ShieldIcon className="w-3.5 h-3.5" />
+              </span>
+            )}
           </span>
         )}
       </div>
