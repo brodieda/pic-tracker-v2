@@ -9,11 +9,9 @@ import Dashboard from './components/Dashboard'
 import Reports from './components/Reports'
 import ThemeToggle from './components/ThemeToggle'
 import LandingScreen from './components/LandingScreen'
-import CodesBadge from './components/CodesBadge'
-import ActorNameBadge from './components/ActorNameBadge'
 import IntakeOnlyScreen from './components/IntakeOnlyScreen'
 import GlobalSearch from './components/GlobalSearch'
-import SessionMenu from './components/SessionMenu'
+import SessionMenu, { SessionMenuContent } from './components/SessionMenu'
 import { getEvent, getPics, getEvents } from './lib/store'
 import { code3MonitorStateFor, currentCodeFor, linkConvertedFriend } from './lib/helpers'
 import { hasJoined, getSession, clearSession } from './lib/eventSession'
@@ -287,13 +285,12 @@ export default function App() {
               {SUPABASE_CONFIGURED && (
                 <div className="space-y-2">
                   <div className="text-[10px] font-display tracking-[0.22em] uppercase text-ink-500">Session</div>
-                  <CodesBadge onLeave={() => { setDrawerOpen(false); setJoined(false) }} />
-                  <ActorNameBadge />
                   {isViewer && (
                     <span className="inline-block text-[10px] font-display font-bold uppercase tracking-widest px-2 py-1 rounded bg-shift-2/15 text-shift-2 border border-shift-2/40">
                       Read only
                     </span>
                   )}
+                  <SessionMenuContent onLeave={() => { setDrawerOpen(false); setJoined(false) }} />
                 </div>
               )}
 
@@ -320,10 +317,12 @@ export default function App() {
                 </div>
               </div>
 
-              <div className="mt-auto flex items-center gap-3 pt-3 border-t border-ink-800 text-ink-400">
-                <ThemeToggle />
-                <span className="text-xs font-display tracking-wider">v0.6</span>
-              </div>
+              {!SUPABASE_CONFIGURED && (
+                <div className="mt-auto flex items-center gap-3 pt-3 border-t border-ink-800 text-ink-400">
+                  <ThemeToggle />
+                  <span className="text-xs font-display tracking-wider">v0.6</span>
+                </div>
+              )}
             </div>
           </div>,
           document.body
