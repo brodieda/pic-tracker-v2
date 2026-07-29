@@ -91,6 +91,11 @@ export default function CareBoard({ refreshKey, onAddPic, onPicClick, onPicTapKp
     capacity > 0 ? Math.min(100 - picsBarPct, (friendsCount / capacity) * 100) : 0
   const barColor = atCapacity ? 'bg-code-1' : nearCapacity ? 'bg-code-3' : 'bg-code-5'
   const capacityTextTone = atCapacity ? 'text-code-1' : nearCapacity ? 'text-code-3' : 'text-ink-200'
+  const ringColorClass = atCapacity ? 'text-code-1' : nearCapacity ? 'text-code-3' : 'text-code-5'
+  const ringR = 15.5
+  const ringC = 2 * Math.PI * ringR
+  const occupiedPct = capacity > 0 ? Math.min(100, (occupied / capacity) * 100) : 0
+  const ringOffset = ringC * (1 - occupiedPct / 100)
 
   const canEditSettings = !!onAddPic // onAddPic is only passed for writers, not viewers
   const onToggleCountFriends = () => {
@@ -103,7 +108,7 @@ export default function CareBoard({ refreshKey, onAddPic, onPicClick, onPicTapKp
   }
 
   return (
-    <div className="px-4 sm:px-6 py-6 max-w-7xl mx-auto">
+    <div className="px-4 sm:px-6 pt-6 pb-24 sm:pb-6 max-w-7xl mx-auto">
       {/* Title + controls merged into one header block sharing a bottom border,
           now that search has moved into the nav bar and there's less competing
           for room in this strip. */}
@@ -132,18 +137,65 @@ export default function CareBoard({ refreshKey, onAddPic, onPicClick, onPicTapKp
             ))}
           </div>
 
+          {/* Desktop: compact ring + numbers + friends icon toggle, all in one chip */}
           {capacity != null && (
-            <div className="flex flex-col gap-1 w-48 shrink-0">
+            <div className="hidden sm:flex items-center gap-2.5 bg-ink-900 border border-ink-700 rounded-lg px-3 py-2 shrink-0">
+              <svg viewBox="0 0 36 36" className={`w-7 h-7 shrink-0 ${ringColorClass}`}>
+                <circle cx="18" cy="18" r={ringR} fill="none" stroke="currentColor" strokeOpacity="0.15" strokeWidth="4" />
+                <circle
+                  cx="18"
+                  cy="18"
+                  r={ringR}
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                  strokeDasharray={ringC}
+                  strokeDashoffset={ringOffset}
+                  strokeLinecap="round"
+                  transform="rotate(-90 18 18)"
+                  className="transition-all"
+                />
+              </svg>
+              <div className="leading-tight">
+                <div className={`text-sm font-display font-bold tabular-nums ${capacityTextTone}`}>
+                  {occupied}
+                  <span className="opacity-50 font-medium"> / {capacity}</span>
+                </div>
+                <div className="text-[9px] uppercase tracking-wide text-ink-500 font-bold whitespace-nowrap">
+                  {atCapacity ? 'full' : `${spacesRemaining} free`}
+                </div>
+              </div>
+              {canEditSettings && (
+                <button
+                  onClick={onToggleCountFriends}
+                  title={
+                    countFriends
+                      ? `Counting friends toward capacity — ${inCareCount} PICs · ${friendsCount} friends`
+                      : 'Count friends toward capacity'
+                  }
+                  className={`w-7 h-7 rounded-md flex items-center justify-center text-sm transition shrink-0 ${
+                    countFriends ? 'bg-violet-500/20 text-violet-400' : 'text-ink-600 hover:text-ink-300 hover:bg-ink-800'
+                  }`}
+                >
+                  👥
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* Mobile: slim bar instead of the ring — more width available for it, less for a chip */}
+          {capacity != null && (
+            <div className="flex sm:hidden flex-col gap-1 flex-1 min-w-[140px]">
               <div className="flex items-baseline justify-between">
                 <span className={`font-display font-bold text-sm tabular-nums ${capacityTextTone}`}>
                   {occupied}
                   <span className="opacity-50 font-medium"> / {capacity}</span>
                 </span>
                 <span className="text-[10px] uppercase tracking-widest text-ink-500">
-                  {atCapacity ? 'full' : `${spacesRemaining} ${spacesRemaining === 1 ? 'space' : 'spaces'} free`}
+                  {atCapacity ? 'full' : `${spacesRemaining} free`}
                 </span>
               </div>
-              <div className="relative h-2.5 rounded-full bg-ink-800 overflow-hidden">
+              <div className="relative h-2 rounded-full bg-ink-800 overflow-hidden">
                 <div
                   className={`absolute inset-y-0 left-0 ${barColor} transition-all`}
                   style={{ width: `${picsBarPct}%` }}
@@ -155,49 +207,27 @@ export default function CareBoard({ refreshKey, onAddPic, onPicClick, onPicTapKp
                   />
                 )}
               </div>
-              {countFriends && (
-                <div className="flex items-center gap-2 text-[10px] text-ink-500">
-                  <span className="inline-flex items-center gap-1">
-                    <span className={`w-1.5 h-1.5 rounded-full ${barColor}`} /> {inCareCount} PICs
-                  </span>
-                  {friendsCount > 0 && (
-                    <span className="inline-flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-violet-500" /> {friendsCount} friends
-                    </span>
-                  )}
-                </div>
-              )}
-              {canEditSettings && (
-                <button
-                  onClick={onToggleCountFriends}
-                  className={`text-left text-[10px] font-display uppercase tracking-widest inline-flex items-center gap-1 ${
-                    countFriends ? 'text-violet-400 hover:text-violet-300' : 'text-ink-600 hover:text-ink-300'
-                  }`}
-                  title="Toggle whether friends/visitors currently inside count toward capacity"
-                >
-                  <span
-                    className={`relative inline-flex items-center h-3.5 w-6 rounded-full transition shrink-0 ${
-                      countFriends ? 'bg-violet-500' : 'bg-ink-700'
-                    }`}
-                  >
-                    <span
-                      className={`inline-block w-2.5 h-2.5 bg-white rounded-full shadow transform transition ${
-                        countFriends ? 'translate-x-3' : 'translate-x-0.5'
-                      }`}
-                    />
-                  </span>
-                  count friends
-                </button>
-              )}
             </div>
           )}
+
+          {/* New PIC — inline on desktop; mobile gets a floating action button instead (see below) */}
           {onAddPic && (
-            <button onClick={onAddPic} className="btn-primary text-base px-5 py-3 shrink-0">
+            <button onClick={onAddPic} className="hidden sm:inline-flex btn-primary text-base px-5 py-3 shrink-0">
               + New PIC
             </button>
           )}
         </div>
       </div>
+
+      {/* Mobile floating action button — always reachable regardless of scroll position */}
+      {onAddPic && (
+        <button
+          onClick={onAddPic}
+          className="sm:hidden fixed bottom-5 right-5 z-30 btn-primary rounded-2xl px-5 py-3.5 text-sm shadow-2xl flex items-center gap-2"
+        >
+          <span className="text-lg leading-none">+</span> New PIC
+        </button>
+      )}
 
       {view === 'table' ? (
         <TableBoard pics={[...inCare, ...discharged]} events={events} eventCfg={eventCfg} onPicClick={onPicClick} onEdited={reload} />
