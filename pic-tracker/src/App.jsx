@@ -12,6 +12,7 @@ import LandingScreen from './components/LandingScreen'
 import CodesBadge from './components/CodesBadge'
 import ActorNameBadge from './components/ActorNameBadge'
 import IntakeOnlyScreen from './components/IntakeOnlyScreen'
+import GlobalSearch from './components/GlobalSearch'
 import { getEvent, getPics, getEvents } from './lib/store'
 import { code3MonitorStateFor, currentCodeFor, linkConvertedFriend } from './lib/helpers'
 import { hasJoined, getSession, clearSession } from './lib/eventSession'
@@ -224,20 +225,30 @@ export default function App() {
               {SUPABASE_CONFIGURED && <ActorNameBadge />}
             </div>
 
-            {/* Connection dot — always visible */}
+            {/* Search — always visible */}
+            <GlobalSearch onOpenPic={(id) => setActivePicId(id)} />
+
+            {/* Live + refresh merged into one icon; dot badges it, hover shows status, click force-refreshes */}
             {SUPABASE_CONFIGURED && (
-              <span
-                className="inline-flex items-center gap-1.5 pl-1"
+              <button
+                onClick={forceRefresh}
+                disabled={refreshing}
                 title={
                   connStatus === 'live'
-                    ? `Live — synced ${syncedAgoLabel}`
+                    ? `Live — synced ${syncedAgoLabel} — click to refresh`
                     : connStatus === 'syncing'
                     ? 'Syncing…'
-                    : `Offline / stale — last synced ${syncedAgoLabel}`
+                    : `Offline / stale — last synced ${syncedAgoLabel} — click to refresh`
                 }
+                aria-label="Refresh data"
+                className="relative inline-flex items-center justify-center w-9 h-9 rounded-md bg-ink-800 border border-ink-700 hover:border-ink-500 text-ink-300 hover:text-ink-100 transition disabled:opacity-50"
               >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`}>
+                  <path d="M21 12a9 9 0 1 1-2.64-6.36" />
+                  <path d="M21 3v6h-6" />
+                </svg>
                 <span
-                  className={`w-2.5 h-2.5 rounded-full ${
+                  className={`absolute top-1 right-1 w-1.5 h-1.5 rounded-full ${
                     connStatus === 'live'
                       ? 'bg-code-5'
                       : connStatus === 'syncing'
@@ -245,25 +256,6 @@ export default function App() {
                       : 'bg-ink-500'
                   }`}
                 />
-                <span className="text-[10px] font-display uppercase tracking-widest text-ink-500 hidden md:inline">
-                  {connStatus === 'live' ? 'Live' : connStatus === 'syncing' ? 'Sync' : 'Offline'}
-                </span>
-              </span>
-            )}
-
-            {/* Refresh — always visible */}
-            {SUPABASE_CONFIGURED && (
-              <button
-                onClick={forceRefresh}
-                disabled={refreshing}
-                title="Refresh"
-                aria-label="Refresh data"
-                className="inline-flex items-center justify-center w-9 h-9 rounded-md bg-ink-800 border border-ink-700 hover:border-ink-500 text-ink-300 hover:text-ink-100 transition disabled:opacity-50"
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`}>
-                  <path d="M21 12a9 9 0 1 1-2.64-6.36" />
-                  <path d="M21 3v6h-6" />
-                </svg>
               </button>
             )}
 
