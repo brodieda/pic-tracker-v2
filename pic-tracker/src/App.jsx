@@ -258,7 +258,7 @@ export default function App() {
 
             {/* Desktop-only: Writer/Actor/Theme/Version collapsed behind one avatar menu */}
             <div className="hidden sm:block">
-              <SessionMenu onLeave={() => setJoined(false)} showSession={SUPABASE_CONFIGURED} />
+              <SessionMenu onLeave={() => setJoined(false)} />
             </div>
           </div>
         </div>
