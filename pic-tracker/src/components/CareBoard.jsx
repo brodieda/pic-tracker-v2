@@ -313,9 +313,6 @@ function DischargedRow({ pic, eventCfg, allPics, onClick }) {
   if (pic.ageRange) demogParts.push(pic.ageRange)
   const demog = demogParts.join(' ')
 
-  const outcomeDisplay =
-    pic.outcome === 'Other' ? pic.outcomeOther || 'Other' : pic.outcome
-
   return (
     <button
       onClick={onClick}
@@ -339,7 +336,7 @@ function DischargedRow({ pic, eventCfg, allPics, onClick }) {
       </div>
 
       {/* Fixed-width icon slot — always reserves the same space whether or not
-          an icon is present, so the outcome tag never drifts left/right. */}
+          an icon is present, so the time column stays aligned across rows. */}
       <div className="flex items-center gap-1 shrink-0 w-9">
         {pic.medicalInvolved === true && (
           <span
@@ -371,14 +368,6 @@ function DischargedRow({ pic, eventCfg, allPics, onClick }) {
         )}
       </div>
 
-      {/* Right: outcome (flexible but fixed-position) + duration (fixed-width, right-aligned) */}
-      <div className="flex items-center gap-2 shrink-0 w-32 justify-start">
-        {outcomeDisplay ? (
-          <span className="tag truncate">{outcomeDisplay}</span>
-        ) : (
-          <span className="text-xs text-ink-600 italic">no outcome</span>
-        )}
-      </div>
       <span className="font-display tabular-nums text-ink-400 text-xs whitespace-nowrap shrink-0 w-14 text-right">
         {formatElapsed(duration)}
       </span>

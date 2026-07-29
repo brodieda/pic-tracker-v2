@@ -197,7 +197,6 @@ export default function PicCard({ pic, events, eventCfg, allPics, onClick, onMar
               <>
                 <span className="text-ink-700">·</span>
                 <span className="inline-flex items-center gap-1 flex-wrap">
-                  <span className="text-[10px] tracking-[0.18em] uppercase text-ink-500 mr-0.5">Ref by</span>
                   {referredByDisplay.map((v, i) => (
                     <span key={i} className={referralTagClass(v) || 'tag'}>
                       {v}
