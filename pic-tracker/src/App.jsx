@@ -20,6 +20,12 @@ import { hasJoined, getSession, clearSession } from './lib/eventSession'
 import { SUPABASE_CONFIGURED } from './lib/supabaseClient'
 import { startBackgroundSync, stopBackgroundSync, backgroundSync } from './lib/syncEngine'
 
+// How far back an admit can be and still trigger the cross-device toast on
+// this tab's first sync — covers the case where you check a second device
+// moments after admitting on another one, and that admit is already synced
+// by the time this tab loads.
+const ADMIT_TOAST_GRACE_MS = 45_000
+
 export default function App() {
   const [view, setView] = useState('board')
   const [intakeOpen, setIntakeOpen] = useState(false)
@@ -35,7 +41,8 @@ export default function App() {
   const [now, setNow] = useState(Date.now())
   const [convertContext, setConvertContext] = useState(null) // { originalPicId, friendId, name } | null
   const [admitToast, setAdmitToast] = useState(null) // { picId, picNumber, name, actorName } | null
-  const seenAdmitIdsRef = useRef(null)
+  const toastedAdmitIdsRef = useRef(new Set())
+  const mountTimeRef = useRef(Date.now())
 
   // Auto-dismiss the refresh confirmation.
   useEffect(() => {
@@ -149,20 +156,25 @@ export default function App() {
 
   // --- Cross-device admit toast ---
   // Fires only for admit events created by a different actor than this
-  // device — your own admits never toast, you were just there. Seeds the
-  // "already seen" set on mount so historical admits don't toast on load.
+  // device — your own admits never toast, you were just there.
+  //
+  // Rather than treating "everything present on first load" as already
+  // seen (which would silently swallow an admit that happened moments
+  // before this tab's first sync — the exact sequence you get when
+  // checking a second device right after admitting on another one), we
+  // only suppress admits older than a short grace window at mount. Once
+  // running, every admit is evaluated regardless of when it arrived.
   useEffect(() => {
     if (!joined) return
     const events = getEvents()
     const myName = getActorName()
-    if (seenAdmitIdsRef.current === null) {
-      seenAdmitIdsRef.current = new Set(events.filter((e) => e.type === 'admit').map((e) => e.id))
-      return
-    }
+    const cutoff = mountTimeRef.current - ADMIT_TOAST_GRACE_MS
     const admits = events.filter((e) => e.type === 'admit')
-    const fresh = admits.filter((e) => !seenAdmitIdsRef.current.has(e.id))
+    const fresh = admits.filter(
+      (e) => !toastedAdmitIdsRef.current.has(e.id) && new Date(e.timestamp).getTime() >= cutoff,
+    )
     if (fresh.length === 0) return
-    fresh.forEach((e) => seenAdmitIdsRef.current.add(e.id))
+    fresh.forEach((e) => toastedAdmitIdsRef.current.add(e.id))
     const fromOthers = fresh.filter((e) => e.actorName && e.actorName !== myName)
     if (fromOthers.length === 0) return
     const latest = fromOthers.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))[0]
