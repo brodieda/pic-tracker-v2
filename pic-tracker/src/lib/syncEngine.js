@@ -76,6 +76,7 @@ function activityToLocal(a, picUuidToNumber) {
     code: a.code,
     kpe: a.kpe,
     note: a.note,
+    actorName: a.actorName || null,
     meta: a.meta || {},
   }
 }
