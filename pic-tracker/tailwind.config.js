@@ -1,6 +1,12 @@
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ['./index.html', './src/**/*.{js,jsx}'],
+  // Gates every `hover:` variant behind `@media (hover: hover) and (pointer: fine)`,
+  // so tapping on a touch device never leaves a stuck hover state — fixes it
+  // app-wide instead of hand-editing each of the dozens of hover: utilities.
+  future: {
+    hoverOnlyWhenSupported: true,
+  },
   theme: {
     extend: {
       fontFamily: {
