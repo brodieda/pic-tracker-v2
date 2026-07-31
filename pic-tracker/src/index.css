@@ -225,4 +225,37 @@
   .tag {
     @apply inline-flex items-center bg-ink-700 text-ink-100 rounded px-2 py-0.5 text-xs font-medium border border-ink-700;
   }
+
+  /* Icon-only nav triggers (search, bell, refresh, avatar). Hover is gated
+     behind (hover: hover) so a tap on a touch device doesn't leave a stuck
+     highlight; press feedback fires on active regardless of input type,
+     since that's the instant-response cue that matters most here. */
+  .icon-btn {
+    @apply inline-flex items-center justify-center rounded-md bg-ink-800 border border-ink-700 text-ink-300 transition-colors duration-150 active:scale-90;
+    transition-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .icon-btn:hover { @apply border-ink-500 text-ink-100; }
+  }
+
+  /* Dropdown / popover panels (search palette, activity feed, session menu,
+     KPE picker). Scales in from its own corner rather than the viewport
+     center — these are anchored popovers, not modals. `--panel-origin` is
+     set per-instance (defaults to top-right, the common case). */
+  .dropdown-panel {
+    transform-origin: var(--panel-origin, top right);
+    animation: dropdown-in 160ms cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .dropdown-panel { animation: dropdown-in-reduced 120ms ease-out; }
+  }
+}
+
+@keyframes dropdown-in {
+  from { opacity: 0; transform: scale(0.96) translateY(-4px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+@keyframes dropdown-in-reduced {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }

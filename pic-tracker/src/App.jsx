@@ -206,7 +206,7 @@ export default function App() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-14 flex items-center gap-3 sm:gap-4">
           {/* Hamburger — mobile only */}
           <button
-            className="sm:hidden inline-flex items-center justify-center w-9 h-9 rounded-md bg-ink-800 border border-ink-700 text-ink-200 shrink-0"
+            className="icon-btn sm:hidden w-9 h-9 shrink-0"
             onClick={() => setDrawerOpen(true)}
             aria-label="Menu"
           >
@@ -256,7 +256,7 @@ export default function App() {
                     : `Offline / stale — last synced ${syncedAgoLabel} — click to refresh`
                 }
                 aria-label="Refresh data"
-                className="relative inline-flex items-center justify-center w-9 h-9 rounded-md bg-ink-800 border border-ink-700 hover:border-ink-500 text-ink-300 hover:text-ink-100 transition disabled:opacity-50"
+                className="icon-btn relative w-9 h-9 disabled:opacity-50 disabled:active:scale-100"
               >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`}>
                   <path d="M21 12a9 9 0 1 1-2.64-6.36" />
