@@ -395,13 +395,13 @@ export default function SessionMenu({ onLeave }) {
         onClick={() => setOpen((v) => !v)}
         title="Session menu"
         aria-label="Session menu"
-        className="w-9 h-9 rounded-md bg-ink-800 text-ink-200 flex items-center justify-center hover:bg-ink-700 hover:text-ink-100 transition shrink-0"
+        className="w-9 h-9 rounded-md bg-ink-800 text-ink-200 flex items-center justify-center transition-colors duration-150 hover:bg-ink-700 active:scale-90 shrink-0"
       >
         <PersonIcon />
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-2 z-40">
+        <div className="dropdown-panel absolute right-0 top-full mt-2 z-40" style={{ '--panel-origin': 'top right' }}>
           <SessionMenuContent onLeave={onLeave} />
         </div>
       )}

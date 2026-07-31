@@ -118,7 +118,7 @@ export default function ActivityBell({ refreshKey, onOpenPic }) {
         onClick={() => (open ? setOpen(false) : openPanel())}
         title="Activity"
         aria-label="Activity"
-        className="relative inline-flex items-center justify-center w-9 h-9 rounded-md bg-ink-800 border border-ink-700 hover:border-ink-500 text-ink-300 hover:text-ink-100 transition"
+        className="icon-btn relative w-9 h-9"
       >
         <BellIcon />
         {badgeCount > 0 && (
@@ -134,7 +134,10 @@ export default function ActivityBell({ refreshKey, onOpenPic }) {
             ref={panelRef}
             className="fixed inset-0 z-50 sm:inset-auto sm:top-14 sm:right-4 md:right-6 sm:w-96"
           >
-            <div className="w-full h-full sm:h-auto sm:max-h-[32rem] bg-ink-900 sm:rounded-2xl shadow-2xl sm:ring-1 sm:ring-ink-700 overflow-hidden flex flex-col">
+            <div
+              className="dropdown-panel w-full h-full sm:h-auto sm:max-h-[32rem] bg-ink-900 sm:rounded-2xl shadow-2xl sm:ring-1 sm:ring-ink-700 overflow-hidden flex flex-col"
+              style={{ '--panel-origin': 'top right' }}
+            >
             <div className="flex items-center justify-between px-4 py-3 border-b border-ink-800 shrink-0">
               <div className="flex items-center gap-2">
                 <button onClick={() => setOpen(false)} className="sm:hidden text-ink-400 text-lg leading-none px-1">

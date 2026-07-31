@@ -81,7 +81,10 @@ export default function KpeDropdownPicker({
       </button>
 
       {open && (
-        <div className="absolute z-20 mt-1.5 w-full bg-ink-900 border border-ink-700 rounded-lg shadow-2xl p-1.5">
+        <div
+          className="dropdown-panel absolute z-20 mt-1.5 w-full bg-ink-900 border border-ink-700 rounded-lg shadow-2xl p-1.5"
+          style={{ '--panel-origin': 'top' }}
+        >
           <input
             ref={searchRef}
             className="input text-sm mb-1.5"
