@@ -262,37 +262,39 @@ export default function IntakeModal({ open, onClose, onCreated, initialValues })
                 </button>
               </div>
             </div>
-            <div className="flex gap-2 mt-2">
+            <div className="flex flex-col sm:flex-row gap-2 mt-2">
               <input
-                className="input flex-1"
+                className="input flex-1 min-w-0"
                 placeholder="Description"
                 value={form.description}
                 onChange={(e) => update({ description: e.target.value })}
               />
-              <select
-                className="input w-auto"
-                value={form.ageRange || ''}
-                onChange={(e) => update({ ageRange: e.target.value || null })}
-              >
-                <option value="">Age</option>
-                {AGE_RANGES.map((a) => (
-                  <option key={a} value={a}>
-                    {a}
-                  </option>
-                ))}
-              </select>
-              <select
-                className="input w-auto"
-                value={form.gender || ''}
-                onChange={(e) => update({ gender: e.target.value || null })}
-              >
-                <option value="">Gender</option>
-                {GENDERS.map((g) => (
-                  <option key={g} value={g}>
-                    {g}
-                  </option>
-                ))}
-              </select>
+              <div className="flex gap-2">
+                <select
+                  className="input flex-1 sm:flex-none sm:w-auto"
+                  value={form.ageRange || ''}
+                  onChange={(e) => update({ ageRange: e.target.value || null })}
+                >
+                  <option value="">Age</option>
+                  {AGE_RANGES.map((a) => (
+                    <option key={a} value={a}>
+                      {a}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  className="input flex-1 sm:flex-none sm:w-auto"
+                  value={form.gender || ''}
+                  onChange={(e) => update({ gender: e.target.value || null })}
+                >
+                  <option value="">Gender</option>
+                  {GENDERS.map((g) => (
+                    <option key={g} value={g}>
+                      {g}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             <div className="flex items-center gap-2 mt-3">
@@ -377,8 +379,8 @@ export default function IntakeModal({ open, onClose, onCreated, initialValues })
                         }`}
                         title={`Code ${c.code} — ${c.desc}`}
                       >
-                        <span className="font-black text-sm leading-none">{c.code}</span>
-                        <span>{c.desc}</span>
+                        <span className="font-black text-sm leading-none shrink-0">{c.code}</span>
+                        <span className="truncate">{c.desc}</span>
                       </button>
                     )
                   })}
@@ -393,8 +395,8 @@ export default function IntakeModal({ open, onClose, onCreated, initialValues })
                     }`}
                     title="RSA/Security ejection or possible security intervention"
                   >
-                    <ShieldIcon className="w-3.5 h-3.5" />
-                    Security Flag
+                    <ShieldIcon className="w-3.5 h-3.5 shrink-0" />
+                    <span className="truncate">Security</span>
                   </button>
                 </div>
 
@@ -417,7 +419,7 @@ export default function IntakeModal({ open, onClose, onCreated, initialValues })
                         <div className="flex flex-col items-center justify-center leading-tight py-3">
                           <span className="text-2xl">{c.code}</span>
                           {c.desc && (
-                            <span className="text-[10px] uppercase tracking-widest font-semibold opacity-80 mt-0.5">
+                            <span className="text-[10px] uppercase tracking-wide sm:tracking-widest font-semibold opacity-80 mt-0.5 text-center leading-tight">
                               {c.desc}
                             </span>
                           )}
