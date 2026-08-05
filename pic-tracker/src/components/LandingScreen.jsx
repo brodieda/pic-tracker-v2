@@ -23,10 +23,8 @@ export default function LandingScreen({ onJoined }) {
   const [selectedEventName, setSelectedEventName] = useState(null)
 
   useEffect(() => {
-    if (mode === 'join' && activeEvents === null) {
-      listActiveEvents().then(setActiveEvents)
-    }
-  }, [mode, activeEvents])
+    listActiveEvents().then(setActiveEvents)
+  }, [])
 
   if (!SUPABASE_CONFIGURED) {
     return (
@@ -116,22 +114,45 @@ export default function LandingScreen({ onJoined }) {
 
         {mode === 'choose' && (
           <>
+            {activeEvents === null && (
+              <div className="panel p-6 text-center text-sm text-ink-500">Loading events&hellip;</div>
+            )}
+
+            {activeEvents && activeEvents.length > 0 && (
+              <div className="panel p-6 space-y-3">
+                <label className="label">Current events</label>
+                <div className="space-y-1.5">
+                  {activeEvents.map((ev) => (
+                    <button
+                      key={ev.id}
+                      onClick={() => {
+                        setSelectedEventName(ev.name)
+                        setMode('join')
+                      }}
+                      className="w-full text-left px-3 py-3 rounded-lg font-display font-semibold text-sm bg-ink-800 text-ink-200 hover:bg-ink-700 transition"
+                    >
+                      {ev.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="panel p-6 space-y-3">
+              <button
+                onClick={() => {
+                  setSelectedEventName(null)
+                  setMode('join')
+                }}
+                className="btn-ghost w-full py-3"
+              >
+                Type in other event code
+              </button>
               <button onClick={() => setMode('create')} className="btn-primary w-full py-3">
                 Start a new event
               </button>
-              <button onClick={() => setMode('join')} className="btn-ghost w-full py-3">
-                Join an event
-              </button>
             </div>
-            <div className="text-center space-x-3">
-              <button
-                onClick={() => setMode('archive')}
-                className="text-xs text-ink-500 hover:text-ink-300 underline-offset-4 hover:underline"
-              >
-                Archive a past event &middot; permanently delete data
-              </button>
-              <span className="text-ink-700">&middot;</span>
+            <div className="text-center">
               <button
                 onClick={() => setMode('admin')}
                 className="text-xs text-ink-500 hover:text-ink-300 underline-offset-4 hover:underline"
@@ -174,36 +195,13 @@ export default function LandingScreen({ onJoined }) {
         {mode === 'join' && (
           <div className="panel p-6 space-y-4">
             <div>
-              <h2 className="font-display font-bold text-lg">Join an event</h2>
+              <h2 className="font-display font-bold text-lg">
+                {selectedEventName ? selectedEventName : 'Join an event'}
+              </h2>
               <p className="text-xs text-ink-400 mt-1">
                 Enter the code shared with you. The app will detect whether it&rsquo;s a writer, viewer, or intake code automatically.
               </p>
             </div>
-
-            {activeEvents && activeEvents.length > 0 && (
-              <div>
-                <label className="label">Which event?</label>
-                <div className="space-y-1.5">
-                  {activeEvents.map((ev) => (
-                    <button
-                      key={ev.id}
-                      onClick={() => setSelectedEventName(ev.name)}
-                      disabled={busy}
-                      className={`w-full text-left px-3 py-2.5 rounded-lg font-display font-semibold text-sm transition ${
-                        selectedEventName === ev.name
-                          ? 'bg-ink-100 text-ink-950'
-                          : 'bg-ink-800 text-ink-200 hover:bg-ink-700'
-                      }`}
-                    >
-                      {ev.name}
-                    </button>
-                  ))}
-                </div>
-                <p className="text-[11px] text-ink-500 mt-2">
-                  Just to confirm which one you mean &mdash; you still need the code below either way.
-                </p>
-              </div>
-            )}
 
             <div>
               <label className="label">
@@ -222,7 +220,7 @@ export default function LandingScreen({ onJoined }) {
             </div>
             {error && <div className="text-sm text-code-1 font-semibold">{error}</div>}
             <div className="flex gap-2">
-              <button onClick={() => setMode('choose')} className="btn-ghost flex-1" disabled={busy}>Back</button>
+              <button onClick={() => { setMode('choose'); setSelectedEventName(null); setCodeInput('') }} className="btn-ghost flex-1" disabled={busy}>Back</button>
               <button onClick={handleJoin} className="btn-primary flex-1" disabled={busy || !codeInput.trim()}>
                 {busy ? 'Joining...' : 'Join'}
               </button>
