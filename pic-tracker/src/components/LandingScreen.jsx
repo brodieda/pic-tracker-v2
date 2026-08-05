@@ -5,10 +5,13 @@
 
 import { useState } from 'react'
 import { createEventAndJoin, joinByCode } from '../lib/supabaseStore'
+import { syncActorPresence } from '../lib/adminStore'
+import { getActorNameForLog } from '../lib/actorName'
 import { normalizeCode, isValidCodeFormat } from '../lib/codeGen'
 import { SUPABASE_CONFIGURED } from '../lib/supabaseClient'
 import { initialSync, resetLocalState } from '../lib/syncEngine'
 import ArchiveScreen from './ArchiveScreen'
+import AdminScreen from './AdminScreen'
 
 export default function LandingScreen({ onJoined }) {
   const [mode, setMode] = useState('choose')
@@ -42,6 +45,10 @@ export default function LandingScreen({ onJoined }) {
     )
   }
 
+  if (mode === 'admin') {
+    return <AdminScreen onBack={() => setMode('choose')} />
+  }
+
   const handleCreate = async () => {
     if (busy) return
     setError(null)
@@ -54,6 +61,7 @@ export default function LandingScreen({ onJoined }) {
         resetLocalState()
         await initialSync()
       }
+      syncActorPresence(getActorNameForLog())
       onJoined?.()
     } catch (e) {
       setError(`Could not create event: ${e.message || 'unknown error'}`)
@@ -78,6 +86,7 @@ export default function LandingScreen({ onJoined }) {
         resetLocalState()
         await initialSync()
       }
+      syncActorPresence(getActorNameForLog())
       onJoined?.()
     } catch (e) {
       setError("No active event found with that code. Double-check with whoever set up the event.")
@@ -107,12 +116,19 @@ export default function LandingScreen({ onJoined }) {
                 Join an event
               </button>
             </div>
-            <div className="text-center">
+            <div className="text-center space-x-3">
               <button
                 onClick={() => setMode('archive')}
                 className="text-xs text-ink-500 hover:text-ink-300 underline-offset-4 hover:underline"
               >
                 Archive a past event &middot; permanently delete data
+              </button>
+              <span className="text-ink-700">&middot;</span>
+              <button
+                onClick={() => setMode('admin')}
+                className="text-xs text-ink-500 hover:text-ink-300 underline-offset-4 hover:underline"
+              >
+                Admin
               </button>
             </div>
           </>

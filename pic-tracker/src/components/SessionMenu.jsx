@@ -4,6 +4,7 @@ import { rotateEventCode, endCurrentEvent } from '../lib/supabaseStore'
 import { exportXlsx } from '../lib/xlsxExport'
 import { getPics, getEvents, getEvent } from '../lib/store'
 import { getActorName, setActorName } from '../lib/actorName'
+import { syncActorPresence } from '../lib/adminStore'
 import { getStoredTheme, setTheme, resolveTheme } from '../lib/theme'
 
 function PersonIcon({ className = 'w-[18px] h-[18px]' }) {
@@ -198,7 +199,9 @@ export function SessionMenuContent({ onLeave }) {
   }
 
   const saveName = () => {
-    setActorName(nameDraft.trim())
+    const clean = nameDraft.trim()
+    setActorName(clean)
+    syncActorPresence(clean)
     setEditingName(false)
   }
 
