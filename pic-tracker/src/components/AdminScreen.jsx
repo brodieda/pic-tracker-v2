@@ -9,8 +9,12 @@ import {
   adminEndEvent,
   adminDeleteEvent,
   adminEventExportData,
+  syncActorPresence,
 } from '../lib/adminStore'
 import { exportXlsx } from '../lib/xlsxExport'
+import { joinByCode } from '../lib/supabaseStore'
+import { initialSync, resetLocalState } from '../lib/syncEngine'
+import { getActorNameForLog } from '../lib/actorName'
 
 const ROLE_LABEL = { writer: 'Writer', viewer: 'Viewer', intake_only: 'Intake' }
 const ROLE_DOT = { writer: 'bg-code-5', viewer: 'bg-violet-500', intake_only: 'bg-shift-1' }
@@ -52,7 +56,7 @@ function CodeChip({ label, code, dotClass, onCopy, copied }) {
   )
 }
 
-function EventCard({ ev, onChanged }) {
+function EventCard({ ev, onChanged, onJoined }) {
   const [roster, setRoster] = useState(null)
   const [rosterOpen, setRosterOpen] = useState(false)
   const [copied, setCopied] = useState(null)
@@ -149,6 +153,28 @@ function EventCard({ ev, onChanged }) {
     }
   }
 
+  const onLoginAsWriter = async () => {
+    if (busy) return
+    if (!codes.writerCode) {
+      alert('No writer code on this event.')
+      return
+    }
+    if (!confirm(`Log in to "${ev.name}" as writer?\n\nThis leaves the admin dashboard and opens the event as normal.`)) return
+    setBusy('login')
+    try {
+      const { role } = await joinByCode(codes.writerCode)
+      if (role !== 'intake_only') {
+        resetLocalState()
+        await initialSync()
+      }
+      syncActorPresence(getActorNameForLog())
+      onJoined?.()
+    } catch (e) {
+      alert('Could not log in: ' + (e.message || 'unknown error'))
+      setBusy(null)
+    }
+  }
+
   return (
     <div className="bg-ink-900 border border-ink-800 rounded-2xl p-4 sm:p-5">
       <div className="flex items-start justify-between gap-3 mb-3">
@@ -200,6 +226,13 @@ function EventCard({ ev, onChanged }) {
 
       <div className="flex flex-wrap gap-2 pt-3 border-t border-ink-800">
         <button
+          onClick={onLoginAsWriter}
+          disabled={!!busy || !codes.writerCode}
+          className="text-xs font-display font-bold px-3 py-2 rounded-lg bg-ink-100 text-ink-950 hover:opacity-90 transition disabled:opacity-50"
+        >
+          {busy === 'login' ? 'Logging in…' : 'Log in as writer'}
+        </button>
+        <button
           onClick={onRotate}
           disabled={!!busy}
           className="text-xs font-display font-bold px-3 py-2 rounded-lg bg-ink-800 text-code-3 hover:bg-ink-700 transition disabled:opacity-50"
@@ -241,7 +274,7 @@ function EventCard({ ev, onChanged }) {
   )
 }
 
-export default function AdminScreen({ onBack }) {
+export default function AdminScreen({ onBack, onJoined }) {
   const [loggedIn, setLoggedIn] = useState(isAdminLoggedIn())
   const [code, setCode] = useState('')
   const [error, setError] = useState(null)
@@ -349,7 +382,7 @@ export default function AdminScreen({ onBack }) {
 
       <div className="space-y-4">
         {events?.map((ev) => (
-          <EventCard key={ev.id} ev={ev} onChanged={load} />
+          <EventCard key={ev.id} ev={ev} onChanged={load} onJoined={onJoined} />
         ))}
       </div>
     </div>

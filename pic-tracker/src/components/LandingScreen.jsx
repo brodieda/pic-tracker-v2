@@ -52,7 +52,7 @@ export default function LandingScreen({ onJoined }) {
   }
 
   if (mode === 'admin') {
-    return <AdminScreen onBack={() => setMode('choose')} />
+    return <AdminScreen onBack={() => setMode('choose')} onJoined={onJoined} />
   }
 
   const handleCreate = async () => {
