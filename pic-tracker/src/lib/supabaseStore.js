@@ -147,6 +147,25 @@ function activityToDb(e, eventId, picUuid) {
 
 // ---------- Auth flow ----------
 
+// Public-safe list for the join screen — names only, no codes. Doesn't
+// require being signed in at all; falls back to an empty list on any error
+// so a hiccup here never blocks the actual join flow.
+export async function listActiveEvents() {
+  if (!supabase) return []
+  try {
+    const { data, error } = await supabase.rpc('list_active_events')
+    if (error) throw error
+    return (data || []).map((row) => ({
+      id: row.id,
+      name: row.name || 'Untitled event',
+      createdAt: row.created_at,
+    }))
+  } catch (e) {
+    console.error('listActiveEvents failed', e)
+    return []
+  }
+}
+
 // Sign in anonymously + bind the session to an event by code.
 // Returns { event, role } on success, throws on failure.
 export async function joinByCode(code) {
