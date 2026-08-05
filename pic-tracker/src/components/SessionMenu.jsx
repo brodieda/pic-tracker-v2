@@ -1,8 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { getSession, clearSession, isWriter } from '../lib/eventSession'
-import { rotateEventCode, endCurrentEvent } from '../lib/supabaseStore'
-import { exportXlsx } from '../lib/xlsxExport'
-import { getPics, getEvents, getEvent } from '../lib/store'
+import { rotateEventCode } from '../lib/supabaseStore'
 import { getActorName, setActorName } from '../lib/actorName'
 import { syncActorPresence } from '../lib/adminStore'
 import { getStoredTheme, setTheme, resolveTheme } from '../lib/theme'
@@ -55,15 +53,6 @@ function LeaveIcon() {
     </svg>
   )
 }
-function EndIcon() {
-  return (
-    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M18.36 6.64a9 9 0 1 1-12.73 0" />
-      <line x1="12" y1="2" x2="12" y2="12" />
-    </svg>
-  )
-}
-
 function CodeRow({ accentClass, label, code, canRotate, onCopy, copied, onRotate, rotating }) {
   return (
     <div className="flex items-center gap-3 py-2 [&+&]:border-t [&+&]:border-ink-800">
@@ -106,7 +95,6 @@ export function SessionMenuContent({ onLeave }) {
   const [nameDraft, setNameDraft] = useState('')
   const [copied, setCopied] = useState(null)
   const [rotating, setRotating] = useState(null)
-  const [endingEvent, setEndingEvent] = useState(false)
   const [themePref, setThemePref] = useState(getStoredTheme())
 
   const session = getSession()
@@ -154,48 +142,6 @@ export function SessionMenuContent({ onLeave }) {
     if (!confirm("Leave this event on this device? You'll need the code to rejoin.")) return
     await clearSession()
     onLeave?.()
-  }
-
-  const onEndEvent = async () => {
-    if (endingEvent || !writer) return
-    const proceed = confirm(
-      'Ending the event will:\n\n' +
-        ' - Lock out all writers, viewers, and intake users\n' +
-        ' - Export the full event data to XLSX first\n' +
-        ' - Mark the event archived (codes preserved, can be reopened via Supabase)\n\n' +
-        'Continue?',
-    )
-    if (!proceed) return
-    setEndingEvent(true)
-    try {
-      const event = getEvent()
-      const pics = getPics()
-      const events = getEvents()
-      try {
-        await exportXlsx({ pics, events, eventCfg: event, cohortLabel: 'final' })
-      } catch (e) {
-        console.error('xlsx export failed', e)
-        const force = confirm('Export failed (no data, or another error). End the event anyway?')
-        if (!force) {
-          setEndingEvent(false)
-          return
-        }
-      }
-      const result = await endCurrentEvent()
-      if (!result) {
-        alert('Could not end event. Check your network and try again.')
-        setEndingEvent(false)
-        return
-      }
-      await clearSession()
-      alert('Event ended. Exported data has been downloaded.')
-      onLeave?.()
-    } catch (e) {
-      console.error('end event failed', e)
-      alert('Something went wrong ending the event.')
-    } finally {
-      setEndingEvent(false)
-    }
   }
 
   const saveName = () => {
@@ -356,20 +302,6 @@ export function SessionMenuContent({ onLeave }) {
           <LeaveIcon />
           Leave event on this device
         </button>
-        {writer && (
-          <button
-            onClick={onEndEvent}
-            disabled={endingEvent}
-            className="w-full flex items-center gap-2.5 px-2.5 py-2.5 rounded-lg text-sm font-display font-semibold text-code-1 hover:bg-code-1/10 transition disabled:opacity-50"
-          >
-            <EndIcon />
-            {endingEvent ? 'Ending…' : (
-              <>
-                End event <span className="font-medium opacity-75">(downloads XLSX first)</span>
-              </>
-            )}
-          </button>
-        )}
       </div>
     </div>
   )
