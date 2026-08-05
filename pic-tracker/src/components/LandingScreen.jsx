@@ -3,8 +3,8 @@
 // Two paths: create a new event (becomes writer), or join with any of the
 // three codes (writer/viewer/intake_only — role detected automatically).
 
-import { useState } from 'react'
-import { createEventAndJoin, joinByCode } from '../lib/supabaseStore'
+import { useEffect, useState } from 'react'
+import { createEventAndJoin, joinByCode, listActiveEvents } from '../lib/supabaseStore'
 import { syncActorPresence } from '../lib/adminStore'
 import { getActorNameForLog } from '../lib/actorName'
 import { normalizeCode, isValidCodeFormat } from '../lib/codeGen'
@@ -19,6 +19,14 @@ export default function LandingScreen({ onJoined }) {
   const [codeInput, setCodeInput] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)
+  const [activeEvents, setActiveEvents] = useState(null)
+  const [selectedEventName, setSelectedEventName] = useState(null)
+
+  useEffect(() => {
+    if (mode === 'join' && activeEvents === null) {
+      listActiveEvents().then(setActiveEvents)
+    }
+  }, [mode, activeEvents])
 
   if (!SUPABASE_CONFIGURED) {
     return (
@@ -171,8 +179,36 @@ export default function LandingScreen({ onJoined }) {
                 Enter the code shared with you. The app will detect whether it&rsquo;s a writer, viewer, or intake code automatically.
               </p>
             </div>
+
+            {activeEvents && activeEvents.length > 0 && (
+              <div>
+                <label className="label">Which event?</label>
+                <div className="space-y-1.5">
+                  {activeEvents.map((ev) => (
+                    <button
+                      key={ev.id}
+                      onClick={() => setSelectedEventName(ev.name)}
+                      disabled={busy}
+                      className={`w-full text-left px-3 py-2.5 rounded-lg font-display font-semibold text-sm transition ${
+                        selectedEventName === ev.name
+                          ? 'bg-ink-100 text-ink-950'
+                          : 'bg-ink-800 text-ink-200 hover:bg-ink-700'
+                      }`}
+                    >
+                      {ev.name}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-[11px] text-ink-500 mt-2">
+                  Just to confirm which one you mean &mdash; you still need the code below either way.
+                </p>
+              </div>
+            )}
+
             <div>
-              <label className="label">Event code</label>
+              <label className="label">
+                Event code{selectedEventName ? ` for ${selectedEventName}` : ''}
+              </label>
               <input
                 className="input font-display tabular-nums tracking-widest text-center uppercase text-lg"
                 placeholder="6-CHAR"
