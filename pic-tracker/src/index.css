@@ -40,20 +40,21 @@
 }
 
 :root[data-theme='light'] {
-  /* Light theme — inverted control panel */
-  --ink-950: 247 248 252;    /* #f7f8fc page bg */
+  /* Light theme — warm ivory, matching the ECC tool's palette rather than
+     a cool blue-gray. Same scale shape, just re-tinted warm. */
+  --ink-950: 247 245 240;    /* #f7f5f0 page bg — warm ivory, not cool grey */
   --ink-900: 255 255 255;    /* #ffffff panel/card surface */
-  --ink-800: 230 233 240;    /* #e6e9f0 borders */
-  --ink-700: 206 211 223;    /* #ced3df secondary borders */
-  --ink-600: 170 177 194;    /* #aab1c2 tertiary */
-  --ink-500: 122 129 148;    /* #7a8194 placeholder */
-  --ink-400: 80 88 107;      /* #50586b secondary text */
-  --ink-300: 44 51 68;       /* #2c3344 dim body */
-  --ink-200: 24 29 43;       /* #181d2b body */
-  --ink-100: 10 12 20;       /* #0a0c14 headings */
+  --ink-800: 232 227 217;    /* #e8e3d9 borders */
+  --ink-700: 214 207 193;    /* #d6cfc1 secondary borders */
+  --ink-600: 179 171 154;    /* #b3ab9a tertiary */
+  --ink-500: 140 133 117;    /* #8c8575 placeholder */
+  --ink-400: 92 86 71;       /* #5c5647 secondary text */
+  --ink-300: 58 53 40;       /* #3a3528 dim body */
+  --ink-200: 38 34 22;       /* #262216 body */
+  --ink-100: 26 22 13;       /* #1a160d headings */
 
-  --scrollbar-thumb: rgb(206 211 223);
-  --scrollbar-thumb-hover: rgb(170 177 194);
+  --scrollbar-thumb: rgb(214 207 193);
+  --scrollbar-thumb-hover: rgb(179 171 154);
 }
 
 /* Referral chip text is too pale on light surfaces — darken the text and
