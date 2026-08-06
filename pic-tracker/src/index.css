@@ -40,21 +40,23 @@
 }
 
 :root[data-theme='light'] {
-  /* Light theme — warm ivory, matching the ECC tool's palette rather than
-     a cool blue-gray. Same scale shape, just re-tinted warm. */
-  --ink-950: 247 245 240;    /* #f7f5f0 page bg — warm ivory, not cool grey */
+  /* Light theme — exact ink scale and scrollbar values pulled from the ECC
+     tool's index.css, so the two apps' light themes genuinely match.
+     Everything else below (component classes, accent/reftag colors) is
+     unchanged — ECC's own accent system doesn't map onto PIC Tracker's. */
+  --ink-950: 250 250 249;    /* #fafaf9 page bg */
   --ink-900: 255 255 255;    /* #ffffff panel/card surface */
-  --ink-800: 232 227 217;    /* #e8e3d9 borders */
-  --ink-700: 214 207 193;    /* #d6cfc1 secondary borders */
-  --ink-600: 179 171 154;    /* #b3ab9a tertiary */
-  --ink-500: 140 133 117;    /* #8c8575 placeholder */
-  --ink-400: 92 86 71;       /* #5c5647 secondary text */
-  --ink-300: 58 53 40;       /* #3a3528 dim body */
-  --ink-200: 38 34 22;       /* #262216 body */
-  --ink-100: 26 22 13;       /* #1a160d headings */
+  --ink-800: 241 241 240;    /* #f1f1f0 borders */
+  --ink-700: 226 226 224;    /* #e2e2e0 secondary borders */
+  --ink-600: 200 200 197;    /* #c8c8c5 tertiary */
+  --ink-500: 130 130 125;    /* #82827d placeholder */
+  --ink-400: 107 107 102;    /* #6b6b66 secondary text */
+  --ink-300: 82 82 78;       /* #52524e dim body */
+  --ink-200: 51 51 48;       /* #333330 body */
+  --ink-100: 23 23 21;       /* #171715 headings */
 
-  --scrollbar-thumb: rgb(214 207 193);
-  --scrollbar-thumb-hover: rgb(179 171 154);
+  --scrollbar-thumb: rgb(210 210 207);
+  --scrollbar-thumb-hover: rgb(190 190 186);
 }
 
 /* Referral chip text is too pale on light surfaces — darken the text and
