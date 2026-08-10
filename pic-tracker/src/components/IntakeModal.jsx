@@ -25,6 +25,7 @@ import {
 import ChipGroup from './ChipGroup'
 import KpeDropdownPicker from './KpeDropdownPicker'
 import ShieldIcon from './ShieldIcon'
+import TimeDateEditor from './TimeDateEditor'
 import Code1Warning from './Code1Warning'
 
 const initialForm = {
@@ -70,6 +71,7 @@ export default function IntakeModal({ open, onClose, onCreated, initialValues })
   const [code1Pending, setCode1Pending] = useState(false) // showing the Code 1 warning
   const [overCapacityAck, setOverCapacityAck] = useState(false)
   const [addingFriend, setAddingFriend] = useState(false)
+  const [editingEnteredCare, setEditingEnteredCare] = useState(false)
   const [friendDraft, setFriendDraft] = useState('')
 
   useEffect(() => {
@@ -83,6 +85,7 @@ export default function IntakeModal({ open, onClose, onCreated, initialValues })
       setOverCapacityAck(false)
       setAddingFriend(false)
       setFriendDraft('')
+      setEditingEnteredCare(false)
     }
   }, [open])
 
@@ -248,10 +251,15 @@ export default function IntakeModal({ open, onClose, onCreated, initialValues })
                 onChange={(e) => update({ name: e.target.value })}
                 autoFocus
               />
-              <div className="flex items-center gap-2 sm:w-44">
-                <div className="input flex-1 font-display tabular-nums text-center">
+              <div className="flex items-center gap-2 sm:w-44 relative">
+                <button
+                  type="button"
+                  onClick={() => setEditingEnteredCare((v) => !v)}
+                  className="input flex-1 font-display tabular-nums text-center hover:border-ink-500 transition"
+                  title="Edit time in"
+                >
                   {formatClock(form.enteredCare)}
-                </div>
+                </button>
                 <button
                   type="button"
                   className="btn-ghost px-3"
@@ -260,6 +268,22 @@ export default function IntakeModal({ open, onClose, onCreated, initialValues })
                 >
                   Now
                 </button>
+                {editingEnteredCare && (
+                  <div className="absolute z-20 top-full mt-1.5 left-0 right-0 sm:w-56 dropdown-panel bg-ink-900 border border-ink-700 rounded-lg shadow-2xl p-3">
+                    <TimeDateEditor
+                      value={form.enteredCare}
+                      mode="live"
+                      onCommit={(newIso) => update({ enteredCare: newIso })}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setEditingEnteredCare(false)}
+                      className="btn-primary w-full mt-1 text-sm"
+                    >
+                      Done
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
             <div className="flex flex-col sm:flex-row gap-2 mt-2">
