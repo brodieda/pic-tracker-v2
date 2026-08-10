@@ -243,6 +243,28 @@ export function updatePicEnteredCare(picId, newIso) {
   return pics[idx]
 }
 
+// Edit the discharge time on an already-discharged PIC. Mirrors
+// updatePicEnteredCare — same retro-update of the corresponding event's
+// timestamp so the audit log and elapsed-time math both stay consistent.
+export function updatePicLeftCare(picId, newIso) {
+  const { pics, idx } = findPicIndex(picId)
+  if (idx < 0) return null
+  pics[idx] = { ...pics[idx], leftCare: newIso }
+  savePics(pics)
+  const events = getEvents()
+  const dischargeIdx = events.findIndex((e) => e.picId === picId && e.type === 'discharge')
+  if (dischargeIdx >= 0) {
+    events[dischargeIdx] = { ...events[dischargeIdx], timestamp: newIso }
+    try {
+      localStorage.setItem('pic_events', JSON.stringify(events))
+    } catch (e) {
+      console.error('Failed to update discharge event timestamp', e)
+    }
+  }
+  mirrorPicUpdate(pics[idx].number, { leftCare: newIso })
+  return pics[idx]
+}
+
 // Backwards-compat: read assignedKpe from older PICs that have intakeKpe/currentKpe instead.
 // Migrates on first read.
 export function getAssignedKpe(pic) {
