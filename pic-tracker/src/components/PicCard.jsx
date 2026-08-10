@@ -123,9 +123,11 @@ export default function PicCard({ pic, events, eventCfg, allPics, onClick, onMar
 
   // Card border stays neutral for welfare-check states — the red/bold time and
   // the solid "Mark checked" button carry the signal instead of a whole-card ring.
-  // Only the persistent MH tint (ever Code 2) still colours the border.
-  let borderClass = 'border-ink-800'
-  if (everCode2 && !isDischarged) borderClass = 'border-code-2/60'
+  // Security Flag gets a bold, unmissable border — it's the highest-priority
+  // signal on the card. MH tint (ever Code 2) is the next tier down.
+  let borderClass = 'border border-ink-800'
+  if (everCode2 && !isDischarged) borderClass = 'border border-code-2/60'
+  if (pic.ejectionFlag) borderClass = 'border-2 border-code-1'
 
   const demogParts = []
   if (pic.gender) demogParts.push(abbrevGender(pic.gender))
@@ -141,7 +143,7 @@ export default function PicCard({ pic, events, eventCfg, allPics, onClick, onMar
   const workload = !isDischarged ? workloadFor(assignedKpe, allPics) : 0
 
   return (
-    <div className={`bg-ink-900 border rounded-xl transition ${borderClass} ${isDischarged ? 'opacity-75' : ''}`}>
+    <div className={`bg-ink-900 rounded-xl transition ${borderClass} ${isDischarged ? 'opacity-75' : ''}`}>
       <button onClick={onClick} className="w-full text-left px-3 py-2.5 flex items-start gap-3">
         <CodePill code={code} />
 
@@ -170,10 +172,11 @@ export default function PicCard({ pic, events, eventCfg, allPics, onClick, onMar
             )}
             {pic.ejectionFlag && (
               <span
-                className="secflag-on inline-flex items-center rounded px-1 py-0.5 shrink-0"
+                className="secflag-on inline-flex items-center gap-1 rounded px-1.5 py-0.5 shrink-0 text-[10px] font-display font-bold uppercase tracking-wide"
                 title="Security Flag — RSA/Security to be notified before discharge"
               >
-                <ShieldIcon className="w-3 h-3" />
+                <ShieldIcon className="w-3.5 h-3.5" />
+                Security
               </span>
             )}
           </div>

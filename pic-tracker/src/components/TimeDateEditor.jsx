@@ -1,18 +1,22 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { isoToDatetimeLocal, datetimeLocalToIso } from '../lib/helpers'
 
 /**
- * TimeDateEditor — split editor: time prominent, date small/secondary.
+ * TimeDateEditor — manual HH:MM text entry + nudge buttons, no native OS
+ * time/date pickers. Native `<input type="time">` / `<input type="date">`
+ * render wildly differently across browsers, are fiddly to land on an exact
+ * minute with (especially iOS's wheel picker), and reliably trigger the
+ * browser to scroll the page to bring the input into view when focused —
+ * without necessarily scrolling back afterwards. Plain text input sidesteps
+ * all of that: no OS picker overlay, no unexpected scroll, and typing four
+ * digits is faster than dialling a wheel to the right minute anyway.
  *
  * Two modes:
  *  - 'committed' (default): shows Cancel + Save buttons; commits via onCommit only on Save.
- *    Use when wrapping in an EditableCell or any UI that needs explicit confirm.
- *  - 'live': no buttons; calls onCommit immediately on every change.
- *    Use when the editor is already inside a larger form (e.g. discharge modal)
- *    where the parent has its own commit affordance.
+ *  - 'live': no buttons; calls onCommit immediately on every valid change.
  *
  * Props:
- *  - value: ISO string (e.g. "2026-05-02T17:54:00")
+ *  - value: ISO string
  *  - onCommit: (newIso) => void
  *  - onCancel?: () => void  (only used in 'committed' mode)
  *  - mode?: 'committed' | 'live' (default 'committed')
@@ -21,64 +25,101 @@ export default function TimeDateEditor({ value, onCommit, onCancel, mode = 'comm
   const [showDate, setShowDate] = useState(false)
   const local = isoToDatetimeLocal(value)
   const [date, setDate] = useState(local.slice(0, 10))
-  const [time, setTime] = useState(local.slice(11, 16))
+  const [timeText, setTimeText] = useState(local.slice(11, 16))
+  const inputRef = useRef(null)
 
-  // Sync internal state when value prop changes from outside (e.g. parent's "reset to now")
-  // Only sync if the new ISO doesn't match what we'd produce — avoids feedback loops
-  // when our own onCommit triggers a parent re-render.
   useEffect(() => {
     const incoming = isoToDatetimeLocal(value)
     const incomingDate = incoming.slice(0, 10)
     const incomingTime = incoming.slice(11, 16)
-    if (incomingDate !== date || incomingTime !== time) {
-      // Decide whether this is an external change or echo of our own update
-      // Our own update: incoming matches what we'd build from current state
-      // External change: incoming differs from both
-      const ourBuiltLocal = `${date}T${time}`
-      // If the external value matches our own latest build, skip sync (it's our echo)
-      if (incoming === ourBuiltLocal) return
-      setDate(incomingDate)
-      setTime(incomingTime)
-    }
+    const ourBuiltLocal = `${date}T${timeText}`
+    if (incoming === ourBuiltLocal) return
+    if (incomingDate !== date) setDate(incomingDate)
+    if (incomingTime !== timeText) setTimeText(incomingTime)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value])
 
-  // In live mode: emit a new ISO whenever date or time changes
-  useEffect(() => {
+  const isValidTime = /^([01]\d|2[0-3]):[0-5]\d$/.test(timeText)
+
+  const commitIfLive = (nextDate, nextTime) => {
     if (mode !== 'live') return
-    if (!date || !time) return
-    onCommit(datetimeLocalToIso(`${date}T${time}`))
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [date, time, mode])
+    if (!nextDate || !/^([01]\d|2[0-3]):[0-5]\d$/.test(nextTime)) return
+    onCommit(datetimeLocalToIso(`${nextDate}T${nextTime}`))
+  }
+
+  // Formats raw digits as the user types: "1" -> "1", "17" -> "17", "175" -> "17:5", "1754" -> "17:54"
+  const onTimeChange = (e) => {
+    const digits = e.target.value.replace(/\D/g, '').slice(0, 4)
+    let next = digits
+    if (digits.length >= 3) next = `${digits.slice(0, 2)}:${digits.slice(2)}`
+    setTimeText(next)
+    if (next.length === 5) commitIfLive(date, next)
+  }
+
+  const nudge = (minutes) => {
+    if (!isValidTime) return
+    const [h, m] = timeText.split(':').map(Number)
+    const total = ((h * 60 + m + minutes) % 1440 + 1440) % 1440
+    const next = `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`
+    setTimeText(next)
+    commitIfLive(date, next)
+  }
 
   const commit = () => {
-    if (!date || !time) return onCancel?.()
-    onCommit(datetimeLocalToIso(`${date}T${time}`))
+    if (!date || !isValidTime) return onCancel?.()
+    onCommit(datetimeLocalToIso(`${date}T${timeText}`))
   }
 
   return (
     <div className="space-y-3">
-      {/* Time — prominent */}
-      <div>
+      {/* Time — manual entry, no native picker */}
+      <div className="flex items-center justify-center gap-2">
+        <button
+          type="button"
+          onClick={() => nudge(-5)}
+          className="btn-ghost w-9 h-9 !p-0 text-sm shrink-0"
+          title="-5 minutes"
+        >
+          −5
+        </button>
         <input
-          type="time"
-          className="input text-2xl font-display tabular-nums text-center py-3"
-          value={time}
-          onChange={(e) => setTime(e.target.value)}
+          ref={inputRef}
+          type="text"
+          inputMode="numeric"
+          placeholder="HH:MM"
+          className={`input text-2xl font-display tabular-nums text-center py-3 w-32 ${
+            timeText && !isValidTime ? 'border-code-1' : ''
+          }`}
+          value={timeText}
+          onChange={onTimeChange}
+          onBlur={() => mode === 'live' && commitIfLive(date, timeText)}
           autoFocus={mode === 'committed'}
         />
+        <button
+          type="button"
+          onClick={() => nudge(5)}
+          className="btn-ghost w-9 h-9 !p-0 text-sm shrink-0"
+          title="+5 minutes"
+        >
+          +5
+        </button>
       </div>
+      {timeText && !isValidTime && (
+        <p className="text-center text-[11px] text-code-1">Enter a 24-hour time, e.g. 17:54</p>
+      )}
 
       {/* Date — small, click to expand */}
-      <div className="text-xs">
+      <div className="text-xs text-center">
         {showDate ? (
           <input
             type="date"
             className="input text-sm"
             value={date}
-            onChange={(e) => setDate(e.target.value)}
+            onChange={(e) => {
+              setDate(e.target.value)
+              commitIfLive(e.target.value, timeText)
+            }}
             onBlur={() => setShowDate(false)}
-            autoFocus
           />
         ) : (
           <button
@@ -95,7 +136,9 @@ export default function TimeDateEditor({ value, onCommit, onCancel, mode = 'comm
       {mode === 'committed' && (
         <div className="flex gap-2 justify-end pt-1">
           <button onClick={onCancel} className="btn-ghost">Cancel</button>
-          <button onClick={commit} className="btn-primary">Save time</button>
+          <button onClick={commit} disabled={!isValidTime} className="btn-primary disabled:opacity-40">
+            Save time
+          </button>
         </div>
       )}
     </div>

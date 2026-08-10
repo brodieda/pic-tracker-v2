@@ -291,9 +291,16 @@ export default function DischargeModal({ open, pic, eventCfg, onClose, onDischar
 
         {/* Footer */}
         <div className="border-t border-ink-800 px-6 py-4 flex items-center gap-3">
-          <span className="text-xs text-ink-500 flex-1">
-            All fields optional — fill what you can, edit later from the panel
-          </span>
+          {isEjectionFlagged ? (
+            <span className="secflag-on inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-display font-bold uppercase tracking-wide flex-1">
+              <ShieldIcon className="w-3.5 h-3.5 shrink-0" />
+              Notify security before discharge
+            </span>
+          ) : (
+            <span className="text-xs text-ink-500 flex-1">
+              All fields optional — fill what you can, edit later from the panel
+            </span>
+          )}
           <button className="btn-ghost" onClick={onClose}>Cancel</button>
           <button className="btn-primary" onClick={submit}>
             Discharge PIC #{pic.number}

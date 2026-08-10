@@ -343,10 +343,16 @@ function DischargedRow({ pic, eventCfg, allPics, onClick }) {
   if (pic.ageRange) demogParts.push(pic.ageRange)
   const demog = demogParts.join(' ')
 
+  const accentClass = pic.ejectionFlag
+    ? 'border-l-4 border-l-code-1'
+    : pic.medicalInvolved === true
+    ? 'border-l-4 border-l-violet-500'
+    : 'border-l-4 border-l-transparent'
+
   return (
     <button
       onClick={onClick}
-      className="w-full text-left px-3.5 py-2 flex items-center gap-3 text-sm hover:bg-ink-800/40 transition"
+      className={`w-full text-left px-3.5 py-2 flex items-center gap-3 text-sm hover:bg-ink-800/40 transition ${accentClass}`}
     >
       {/* Left: PIC# + identifier + demo + medical/security icons */}
       <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -364,18 +370,19 @@ function DischargedRow({ pic, eventCfg, allPics, onClick }) {
           <span className="text-xs text-ink-500 shrink-0">· {demog}</span>
         )}
         {(pic.medicalInvolved === true || pic.ejectionFlag) && (
-          <span className="flex items-center gap-1 shrink-0">
+          <span className="flex items-center gap-1.5 shrink-0">
             {pic.medicalInvolved === true && (
               <span
-                className="text-code-1 text-base leading-none"
+                className="inline-flex items-center gap-1 text-violet-500 text-[10px] font-display font-bold uppercase tracking-wide leading-none"
                 title="Medical involved"
               >
-                ⚕
+                <span className="text-sm">⚕</span>
+                Medical
               </span>
             )}
             {pic.ejectionFlag && (
               <span
-                className={`leading-none ${
+                className={`inline-flex items-center gap-1 text-[10px] font-display font-bold uppercase tracking-wide leading-none ${
                   pic.securityNotified === true
                     ? 'text-code-5'
                     : pic.securityNotified === false
@@ -391,6 +398,7 @@ function DischargedRow({ pic, eventCfg, allPics, onClick }) {
                 }
               >
                 <ShieldIcon className="w-3.5 h-3.5" />
+                Security
               </span>
             )}
           </span>

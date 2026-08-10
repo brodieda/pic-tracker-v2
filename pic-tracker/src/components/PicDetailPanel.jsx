@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { getPics, getEvents, getEvent } from '../lib/store'
 import {
+  nowIso,
   formatClock,
   formatDateTime,
   formatElapsed,
@@ -13,6 +14,7 @@ import {
   changePicKpe,
   addPicNote,
   updatePicEnteredCare,
+  updatePicLeftCare,
   addCheckEvent,
   reopenPic,
   getAssignedKpe,
@@ -66,6 +68,7 @@ export default function PicDetailPanel({ picId, onClose, onMutated, openIntent, 
   const [editingKpe, setEditingKpe] = useState(false)
   const [editingName, setEditingName] = useState(false)
   const [editingTime, setEditingTime] = useState(false)
+  const [editingDischargeTime, setEditingDischargeTime] = useState(false)
   const [dischargeOpen, setDischargeOpen] = useState(false)
   const [tick, setTick] = useState(0)
   const [allPics, setAllPics] = useState([])
@@ -308,9 +311,27 @@ export default function PicDetailPanel({ picId, onClose, onMutated, openIntent, 
               )}
               {isDischarged && (
                 <span className="inline-flex items-center gap-2">
-                  <span className="px-2 py-0.5 rounded-full bg-ink-800 border border-ink-700 text-ink-300 uppercase tracking-widest text-[10px] font-display font-bold">
-                    Discharged{pic.leftCare ? ` · ${formatClock(pic.leftCare)}` : ''}
-                  </span>
+                  {editingDischargeTime ? (
+                    <div className="w-full max-w-xs">
+                      <TimeDateEditor
+                        value={pic.leftCare || nowIso()}
+                        onCommit={(newIso) => {
+                          updatePicLeftCare(pic.id, newIso)
+                          afterMutation()
+                          setEditingDischargeTime(false)
+                        }}
+                        onCancel={() => setEditingDischargeTime(false)}
+                      />
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setEditingDischargeTime(true)}
+                      className="px-2 py-0.5 rounded-full bg-ink-800 border border-ink-700 text-ink-300 hover:border-ink-500 hover:text-ink-100 uppercase tracking-widest text-[10px] font-display font-bold transition"
+                      title="Edit discharge time"
+                    >
+                      Discharged{pic.leftCare ? ` · ${formatClock(pic.leftCare)}` : ''}
+                    </button>
+                  )}
                   <button
                     onClick={onReopen}
                     className="text-[10px] uppercase tracking-widest text-ink-500 hover:text-code-3 underline-offset-4 hover:underline"
