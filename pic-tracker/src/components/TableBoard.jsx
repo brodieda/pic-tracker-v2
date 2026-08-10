@@ -54,10 +54,10 @@ const dash = <span className="text-ink-600">–</span>
 const missTag = <span className="text-[11px] italic bg-code-3/25 text-code-3 rounded px-1.5 py-0.5">missing</span>
 
 // --- small edit controls ---
-const inputCls =
+export const inputCls =
   'bg-ink-950 border border-ink-700 rounded px-2 py-1 text-sm text-ink-100 focus:border-ink-400 outline-none'
 
-function Txt({ value, placeholder, onSave, width = 'w-32' }) {
+export function Txt({ value, placeholder, onSave, width = 'w-32' }) {
   return (
     <input
       className={`${inputCls} ${width}`}
@@ -72,7 +72,7 @@ function Txt({ value, placeholder, onSave, width = 'w-32' }) {
   )
 }
 
-function Sel({ value, options, onChange, placeholder = '—', width = 'w-28' }) {
+export function Sel({ value, options, onChange, placeholder = '—', width = 'w-28' }) {
   return (
     <select
       className={`${inputCls} ${width}`}
@@ -90,7 +90,7 @@ function Sel({ value, options, onChange, placeholder = '—', width = 'w-28' }) 
   )
 }
 
-function Multi({ selected, options, onChange }) {
+export function Multi({ selected, options, onChange }) {
   const [open, setOpen] = useState(false)
   const sel = selected || []
   const toggle = (o) => onChange(sel.includes(o) ? sel.filter((x) => x !== o) : [...sel, o])

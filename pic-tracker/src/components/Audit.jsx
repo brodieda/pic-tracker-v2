@@ -1,7 +1,20 @@
 import { useEffect, useMemo, useState } from 'react'
-import { getPics, getEvents } from '../lib/store'
-import { currentCodeFor, getAssignedKpe } from '../lib/helpers'
+import { getPics, getEvents, getEvent } from '../lib/store'
+import {
+  currentCodeFor,
+  getAssignedKpe,
+  formatClock,
+  changePicCode,
+  changePicKpe,
+  updatePicFields,
+  updatePicEnteredCare,
+  updatePicLeftCare,
+  unassignedKpes,
+} from '../lib/helpers'
 import { completenessFor, isIncomplete } from '../lib/completeness'
+import { CODES, SUBSTANCES, PRESENTATIONS, OUTCOMES } from '../constants/options'
+import { Sel, Multi, Txt, inputCls } from './TableBoard'
+import TimeDateEditor from './TimeDateEditor'
 
 const CODE_COLOR = {
   1: 'bg-code-1',
@@ -11,24 +24,70 @@ const CODE_COLOR = {
   5: 'bg-code-5',
 }
 
-// Audit — replaces the old Reports page. This table already existed there,
-// just buried at the very bottom under a full page of stats duplicated from
-// Dashboard. Now it's the whole point of its own tab, with room for search
-// and an incomplete-only filter since it's not sharing space with charts.
+// Small time-cell editor: click to open a TimeDateEditor in a popover,
+// same underlying component used for admit/discharge time everywhere else.
+function TimeCell({ value, onCommit, editable }) {
+  const [open, setOpen] = useState(false)
+  if (!editable) {
+    return <span className="text-ink-600">—</span>
+  }
+  return (
+    <span className="relative inline-block" onClick={(e) => e.stopPropagation()}>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className={`${inputCls} w-20 text-center tabular-nums`}
+      >
+        {formatClock(value)}
+      </button>
+      {open && (
+        <div className="absolute z-30 top-full mt-1 left-0 w-56 dropdown-panel bg-ink-900 border border-ink-700 rounded-lg shadow-2xl p-3">
+          <TimeDateEditor
+            value={value}
+            mode="live"
+            onCommit={(newIso) => onCommit(newIso)}
+          />
+          <button onClick={() => setOpen(false)} className="btn-primary w-full mt-1 text-sm">
+            Done
+          </button>
+        </div>
+      )}
+    </span>
+  )
+}
+
+// Audit — the completeness table from the old Reports page, now with Time
+// In / Time Out columns and inline editing. Edit mode swaps row-click
+// navigation for cell-level editing, same pattern as Table view.
 export default function Audit({ refreshKey, onPicClick }) {
   const [pics, setPics] = useState([])
   const [events, setEvents] = useState([])
+  const [eventCfg, setEventCfg] = useState({})
   const [search, setSearch] = useState('')
   const [incompleteOnly, setIncompleteOnly] = useState(false)
+  const [editMode, setEditMode] = useState(false)
 
   const reload = () => {
     setPics(getPics())
     setEvents(getEvents())
+    setEventCfg(getEvent())
   }
 
   useEffect(() => {
     reload()
   }, [refreshKey])
+
+  const save = (fn) => {
+    fn()
+    reload()
+  }
+
+  const kpeOptions = useMemo(
+    () =>
+      Array.from(
+        new Set([...(eventCfg.shift1Team || []), ...(eventCfg.shift2Team || []), ...unassignedKpes(pics, eventCfg)]),
+      ),
+    [eventCfg, pics],
+  )
 
   const allRows = useMemo(() => {
     return [...pics]
@@ -52,7 +111,7 @@ export default function Audit({ refreshKey, onPicClick }) {
   })
 
   const miss = <span className="italic text-code-3 font-semibold">missing</span>
-  const inCare = <span className="text-ink-600">— in care —</span>
+  const inCareDash = <span className="text-ink-600">— in care —</span>
 
   const cell = (content, highlight) => (
     <td className={`px-3 py-2 align-top ${highlight ? 'bg-code-3/15' : ''}`}>{content}</td>
@@ -60,14 +119,27 @@ export default function Audit({ refreshKey, onPicClick }) {
 
   return (
     <div className="px-4 sm:px-6 py-6 max-w-7xl mx-auto">
-      <header className="mb-5">
-        <p className="text-xs font-display tracking-[0.3em] uppercase text-ink-500">/ audit</p>
-        <h2 className="text-3xl font-display font-bold">
-          {incompleteCount === 0
-            ? 'All records complete'
-            : `${incompleteCount} of ${allRows.length} incomplete`}
-        </h2>
-        <p className="text-sm text-ink-400 mt-1">Missing fields highlighted &middot; tap a row to open the record</p>
+      <header className="mb-5 flex items-end justify-between gap-3 flex-wrap">
+        <div>
+          <p className="text-xs font-display tracking-[0.3em] uppercase text-ink-500">/ audit</p>
+          <h2 className="text-3xl font-display font-bold">
+            {incompleteCount === 0
+              ? 'All records complete'
+              : `${incompleteCount} of ${allRows.length} incomplete`}
+          </h2>
+          <p className="text-sm text-ink-400 mt-1">Missing fields highlighted</p>
+        </div>
+        <button
+          onClick={() => setEditMode((v) => !v)}
+          className={`inline-flex items-center gap-2 text-xs font-display font-bold rounded-lg px-3 py-1.5 border transition ${
+            editMode ? 'bg-shift-1 text-white border-white' : 'bg-ink-800 border-ink-700 text-ink-300 hover:border-ink-500'
+          }`}
+        >
+          <span className={`w-8 h-4 rounded-full relative transition ${editMode ? 'bg-white/40' : 'bg-ink-600'}`}>
+            <span className={`absolute top-0.5 w-3 h-3 rounded-full bg-white transition-all ${editMode ? 'left-4' : 'left-0.5'}`} />
+          </span>
+          Edit {editMode ? 'on' : 'off'}
+        </button>
       </header>
 
       <div className="flex items-center gap-2 mb-4 flex-wrap">
@@ -98,6 +170,9 @@ export default function Audit({ refreshKey, onPicClick }) {
             {rows.length} of {allRows.length}
           </span>
         )}
+        {editMode && (
+          <span className="text-xs text-ink-500">Tap a cell to edit — saves as you go.</span>
+        )}
       </div>
 
       {allRows.length === 0 ? (
@@ -117,6 +192,8 @@ export default function Audit({ refreshKey, onPicClick }) {
                 <th className="px-3 py-2 font-semibold">Code</th>
                 <th className="px-3 py-2 font-semibold">Name / desc</th>
                 <th className="px-3 py-2 font-semibold">KPE</th>
+                <th className="px-3 py-2 font-semibold">Time in</th>
+                <th className="px-3 py-2 font-semibold">Time out</th>
                 <th className="px-3 py-2 font-semibold">Substances</th>
                 <th className="px-3 py-2 font-semibold">Presentations</th>
                 <th className="px-3 py-2 font-semibold">Outcome</th>
@@ -137,17 +214,26 @@ export default function Audit({ refreshKey, onPicClick }) {
                   ...(pic.presentations?.includes('Other') && pic.presentationOther ? [pic.presentationOther] : []),
                 ]
                 const subPresMissing = mf.has('substancesOrPresentations')
+
                 return (
                   <tr
                     key={pic.id}
-                    onClick={() => onPicClick?.(pic.id)}
-                    className="border-b border-ink-800/60 last:border-0 cursor-pointer hover:bg-ink-800/40 whitespace-nowrap"
+                    onClick={editMode ? undefined : () => onPicClick?.(pic.id)}
+                    className={`border-b border-ink-800/60 last:border-0 whitespace-nowrap ${
+                      editMode ? '' : 'cursor-pointer hover:bg-ink-800/40'
+                    }`}
                   >
+                    {cell(<span className="tabular-nums font-display font-semibold">#{pic.number}</span>)}
+
                     {cell(
-                      <span className="tabular-nums font-display font-semibold">#{pic.number}</span>,
-                    )}
-                    {cell(
-                      code != null ? (
+                      editMode ? (
+                        <Sel
+                          value={code ?? ''}
+                          width="w-16"
+                          options={CODES.map((c) => ({ value: c.code, label: c.code }))}
+                          onChange={(v) => save(() => changePicCode(pic.id, Number(v), kpe || null))}
+                        />
+                      ) : code != null ? (
                         <span
                           className={`inline-flex items-center justify-center w-5 h-5 rounded text-[11px] font-display font-black text-white ${
                             CODE_COLOR[code] || 'bg-ink-600'
@@ -159,12 +245,121 @@ export default function Audit({ refreshKey, onPicClick }) {
                         '—'
                       ),
                     )}
-                    {cell(mf.has('identifier') ? miss : pic.name?.trim() || pic.description?.trim() || '—', mf.has('identifier'))}
-                    {cell(mf.has('assignedKpe') ? miss : kpe || '—', mf.has('assignedKpe'))}
-                    {cell(subPresMissing ? miss : subs.join(', ') || '—', subPresMissing)}
-                    {cell(subPresMissing ? miss : pres.join(', ') || '—', subPresMissing)}
-                    {cell(discharged ? (mf.has('outcome') ? miss : pic.outcome || '—') : inCare, discharged && mf.has('outcome'))}
-                    {cell(discharged ? (mf.has('tlSignoff') ? miss : pic.tlSignoff || '—') : inCare, discharged && mf.has('tlSignoff'))}
+
+                    {cell(
+                      editMode ? (
+                        <Txt
+                          value={pic.name || pic.description || ''}
+                          placeholder="name / desc"
+                          onSave={(v) => save(() => updatePicFields(pic.id, pic.name ? { name: v || null } : { description: v || null }))}
+                        />
+                      ) : mf.has('identifier') ? (
+                        miss
+                      ) : (
+                        pic.name?.trim() || pic.description?.trim() || '—'
+                      ),
+                      mf.has('identifier'),
+                    )}
+
+                    {cell(
+                      editMode ? (
+                        <Sel
+                          value={kpe || ''}
+                          options={kpeOptions}
+                          placeholder="unassigned"
+                          onChange={(v) => save(() => changePicKpe(pic.id, v || null, null))}
+                        />
+                      ) : mf.has('assignedKpe') ? (
+                        miss
+                      ) : (
+                        kpe || '—'
+                      ),
+                      mf.has('assignedKpe'),
+                    )}
+
+                    {cell(
+                      <TimeCell
+                        value={pic.enteredCare}
+                        editable
+                        onCommit={(newIso) => save(() => updatePicEnteredCare(pic.id, newIso))}
+                      />,
+                    )}
+
+                    {cell(
+                      discharged ? (
+                        <TimeCell
+                          value={pic.leftCare}
+                          editable
+                          onCommit={(newIso) => save(() => updatePicLeftCare(pic.id, newIso))}
+                        />
+                      ) : (
+                        inCareDash
+                      ),
+                    )}
+
+                    {cell(
+                      editMode ? (
+                        <Multi
+                          selected={subs}
+                          options={SUBSTANCES}
+                          onChange={(arr) => save(() => updatePicFields(pic.id, { substances: arr }))}
+                        />
+                      ) : subPresMissing ? (
+                        miss
+                      ) : (
+                        subs.join(', ') || '—'
+                      ),
+                      subPresMissing,
+                    )}
+
+                    {cell(
+                      editMode ? (
+                        <Multi
+                          selected={pres}
+                          options={PRESENTATIONS}
+                          onChange={(arr) => save(() => updatePicFields(pic.id, { presentations: arr }))}
+                        />
+                      ) : subPresMissing ? (
+                        miss
+                      ) : (
+                        pres.join(', ') || '—'
+                      ),
+                      subPresMissing,
+                    )}
+
+                    {cell(
+                      !discharged ? (
+                        inCareDash
+                      ) : editMode ? (
+                        <Sel
+                          value={pic.outcome || ''}
+                          options={OUTCOMES}
+                          onChange={(v) => save(() => updatePicFields(pic.id, { outcome: v || null }))}
+                        />
+                      ) : mf.has('outcome') ? (
+                        miss
+                      ) : (
+                        pic.outcome || '—'
+                      ),
+                      discharged && mf.has('outcome'),
+                    )}
+
+                    {cell(
+                      !discharged ? (
+                        inCareDash
+                      ) : editMode ? (
+                        <Sel
+                          value={pic.tlSignoff || ''}
+                          options={eventCfg?.tls || []}
+                          onChange={(v) => save(() => updatePicFields(pic.id, { tlSignoff: v || null }))}
+                        />
+                      ) : mf.has('tlSignoff') ? (
+                        miss
+                      ) : (
+                        pic.tlSignoff || '—'
+                      ),
+                      discharged && mf.has('tlSignoff'),
+                    )}
                   </tr>
                 )
               })}
@@ -172,6 +367,7 @@ export default function Audit({ refreshKey, onPicClick }) {
           </table>
         </div>
       )}
+      {!editMode && <p className="text-xs text-ink-500 mt-2">Tap a row to open the record, or flip "Edit" on to fix gaps inline.</p>}
     </div>
   )
 }
