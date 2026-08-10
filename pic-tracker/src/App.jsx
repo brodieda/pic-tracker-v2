@@ -5,8 +5,8 @@ import CareBoard from './components/CareBoard'
 import FloorCheck from './components/FloorCheck'
 import IntakeModal from './components/IntakeModal'
 import PicDetailPanel from './components/PicDetailPanel'
-import Dashboard from './components/Dashboard'
-import Reports from './components/Reports'
+import Stats from './components/Stats'
+import Audit from './components/Audit'
 import ThemeToggle from './components/ThemeToggle'
 import LandingScreen from './components/LandingScreen'
 import IntakeOnlyScreen from './components/IntakeOnlyScreen'
@@ -224,8 +224,8 @@ export default function App() {
           <nav className="hidden sm:flex gap-1">
             <NavButton active={view === 'board'} onClick={() => setView('board')}>Board</NavButton>
             <NavButton active={view === 'floor'} onClick={() => setView('floor')}>Floor</NavButton>
-            <NavButton active={view === 'dashboard'} onClick={() => setView('dashboard')}>Dashboard</NavButton>
-            <NavButton active={view === 'reports'} onClick={() => setView('reports')}>Reports</NavButton>
+            <NavButton active={view === 'stats'} onClick={() => setView('stats')}>Stats</NavButton>
+            <NavButton active={view === 'audit'} onClick={() => setView('audit')}>Audit</NavButton>
             <NavButton active={view === 'settings'} onClick={() => setView('settings')}>Settings</NavButton>
           </nav>
 
@@ -308,8 +308,8 @@ export default function App() {
                   {[
                     ['board', 'Board'],
                     ['floor', 'Floor'],
-                    ['dashboard', 'Dashboard'],
-                    ['reports', 'Reports'],
+                    ['stats', 'Stats'],
+                    ['audit', 'Audit'],
                     ['settings', 'Settings'],
                   ].map(([v, label]) => (
                     <button
@@ -371,9 +371,9 @@ export default function App() {
           }}
         />
       )}
-      {view === 'dashboard' && <Dashboard refreshKey={refreshKey} />}
-      {view === 'reports' && (
-        <Reports
+      {view === 'stats' && <Stats refreshKey={refreshKey} />}
+      {view === 'audit' && (
+        <Audit
           refreshKey={refreshKey}
           onPicClick={(id) => {
             setOpenIntent(null)
