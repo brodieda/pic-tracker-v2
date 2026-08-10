@@ -89,7 +89,7 @@
   :root[data-theme='light'] .cat-off-amber   { @apply bg-amber-500/[0.08] text-amber-700 border-amber-500/30; }
 
   /* Category chips — light theme: selected is solid (no override needed). */
-  :root[data-theme='light'] .secflag-on { @apply bg-slate-800 text-white border-slate-800; }
+  :root[data-theme='light'] .secflag-on { @apply bg-code-1 text-white border-code-1; }
 }
 
 @layer base {
@@ -218,7 +218,7 @@
      stays clearly visible on both panel backgrounds (a plain white pill was
      invisible in light mode). Text uses currentColor so nested icons/✕ flip
      with it automatically. */
-  .secflag-on { @apply bg-slate-100 text-slate-900 border-slate-100; }
+  .secflag-on { @apply bg-code-1 text-white border-code-1; }
   .panel {
     @apply bg-ink-900 border border-ink-800 rounded-xl;
   }
