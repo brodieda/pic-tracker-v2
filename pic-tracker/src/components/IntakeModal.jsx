@@ -269,7 +269,7 @@ export default function IntakeModal({ open, onClose, onCreated, initialValues })
                   Now
                 </button>
                 {editingEnteredCare && (
-                  <div className="absolute z-20 top-full mt-1.5 left-0 right-0 sm:w-56 dropdown-panel bg-ink-900 border border-ink-700 rounded-lg shadow-2xl p-3">
+                  <div className="absolute z-20 top-full mt-1.5 right-0 w-56 dropdown-panel bg-ink-900 border border-ink-700 rounded-lg shadow-2xl p-3">
                     <TimeDateEditor
                       value={form.enteredCare}
                       mode="live"

@@ -56,15 +56,6 @@ export default function TimeDateEditor({ value, onCommit, onCancel, mode = 'comm
     if (next.length === 5) commitIfLive(date, next)
   }
 
-  const nudge = (minutes) => {
-    if (!isValidTime) return
-    const [h, m] = timeText.split(':').map(Number)
-    const total = ((h * 60 + m + minutes) % 1440 + 1440) % 1440
-    const next = `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`
-    setTimeText(next)
-    commitIfLive(date, next)
-  }
-
   const commit = () => {
     if (!date || !isValidTime) return onCancel?.()
     onCommit(datetimeLocalToIso(`${date}T${timeText}`))
@@ -73,37 +64,19 @@ export default function TimeDateEditor({ value, onCommit, onCancel, mode = 'comm
   return (
     <div className="space-y-3">
       {/* Time — manual entry, no native picker */}
-      <div className="flex items-center justify-center gap-2">
-        <button
-          type="button"
-          onClick={() => nudge(-5)}
-          className="btn-ghost w-9 h-9 !p-0 text-sm shrink-0"
-          title="-5 minutes"
-        >
-          −5
-        </button>
-        <input
-          ref={inputRef}
-          type="text"
-          inputMode="numeric"
-          placeholder="HH:MM"
-          className={`input text-2xl font-display tabular-nums text-center py-3 w-32 ${
-            timeText && !isValidTime ? 'border-code-1' : ''
-          }`}
-          value={timeText}
-          onChange={onTimeChange}
-          onBlur={() => mode === 'live' && commitIfLive(date, timeText)}
-          autoFocus={mode === 'committed'}
-        />
-        <button
-          type="button"
-          onClick={() => nudge(5)}
-          className="btn-ghost w-9 h-9 !p-0 text-sm shrink-0"
-          title="+5 minutes"
-        >
-          +5
-        </button>
-      </div>
+      <input
+        ref={inputRef}
+        type="text"
+        inputMode="numeric"
+        placeholder="HH:MM"
+        className={`input text-2xl font-display tabular-nums text-center py-3 w-full ${
+          timeText && !isValidTime ? 'border-code-1' : ''
+        }`}
+        value={timeText}
+        onChange={onTimeChange}
+        onBlur={() => mode === 'live' && commitIfLive(date, timeText)}
+        autoFocus={mode === 'committed'}
+      />
       {timeText && !isValidTime && (
         <p className="text-center text-[11px] text-code-1">Enter a 24-hour time, e.g. 17:54</p>
       )}
