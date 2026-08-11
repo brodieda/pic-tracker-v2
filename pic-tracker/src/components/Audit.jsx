@@ -400,7 +400,7 @@ export default function Audit({ refreshKey, onPicClick }) {
   }
 
   return (
-    <div className="px-4 sm:px-6 py-6 max-w-7xl mx-auto">
+    <div className="px-4 sm:px-6 py-6">
       <header className="mb-5 flex items-end justify-between gap-3 flex-wrap">
         <div>
           <p className="text-xs font-display tracking-[0.3em] uppercase text-ink-500">/ audit</p>
