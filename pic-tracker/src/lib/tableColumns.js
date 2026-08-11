@@ -50,9 +50,12 @@ export const DISCHARGED_COLUMNS = [
 
 export const AUDIT_COLUMNS = [
   { key: 'number', label: '#', locked: true, web: true, mob: true },
+  { key: 'status', label: 'Status', web: true, mob: true },
   { key: 'code', label: 'Code', web: true, mob: true },
   { key: 'highestCode', label: 'Highest code', web: true, mob: false },
-  { key: 'name', label: 'Name / desc', web: true, mob: true },
+  { key: 'name', label: 'Name', web: true, mob: true },
+  { key: 'description', label: 'Description', web: true, mob: false },
+  { key: 'ga', label: 'Gender / age', web: true, mob: false },
   { key: 'kpe', label: 'KPE', web: true, mob: true },
   { key: 'timeIn', label: 'Time in', web: true, mob: true },
   { key: 'timeOut', label: 'Time out', web: true, mob: false },
@@ -61,6 +64,10 @@ export const AUDIT_COLUMNS = [
   { key: 'presentations', label: 'Presentations', web: true, mob: false },
   { key: 'outcome', label: 'Outcome', web: true, mob: false },
   { key: 'refTo', label: 'Referred to', web: true, mob: false },
+  { key: 'medical', label: 'Medical', web: false, mob: false },
+  { key: 'secFlag', label: 'Security flag', web: false, mob: false },
+  { key: 'secNotified', label: 'Sec notified', web: false, mob: false },
+  { key: 'friends', label: 'Friends', web: false, mob: false },
   { key: 'tlSignoff', label: 'TL sign-off', web: true, mob: false },
 ]
 
