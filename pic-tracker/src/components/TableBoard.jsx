@@ -126,7 +126,7 @@ export function Multi({ selected, options, onChange }) {
   )
 }
 
-function ColumnsButton({ tableKey, visible, onChange }) {
+export function ColumnsButton({ tableKey, visible, onChange }) {
   const [open, setOpen] = useState(false)
   const defs = columnsFor(tableKey)
   const def = (k) => defs.find((c) => c.key === k)
