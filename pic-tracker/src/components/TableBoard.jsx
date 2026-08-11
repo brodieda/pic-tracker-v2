@@ -29,9 +29,9 @@ import {
 import { columnsFor, getVisibleColumns, setVisibleColumns } from '../lib/tableColumns'
 import ShieldIcon from './ShieldIcon'
 
-const abbrevGender = (g) =>
+export const abbrevGender = (g) =>
   g === 'Feminine' ? 'F' : g === 'Masculine' ? 'M' : g === 'Non-binary' ? 'NB' : g || ''
-const gaLabel = (p) =>
+export const gaLabel = (p) =>
   [p.gender ? abbrevGender(p.gender) : null, p.ageRange || null].filter(Boolean).join(' · ')
 
 function CodeSquare({ code }) {

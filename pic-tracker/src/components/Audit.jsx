@@ -15,9 +15,9 @@ import {
   normalizeReferredTo,
 } from '../lib/helpers'
 import { completenessFor, isIncomplete } from '../lib/completeness'
-import { CODES, SUBSTANCES, PRESENTATIONS, OUTCOMES, REFERRED_BY, REFERRED_TO } from '../constants/options'
+import { CODES, SUBSTANCES, PRESENTATIONS, OUTCOMES, REFERRED_BY, REFERRED_TO, GENDERS, AGE_RANGES } from '../constants/options'
 import { columnsFor, getVisibleColumns, setVisibleColumns } from '../lib/tableColumns'
-import { Sel, Multi, Txt, inputCls, ColumnsButton } from './TableBoard'
+import { Sel, Multi, Txt, inputCls, ColumnsButton, abbrevGender, gaLabel } from './TableBoard'
 import TimeDateEditor from './TimeDateEditor'
 
 const CODE_COLOR = { 1: 'bg-code-1', 2: 'bg-code-2', 3: 'bg-code-3', 4: 'bg-code-4', 5: 'bg-code-5' }
@@ -148,6 +148,16 @@ export default function Audit({ refreshKey, onPicClick }) {
       case 'number':
         return [<span className="tabular-nums font-display font-semibold">#{pic.number}</span>, false]
 
+      case 'status':
+        return [
+          discharged ? (
+            <span className="text-ink-400">Discharged</span>
+          ) : (
+            <span className="text-code-5 font-semibold">In care</span>
+          ),
+          false,
+        ]
+
       case 'code':
         return [
           editMode ? (
@@ -169,19 +179,48 @@ export default function Audit({ refreshKey, onPicClick }) {
       case 'name':
         return [
           editMode ? (
-            <Txt
-              value={pic.name || pic.description || ''}
-              placeholder="name / desc"
-              onSave={(v) =>
-                save(() => updatePicFields(pic.id, pic.name ? { name: v || null } : { description: v || null }))
-              }
-            />
-          ) : mf.has('identifier') ? (
+            <Txt value={pic.name || ''} placeholder="name" onSave={(v) => save(() => updatePicFields(pic.id, { name: v || null }))} />
+          ) : mf.has('identifier') && !pic.name?.trim() && !pic.description?.trim() ? (
             miss
           ) : (
-            pic.name?.trim() || pic.description?.trim() || '—'
+            pic.name?.trim() || dash
           ),
-          mf.has('identifier'),
+          mf.has('identifier') && !pic.name?.trim() && !pic.description?.trim(),
+        ]
+
+      case 'description':
+        return [
+          editMode ? (
+            <Txt value={pic.description || ''} placeholder="description" onSave={(v) => save(() => updatePicFields(pic.id, { description: v || null }))} />
+          ) : (
+            pic.description?.trim() || dash
+          ),
+          false,
+        ]
+
+      case 'ga':
+        return [
+          editMode ? (
+            <span className="inline-flex gap-1">
+              <Sel
+                value={pic.gender}
+                width="w-16"
+                placeholder="G"
+                options={GENDERS.map((g) => ({ value: g, label: abbrevGender(g) }))}
+                onChange={(v) => save(() => updatePicFields(pic.id, { gender: v || null }))}
+              />
+              <Sel
+                value={pic.ageRange}
+                width="w-20"
+                placeholder="age"
+                options={AGE_RANGES}
+                onChange={(v) => save(() => updatePicFields(pic.id, { ageRange: v || null }))}
+              />
+            </span>
+          ) : (
+            gaLabel(pic) || dash
+          ),
+          false,
         ]
 
       case 'kpe':
@@ -283,6 +322,76 @@ export default function Audit({ refreshKey, onPicClick }) {
             pic.tlSignoff || '—'
           ),
           mf.has('tlSignoff'),
+        ]
+
+      case 'medical':
+        if (!discharged) return [inCareDash, false]
+        return [
+          editMode ? (
+            <Sel
+              value={pic.medicalInvolved === true ? 'Yes' : pic.medicalInvolved === false ? 'No' : ''}
+              width="w-20"
+              options={['Yes', 'No']}
+              onChange={(v) => save(() => updatePicFields(pic.id, { medicalInvolved: v === 'Yes' ? true : v === 'No' ? false : null }))}
+            />
+          ) : mf.has('medicalInvolved') ? (
+            miss
+          ) : pic.medicalInvolved == null ? (
+            dash
+          ) : (
+            pic.medicalInvolved ? 'Yes' : 'No'
+          ),
+          discharged && mf.has('medicalInvolved'),
+        ]
+
+      case 'secFlag':
+        return [
+          editMode ? (
+            <button
+              onClick={() => save(() => updatePicFields(pic.id, { ejectionFlag: !pic.ejectionFlag }))}
+              className={`${inputCls} w-16 text-center font-semibold ${pic.ejectionFlag ? 'text-code-1' : 'text-ink-500'}`}
+            >
+              {pic.ejectionFlag ? 'On' : 'Off'}
+            </button>
+          ) : pic.ejectionFlag ? (
+            <span className="text-code-1 font-semibold">On</span>
+          ) : (
+            dash
+          ),
+          false,
+        ]
+
+      case 'secNotified':
+        if (!pic.ejectionFlag) return [dash, false]
+        if (!discharged) return [inCareDash, false]
+        return [
+          editMode ? (
+            <Sel
+              value={pic.securityNotified === true ? 'Yes' : pic.securityNotified === false ? 'No' : ''}
+              width="w-20"
+              options={['Yes', 'No']}
+              onChange={(v) => save(() => updatePicFields(pic.id, { securityNotified: v === 'Yes' ? true : v === 'No' ? false : null }))}
+            />
+          ) : mf.has('securityNotified') ? (
+            miss
+          ) : pic.securityNotified == null ? (
+            dash
+          ) : (
+            pic.securityNotified ? 'Yes' : 'No'
+          ),
+          discharged && mf.has('securityNotified'),
+        ]
+
+      case 'friends':
+        return [
+          (pic.friends || []).length > 0 ? (
+            <span title={`${pic.friends.length} logged`}>
+              👥 {pic.friends.filter((f) => f.inside).length}
+            </span>
+          ) : (
+            dash
+          ),
+          false,
         ]
 
       default:
