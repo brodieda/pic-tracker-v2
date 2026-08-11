@@ -48,7 +48,23 @@ export const DISCHARGED_COLUMNS = [
   { key: 'tlSignoff', label: 'TL sign-off', web: false, mob: false },
 ]
 
-const COLS = { incare: IN_CARE_COLUMNS, discharged: DISCHARGED_COLUMNS }
+export const AUDIT_COLUMNS = [
+  { key: 'number', label: '#', locked: true, web: true, mob: true },
+  { key: 'code', label: 'Code', web: true, mob: true },
+  { key: 'highestCode', label: 'Highest code', web: true, mob: false },
+  { key: 'name', label: 'Name / desc', web: true, mob: true },
+  { key: 'kpe', label: 'KPE', web: true, mob: true },
+  { key: 'timeIn', label: 'Time in', web: true, mob: true },
+  { key: 'timeOut', label: 'Time out', web: true, mob: false },
+  { key: 'refBy', label: 'Referred by', web: true, mob: false },
+  { key: 'substances', label: 'Substances', web: true, mob: false },
+  { key: 'presentations', label: 'Presentations', web: true, mob: false },
+  { key: 'outcome', label: 'Outcome', web: true, mob: false },
+  { key: 'refTo', label: 'Referred to', web: true, mob: false },
+  { key: 'tlSignoff', label: 'TL sign-off', web: true, mob: false },
+]
+
+const COLS = { incare: IN_CARE_COLUMNS, discharged: DISCHARGED_COLUMNS, audit: AUDIT_COLUMNS }
 const colsKey = (t) => `pic_table_cols_${t}`
 
 function isMobile() {
