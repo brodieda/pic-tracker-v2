@@ -69,6 +69,7 @@ export default function Audit({ refreshKey, onPicClick }) {
   const [incompleteOnly, setIncompleteOnly] = useState(false)
   const [editMode, setEditMode] = useState(false)
   const [cols, setCols] = useState(() => getVisibleColumns('audit'))
+  const [sortDir, setSortDir] = useState('asc')
 
   const reload = () => {
     setPics(getPics())
@@ -102,10 +103,11 @@ export default function Audit({ refreshKey, onPicClick }) {
     return [...pics]
       .map((p) => ({ pic: p, mf: completenessFor(p).missingFields, incomplete: isIncomplete(p) }))
       .sort((a, b) => {
-        if (a.incomplete !== b.incomplete) return a.incomplete ? -1 : 1
-        return (a.pic.number || 0) - (b.pic.number || 0)
+        const diff = (a.pic.number || 0) - (b.pic.number || 0)
+        return sortDir === 'desc' ? -diff : diff
       })
-  }, [pics])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pics, sortDir])
 
   const incompleteCount = allRows.filter((r) => r.incomplete).length
 
@@ -358,11 +360,24 @@ export default function Audit({ refreshKey, onPicClick }) {
           <table className="w-full text-sm border-collapse">
             <thead>
               <tr className="text-left text-[10px] uppercase tracking-widest text-ink-500 border-b border-ink-800">
-                {cols.map((key) => (
-                  <th key={key} className="px-3 py-2 font-semibold whitespace-nowrap">
-                    {label(key)}
-                  </th>
-                ))}
+                {cols.map((key) =>
+                  key === 'number' ? (
+                    <th key={key} className="px-3 py-2 font-semibold whitespace-nowrap">
+                      <button
+                        onClick={() => setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))}
+                        className="inline-flex items-center gap-1 hover:text-ink-200 transition"
+                        title={sortDir === 'asc' ? 'Ascending — click to flip' : 'Descending — click to flip'}
+                      >
+                        {label(key)}
+                        <span className="text-xs leading-none">{sortDir === 'desc' ? '↓' : '↑'}</span>
+                      </button>
+                    </th>
+                  ) : (
+                    <th key={key} className="px-3 py-2 font-semibold whitespace-nowrap">
+                      {label(key)}
+                    </th>
+                  ),
+                )}
               </tr>
             </thead>
             <tbody>
