@@ -16,6 +16,7 @@ import {
   insertPic,
   updatePicByNumber,
   insertActivity,
+  updateActivityCode,
   findPicUuidByNumber,
 } from './supabaseStore'
 import { getActorNameForLog } from './actorName'
@@ -105,6 +106,27 @@ export function mirrorActivity(picNumber, evt) {
     } catch (e) {
       // eslint-disable-next-line no-console
       console.error('[dualWrite] mirrorActivity failed:', e)
+    }
+  })()
+}
+
+// Fixes the Supabase copy of a past event's code (Audit page's "highest
+// code" correction). This is an UPDATE on activity_log, not an INSERT —
+// needs that table's RLS to actually grant UPDATE to the writer role. If
+// it doesn't yet, this fails harmlessly: local storage already has the
+// fix, it just won't have synced to other devices until the policy exists.
+export function mirrorEventCodeCorrection(eventId, newCode) {
+  if (!shouldMirror()) return
+  ;(async () => {
+    try {
+      const result = await updateActivityCode(eventId, newCode)
+      if (!result) {
+        console.warn(
+          '[dualWrite] mirrorEventCodeCorrection: update returned nothing — activity_log likely needs an UPDATE policy for writer.',
+        )
+      }
+    } catch (e) {
+      console.error('[dualWrite] mirrorEventCodeCorrection failed:', e)
     }
   })()
 }

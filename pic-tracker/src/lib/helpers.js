@@ -5,6 +5,7 @@ import {
   mirrorPicUpdate,
   mirrorActivity,
   mirrorPicUpdateWithActivity,
+  mirrorEventCodeCorrection,
 } from './dualWrite'
 
 // ---------- Time ----------
@@ -110,6 +111,42 @@ export function highestCodeFor(picId, events) {
   )
   if (relevant.length === 0) return null
   return Math.min(...relevant.map((e) => e.code))
+}
+
+// The specific event responsible for the current "highest code" value —
+// i.e. whichever admit/code_change first logged that minimum. Editing
+// "highest code" doesn't mean setting some separate stored value (there
+// isn't one — it's always derived live from the event log); it means
+// correcting the actual historical entry that produced it, so the audit
+// trail and the displayed number never disagree. Ties go to the earliest
+// occurrence.
+export function highestCodeEventFor(picId, events) {
+  const relevant = events
+    .filter((e) => e.picId === picId && (e.type === 'admit' || e.type === 'code_change'))
+    .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
+  if (relevant.length === 0) return null
+  const min = Math.min(...relevant.map((e) => e.code))
+  return relevant.find((e) => e.code === min) || null
+}
+
+// Corrects a past event's code value in place (used only for fixing the
+// event behind "highest code" on the Audit page). Unlike everything else
+// in this file, this mutates an existing log entry rather than appending
+// a new one — the audit trail is meant to be append-only everywhere else,
+// so this is a deliberate, narrow exception for fixing a data-entry mistake.
+export function correctEventCode(eventId, newCode) {
+  const events = getEvents()
+  const idx = events.findIndex((e) => e.id === eventId)
+  if (idx < 0) return null
+  events[idx] = { ...events[idx], code: newCode }
+  try {
+    localStorage.setItem('pic_events', JSON.stringify(events))
+  } catch (e) {
+    console.error('Failed to correct event code', e)
+    return null
+  }
+  mirrorEventCodeCorrection(eventId, newCode)
+  return events[idx]
 }
 
 export function currentCodeFor(picId, events) {

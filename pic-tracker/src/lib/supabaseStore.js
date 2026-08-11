@@ -535,3 +535,21 @@ export async function insertActivity(evt, picUuid) {
   if (error) { logError('insertActivity', error); return null }
   return activityFromDb(data)
 }
+
+// Corrects a past activity_log row's code value — the one deliberate
+// exception to the append-only audit trail, used only to fix the
+// historical entry behind "highest code" on the Audit page. Needs an
+// UPDATE policy on activity_log for the writer role; if that policy isn't
+// in place yet, this fails harmlessly (local storage is already correct,
+// this mirror just won't sync until the policy is added).
+export async function updateActivityCode(eventId, newCode) {
+  if (!supabase) return null
+  const { data, error } = await supabase
+    .from('activity_log')
+    .update({ code: newCode })
+    .eq('id', eventId)
+    .select()
+    .single()
+  if (error) { logError('updateActivityCode', error); return null }
+  return activityFromDb(data)
+}
