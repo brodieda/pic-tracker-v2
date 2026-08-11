@@ -3,6 +3,8 @@ import { getPics, getEvents, getEvent } from '../lib/store'
 import {
   currentCodeFor,
   highestCodeFor,
+  highestCodeEventFor,
+  correctEventCode,
   getAssignedKpe,
   formatClock,
   changePicCode,
@@ -173,8 +175,20 @@ export default function Audit({ refreshKey, onPicClick }) {
           false,
         ]
 
-      case 'highestCode':
-        return [<CodeBadge code={highestCodeFor(pic.id, events)} />, false]
+      case 'highestCode': {
+        const peakEvent = highestCodeEventFor(pic.id, events)
+        const highest = highestCodeFor(pic.id, events)
+        if (!editMode || !peakEvent) return [<CodeBadge code={highest} />, false]
+        return [
+          <Sel
+            value={peakEvent.code ?? ''}
+            width="w-16"
+            options={CODES.map((c) => ({ value: c.code, label: c.code }))}
+            onChange={(v) => save(() => correctEventCode(peakEvent.id, Number(v)))}
+          />,
+          false,
+        ]
+      }
 
       case 'name':
         return [
