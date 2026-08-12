@@ -52,7 +52,7 @@ export default function LandingScreen({ onJoined }) {
   }
 
   if (mode === 'admin') {
-    return <AdminScreen onBack={() => setMode('choose')} onJoined={onJoined} />
+    return <AdminScreen onBack={() => setMode('choose')} onJoined={onJoined} onCreateEvent={() => setMode('create')} />
   }
 
   const handleCreate = async () => {
@@ -147,9 +147,6 @@ export default function LandingScreen({ onJoined }) {
                 className="btn-ghost w-full py-3"
               >
                 Type in other event code
-              </button>
-              <button onClick={() => setMode('create')} className="btn-primary w-full py-3">
-                Start a new event
               </button>
             </div>
             <div className="text-center">

@@ -274,7 +274,7 @@ function EventCard({ ev, onChanged, onJoined }) {
   )
 }
 
-export default function AdminScreen({ onBack, onJoined }) {
+export default function AdminScreen({ onBack, onJoined, onCreateEvent }) {
   const [loggedIn, setLoggedIn] = useState(isAdminLoggedIn())
   const [code, setCode] = useState('')
   const [error, setError] = useState(null)
@@ -366,6 +366,9 @@ export default function AdminScreen({ onBack, onJoined }) {
           <h2 className="text-2xl font-display font-bold text-ink-100">All events</h2>
         </div>
         <div className="flex items-center gap-2">
+          <button onClick={onCreateEvent} className="btn-primary text-sm">
+            + New event
+          </button>
           <button onClick={onBack} className="btn-ghost text-sm">
             ← Back
           </button>
